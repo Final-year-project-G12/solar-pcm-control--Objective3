@@ -1,0 +1,1017 @@
+{
+ "state": "tamilnadu",
+ "contract_version": "obj3_contract_v3.0_2026-11-09",
+ "generated_utc": "2026-11-09T21:49:03.551092+00:00",
+ "validated_simulator_version": "sim_v3_tamilnadu (multi-node tank, search dt=150 s, confirmation dt=37.5 s)",
+ "source": "Objective 2 Tamil Nadu pipeline stages g2-g24 (scripts/tn_run_all.py). Built by src/handoff/build_obj3_contract_tamilnadu.py.",
+ "supersession_note": "SUPERSEDES objective3/obj3_environment_contract_tamilnadu.json (contract_version obj3_contract_v2.0_2026-09-17, file dated 2026-10-27) ENTIRELY. That contract described designs that no longer exist: n-Hexacosane (C26) and n-Pentacosane (C25) in radial / single-layer arrangements, 32-35 capsules of 72-80 mm, 4.9-7.4 kg PCM, in a 50 L tank with a 1.5 m2 collector. The released designs are PureTemp 58 / RT57HC, staggered, 98-105 capsules of 81.6 mm, 23.6-25.3 kg PCM, in a 100 L tank with a 2.5 m2 collector. Its claims that PCM loses to a plain tank in every regime (-12.5% to -14.8%) and that P(meets demand) is 0-4% are both FALSE for the current designs: the held-out test has PCM beating the water-only twin in 9 of 9 designs. Objective 3 must read THIS file. Any cached copy of the older contract, or of OBJECTIVE3_INPUTS_AND_NEXT_STEPS.md dated 2026-10-27, must be discarded.",
+ "global_limits": {
+  "delivery_target_temp_C": 45.0,
+  "max_safe_water_temp_C": 75.0,
+  "max_safe_pcm_temp_C": 65.0,
+  "max_pressure_bar": 3.5,
+  "min_irradiance_cutoff_Wm2": 10.0,
+  "flow_min_kg_s": 0.01,
+  "flow_max_kg_s": 0.05,
+  "pump_efficiency": 0.6,
+  "note": "These are HARD limits. The controller may never command outside the flow envelope, and may never drive water above max_safe_water_temp_C or PCM above max_safe_pcm_temp_C."
+ },
+ "fixed_system": {
+  "tank_volume_L": 100.0,
+  "tank_height_to_diameter_ratio": 2.0,
+  "tank_insulation_m": 0.05,
+  "tank_U_W_m2K": 0.8,
+  "collector_area_m2": 2.5,
+  "collector_fr_tau_alpha": 0.75,
+  "collector_fr_ul_W_m2K": 4.5,
+  "collector_flow_dependent_fr_enabled": false,
+  "capsule_wall_material": "aluminium",
+  "capsule_wall_thickness_m": 0.0008,
+  "liquid_convection_enhancement": 2.0,
+  "melting_half_width_K": 1.0,
+  "WARNING_tank_collector": "100 L / 2.5 m2. The 50 L / 1.5 m2 pairing in the 2026-10-27 contract is SUPERSEDED and must not be used."
+ },
+ "static_design_per_regime": [
+  {
+   "regime_id": 0,
+   "label": "coastal/interior lowland (46 pts, medoid elev 156 m)",
+   "medoid_point_id": "TNP_0006",
+   "medoid_elevation_m": 155.66,
+   "n_points": 46,
+   "population_covered": 20468850,
+   "T_mains_est_C": 28.463,
+   "o1_pcm_shortlist": [
+    "RT57HC",
+    "n-Hexacosane (C26)",
+    "PureTemp 58"
+   ],
+   "selected_pcm": "PureTemp 58",
+   "selected_pcm_o1_consensus_rank": 3,
+   "capsule_inner_radius_m": 0.0399999921398018,
+   "capsule_inner_diameter_mm": 80.0,
+   "capsule_outer_diameter_mm": 81.6,
+   "pcm_volume_fraction": 0.29587085509033423,
+   "n_capsules": 104,
+   "arrangement": "staggered",
+   "nominal_flow_kg_s": 0.0387608549268862,
+   "pcm_mass_kg": 24.813708338666146,
+   "select_year_metrics": {
+    "g_window_kWh_yr": 276.61663795689043,
+    "g_annual_kWh_yr": 283.06458941610964,
+    "d_overheat_h": 828.6197421585472,
+    "t_pcm_max_C": 62.34015727291967,
+    "t_water_max_C": 72.06847166054456
+   },
+   "repeatability_band": {
+    "g_window": 28.36277516915937,
+    "g_annual": 28.28411122152882,
+    "d_overheat": 115.25279676064189
+   },
+   "selection_funnel": {
+    "n_candidates": 90,
+    "n_S0_indistinguishable_on_g_window": 14,
+    "n_S1": 5,
+    "n_S2": 3,
+    "note": "Tie-breaks were declared before results were seen (plan WP6, D9/D10). Designs differing by less than the repeatability band are treated as tied, then overheating, PCM mass, capsule count and temperature margin decide."
+   },
+   "held_out_2011_2015": [
+    {
+     "regime": 0,
+     "role": "chosen",
+     "pcm": "PureTemp 58",
+     "R_in_m": 0.04,
+     "fraction": 0.2959,
+     "N": 104,
+     "flow": 0.0388,
+     "arrangement": "staggered",
+     "year": 2011,
+     "tau_hold_mean_h": 69.966,
+     "gain_tau_hold_mean_h": 0.2699,
+     "tau_serve_mean_h": 1.8683,
+     "gain_tau_serve_mean_h": 0.1604,
+     "serve_frac_45_mean": 0.3514,
+     "gain_serve_frac_45_mean": 0.0412,
+     "serve_T_out_min_mean_C": 28.4661,
+     "gain_serve_T_out_min_mean_C": 0.2956,
+     "g_window": 286.6844,
+     "g_annual": 292.4248,
+     "g_useful": 169.8009,
+     "d_overheat": 863.7847,
+     "shield_water_h": 426.125,
+     "shield_pcm_h": 1216.4514,
+     "t_pcm_max": 63.3913,
+     "t_water_max": 72.2718,
+     "sf_pcm": 0.7314,
+     "sf_plain": 0.5918,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 24.8137,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 0,
+     "role": "chosen",
+     "pcm": "PureTemp 58",
+     "R_in_m": 0.04,
+     "fraction": 0.2959,
+     "N": 104,
+     "flow": 0.0388,
+     "arrangement": "staggered",
+     "year": 2012,
+     "tau_hold_mean_h": 70.4925,
+     "gain_tau_hold_mean_h": -0.0044,
+     "tau_serve_mean_h": 1.8754,
+     "gain_tau_serve_mean_h": 0.1509,
+     "serve_frac_45_mean": 0.3522,
+     "gain_serve_frac_45_mean": 0.0401,
+     "serve_T_out_min_mean_C": 28.4883,
+     "gain_serve_T_out_min_mean_C": 0.2824,
+     "g_window": 295.2512,
+     "g_annual": 300.7732,
+     "g_useful": 183.507,
+     "d_overheat": 897.0069,
+     "shield_water_h": 453.8819,
+     "shield_pcm_h": 1269.625,
+     "t_pcm_max": 63.3044,
+     "t_water_max": 72.2769,
+     "sf_pcm": 0.7377,
+     "sf_plain": 0.5942,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 24.8137,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 0,
+     "role": "chosen",
+     "pcm": "PureTemp 58",
+     "R_in_m": 0.04,
+     "fraction": 0.2959,
+     "N": 104,
+     "flow": 0.0388,
+     "arrangement": "staggered",
+     "year": 2013,
+     "tau_hold_mean_h": 69.9203,
+     "gain_tau_hold_mean_h": 0.0512,
+     "tau_serve_mean_h": 1.8589,
+     "gain_tau_serve_mean_h": 0.1549,
+     "serve_frac_45_mean": 0.3493,
+     "gain_serve_frac_45_mean": 0.0403,
+     "serve_T_out_min_mean_C": 28.5109,
+     "gain_serve_T_out_min_mean_C": 0.2828,
+     "g_window": 290.0801,
+     "g_annual": 295.9389,
+     "g_useful": 174.117,
+     "d_overheat": 868.4861,
+     "shield_water_h": 419.2778,
+     "shield_pcm_h": 1233.0,
+     "t_pcm_max": 63.3303,
+     "t_water_max": 72.2698,
+     "sf_pcm": 0.7347,
+     "sf_plain": 0.5936,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 24.8137,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 0,
+     "role": "chosen",
+     "pcm": "PureTemp 58",
+     "R_in_m": 0.04,
+     "fraction": 0.2959,
+     "N": 104,
+     "flow": 0.0388,
+     "arrangement": "staggered",
+     "year": 2014,
+     "tau_hold_mean_h": 66.5944,
+     "gain_tau_hold_mean_h": 0.1269,
+     "tau_serve_mean_h": 1.7923,
+     "gain_tau_serve_mean_h": 0.1337,
+     "serve_frac_45_mean": 0.3374,
+     "gain_serve_frac_45_mean": 0.0367,
+     "serve_T_out_min_mean_C": 28.4869,
+     "gain_serve_T_out_min_mean_C": 0.2636,
+     "g_window": 269.9166,
+     "g_annual": 275.9039,
+     "g_useful": 165.9736,
+     "d_overheat": 822.5833,
+     "shield_water_h": 418.6319,
+     "shield_pcm_h": 1172.4097,
+     "t_pcm_max": 63.3348,
+     "t_water_max": 72.3282,
+     "sf_pcm": 0.7169,
+     "sf_plain": 0.5854,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 24.8137,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 0,
+     "role": "chosen",
+     "pcm": "PureTemp 58",
+     "R_in_m": 0.04,
+     "fraction": 0.2959,
+     "N": 104,
+     "flow": 0.0388,
+     "arrangement": "staggered",
+     "year": 2015,
+     "tau_hold_mean_h": 67.8575,
+     "gain_tau_hold_mean_h": 0.1304,
+     "tau_serve_mean_h": 1.8095,
+     "gain_tau_serve_mean_h": 0.1398,
+     "serve_frac_45_mean": 0.3398,
+     "gain_serve_frac_45_mean": 0.0377,
+     "serve_T_out_min_mean_C": 28.4799,
+     "gain_serve_T_out_min_mean_C": 0.2673,
+     "g_window": 278.8221,
+     "g_annual": 284.6008,
+     "g_useful": 169.4517,
+     "d_overheat": 836.7639,
+     "shield_water_h": 438.2222,
+     "shield_pcm_h": 1183.625,
+     "t_pcm_max": 63.3441,
+     "t_water_max": 72.2621,
+     "sf_pcm": 0.7237,
+     "sf_plain": 0.588,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 24.8137,
+     "run_id": "heldout_2da11230bfb5"
+    }
+   ]
+  },
+  {
+   "regime_id": 1,
+   "label": "elevated/hill interior, Nilgiris-adjacent (41 pts, medoid elev 627 m)",
+   "medoid_point_id": "TNP_0007",
+   "medoid_elevation_m": 626.92,
+   "n_points": 41,
+   "population_covered": 20422160,
+   "T_mains_est_C": 23.969,
+   "o1_pcm_shortlist": [
+    "RT57HC",
+    "n-Hexacosane (C26)",
+    "n-Pentacosane (C25)"
+   ],
+   "selected_pcm": "RT57HC",
+   "selected_pcm_o1_consensus_rank": 1,
+   "capsule_inner_radius_m": 0.0399999999430275,
+   "capsule_inner_diameter_mm": 80.0,
+   "capsule_outer_diameter_mm": 81.6,
+   "pcm_volume_fraction": 0.278801542648258,
+   "n_capsules": 98,
+   "arrangement": "staggered",
+   "nominal_flow_kg_s": 0.029512792488473,
+   "pcm_mass_kg": 23.644882846945112,
+   "select_year_metrics": {
+    "g_window_kWh_yr": 225.50557401796064,
+    "g_annual_kWh_yr": 237.0252536792109,
+    "d_overheat_h": 662.2920658856434,
+    "t_pcm_max_C": 62.41377218554291,
+    "t_water_max_C": 72.0669172536599
+   },
+   "repeatability_band": {
+    "g_window": 26.035090010606563,
+    "g_annual": 26.147449545423957,
+    "d_overheat": 102.71795803317828
+   },
+   "selection_funnel": {
+    "n_candidates": 90,
+    "n_S0_indistinguishable_on_g_window": 10,
+    "n_S1": 3,
+    "n_S2": 3,
+    "note": "Tie-breaks were declared before results were seen (plan WP6, D9/D10). Designs differing by less than the repeatability band are treated as tied, then overheating, PCM mass, capsule count and temperature margin decide."
+   },
+   "held_out_2011_2015": [
+    {
+     "regime": 1,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2788,
+     "N": 98,
+     "flow": 0.0295,
+     "arrangement": "staggered",
+     "year": 2011,
+     "tau_hold_mean_h": 67.4323,
+     "gain_tau_hold_mean_h": 1.934,
+     "tau_serve_mean_h": 1.5882,
+     "gain_tau_serve_mean_h": 0.0233,
+     "serve_frac_45_mean": 0.2904,
+     "gain_serve_frac_45_mean": 0.0104,
+     "serve_T_out_min_mean_C": 23.8947,
+     "gain_serve_T_out_min_mean_C": 0.0928,
+     "g_window": 213.7307,
+     "g_annual": 224.9272,
+     "g_useful": 75.0356,
+     "d_overheat": 634.0764,
+     "shield_water_h": 228.3611,
+     "shield_pcm_h": 840.8403,
+     "t_pcm_max": 63.5647,
+     "t_water_max": 72.1992,
+     "sf_pcm": 0.6242,
+     "sf_plain": 0.5399,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 23.6449,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 1,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2788,
+     "N": 98,
+     "flow": 0.0295,
+     "arrangement": "staggered",
+     "year": 2012,
+     "tau_hold_mean_h": 69.2522,
+     "gain_tau_hold_mean_h": 1.0359,
+     "tau_serve_mean_h": 1.6342,
+     "gain_tau_serve_mean_h": 0.0434,
+     "serve_frac_45_mean": 0.2994,
+     "gain_serve_frac_45_mean": 0.0144,
+     "serve_T_out_min_mean_C": 23.9397,
+     "gain_serve_T_out_min_mean_C": 0.0936,
+     "g_window": 240.8504,
+     "g_annual": 252.0902,
+     "g_useful": 96.7469,
+     "d_overheat": 725.0486,
+     "shield_water_h": 236.4583,
+     "shield_pcm_h": 968.7153,
+     "t_pcm_max": 63.5036,
+     "t_water_max": 72.223,
+     "sf_pcm": 0.6412,
+     "sf_plain": 0.5469,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 23.6449,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 1,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2788,
+     "N": 98,
+     "flow": 0.0295,
+     "arrangement": "staggered",
+     "year": 2013,
+     "tau_hold_mean_h": 64.8422,
+     "gain_tau_hold_mean_h": 1.4009,
+     "tau_serve_mean_h": 1.5478,
+     "gain_tau_serve_mean_h": 0.0113,
+     "serve_frac_45_mean": 0.2827,
+     "gain_serve_frac_45_mean": 0.0082,
+     "serve_T_out_min_mean_C": 23.9295,
+     "gain_serve_T_out_min_mean_C": 0.0738,
+     "g_window": 208.9896,
+     "g_annual": 220.1513,
+     "g_useful": 78.4457,
+     "d_overheat": 644.4722,
+     "shield_water_h": 215.6597,
+     "shield_pcm_h": 862.6458,
+     "t_pcm_max": 63.5765,
+     "t_water_max": 72.1652,
+     "sf_pcm": 0.6204,
+     "sf_plain": 0.538,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 23.6449,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 1,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2788,
+     "N": 98,
+     "flow": 0.0295,
+     "arrangement": "staggered",
+     "year": 2014,
+     "tau_hold_mean_h": 68.2575,
+     "gain_tau_hold_mean_h": 2.0663,
+     "tau_serve_mean_h": 1.5959,
+     "gain_tau_serve_mean_h": 0.0232,
+     "serve_frac_45_mean": 0.2911,
+     "gain_serve_frac_45_mean": 0.01,
+     "serve_T_out_min_mean_C": 23.9372,
+     "gain_serve_T_out_min_mean_C": 0.0774,
+     "g_window": 215.7346,
+     "g_annual": 226.9828,
+     "g_useful": 78.6109,
+     "d_overheat": 646.0833,
+     "shield_water_h": 210.4306,
+     "shield_pcm_h": 860.9861,
+     "t_pcm_max": 63.5957,
+     "t_water_max": 72.1963,
+     "sf_pcm": 0.627,
+     "sf_plain": 0.5421,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 23.6449,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 1,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2788,
+     "N": 98,
+     "flow": 0.0295,
+     "arrangement": "staggered",
+     "year": 2015,
+     "tau_hold_mean_h": 68.137,
+     "gain_tau_hold_mean_h": 1.7286,
+     "tau_serve_mean_h": 1.5926,
+     "gain_tau_serve_mean_h": 0.0237,
+     "serve_frac_45_mean": 0.291,
+     "gain_serve_frac_45_mean": 0.0104,
+     "serve_T_out_min_mean_C": 23.9428,
+     "gain_serve_T_out_min_mean_C": 0.0782,
+     "g_window": 237.0054,
+     "g_annual": 248.2645,
+     "g_useful": 92.2772,
+     "d_overheat": 696.5694,
+     "shield_water_h": 220.2361,
+     "shield_pcm_h": 931.5833,
+     "t_pcm_max": 63.7551,
+     "t_water_max": 72.2469,
+     "sf_pcm": 0.6418,
+     "sf_plain": 0.549,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 23.6449,
+     "run_id": "heldout_2da11230bfb5"
+    }
+   ]
+  },
+  {
+   "regime_id": 2,
+   "label": "coastal metro lowland, largest population (46 pts, medoid elev 44 m)",
+   "medoid_point_id": "TNP_0001",
+   "medoid_elevation_m": 44.3,
+   "n_points": 46,
+   "population_covered": 30335760,
+   "T_mains_est_C": 27.768,
+   "o1_pcm_shortlist": [
+    "RT57HC",
+    "n-Pentacosane (C25)",
+    "n-Hexacosane (C26)"
+   ],
+   "selected_pcm": "RT57HC",
+   "selected_pcm_o1_consensus_rank": 1,
+   "capsule_inner_radius_m": 0.04,
+   "capsule_inner_diameter_mm": 80.0,
+   "capsule_outer_diameter_mm": 81.6,
+   "pcm_volume_fraction": 0.2987159398030723,
+   "n_capsules": 105,
+   "arrangement": "staggered",
+   "nominal_flow_kg_s": 0.0266534062784501,
+   "pcm_mass_kg": 25.333803158548093,
+   "select_year_metrics": {
+    "g_window_kWh_yr": 262.88995872533974,
+    "g_annual_kWh_yr": 269.15497685707265,
+    "d_overheat_h": 845.0678173475752,
+    "t_pcm_max_C": 62.39687529051195,
+    "t_water_max_C": 72.06101096226257
+   },
+   "repeatability_band": {
+    "g_window": 29.50097981414802,
+    "g_annual": 29.46894749069135,
+    "d_overheat": 106.15676892130186
+   },
+   "selection_funnel": {
+    "n_candidates": 90,
+    "n_S0_indistinguishable_on_g_window": 12,
+    "n_S1": 5,
+    "n_S2": 2,
+    "note": "Tie-breaks were declared before results were seen (plan WP6, D9/D10). Designs differing by less than the repeatability band are treated as tied, then overheating, PCM mass, capsule count and temperature margin decide."
+   },
+   "held_out_2011_2015": [
+    {
+     "regime": 2,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2987,
+     "N": 105,
+     "flow": 0.0267,
+     "arrangement": "staggered",
+     "year": 2011,
+     "tau_hold_mean_h": 70.352,
+     "gain_tau_hold_mean_h": 0.512,
+     "tau_serve_mean_h": 1.8428,
+     "gain_tau_serve_mean_h": 0.1768,
+     "serve_frac_45_mean": 0.3475,
+     "gain_serve_frac_45_mean": 0.0478,
+     "serve_T_out_min_mean_C": 27.7839,
+     "gain_serve_T_out_min_mean_C": 0.1422,
+     "g_window": 276.8756,
+     "g_annual": 282.2649,
+     "g_useful": 145.9896,
+     "d_overheat": 905.2708,
+     "shield_water_h": 352.2639,
+     "shield_pcm_h": 1208.0903,
+     "t_pcm_max": 63.5263,
+     "t_water_max": 72.2074,
+     "sf_pcm": 0.7244,
+     "sf_plain": 0.5955,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 25.3338,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 2,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2987,
+     "N": 105,
+     "flow": 0.0267,
+     "arrangement": "staggered",
+     "year": 2012,
+     "tau_hold_mean_h": 67.9326,
+     "gain_tau_hold_mean_h": 0.5381,
+     "tau_serve_mean_h": 1.7863,
+     "gain_tau_serve_mean_h": 0.1464,
+     "serve_frac_45_mean": 0.3362,
+     "gain_serve_frac_45_mean": 0.0411,
+     "serve_T_out_min_mean_C": 27.7923,
+     "gain_serve_T_out_min_mean_C": 0.1305,
+     "g_window": 278.336,
+     "g_annual": 283.7203,
+     "g_useful": 147.1246,
+     "d_overheat": 911.4236,
+     "shield_water_h": 353.1181,
+     "shield_pcm_h": 1216.9722,
+     "t_pcm_max": 63.6183,
+     "t_water_max": 72.2057,
+     "sf_pcm": 0.7261,
+     "sf_plain": 0.5965,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 25.3338,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 2,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2987,
+     "N": 105,
+     "flow": 0.0267,
+     "arrangement": "staggered",
+     "year": 2013,
+     "tau_hold_mean_h": 67.2313,
+     "gain_tau_hold_mean_h": 0.4164,
+     "tau_serve_mean_h": 1.7641,
+     "gain_tau_serve_mean_h": 0.1482,
+     "serve_frac_45_mean": 0.3314,
+     "gain_serve_frac_45_mean": 0.0406,
+     "serve_T_out_min_mean_C": 27.7746,
+     "gain_serve_T_out_min_mean_C": 0.1263,
+     "g_window": 258.521,
+     "g_annual": 264.2534,
+     "g_useful": 135.0509,
+     "d_overheat": 859.5,
+     "shield_water_h": 317.5208,
+     "shield_pcm_h": 1152.1458,
+     "t_pcm_max": 63.5997,
+     "t_water_max": 72.2211,
+     "sf_pcm": 0.7089,
+     "sf_plain": 0.5883,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 25.3338,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 2,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2987,
+     "N": 105,
+     "flow": 0.0267,
+     "arrangement": "staggered",
+     "year": 2014,
+     "tau_hold_mean_h": 67.1999,
+     "gain_tau_hold_mean_h": 0.6068,
+     "tau_serve_mean_h": 1.7672,
+     "gain_tau_serve_mean_h": 0.1542,
+     "serve_frac_45_mean": 0.3339,
+     "gain_serve_frac_45_mean": 0.0429,
+     "serve_T_out_min_mean_C": 27.7852,
+     "gain_serve_T_out_min_mean_C": 0.1285,
+     "g_window": 263.6143,
+     "g_annual": 269.4722,
+     "g_useful": 137.8572,
+     "d_overheat": 848.3681,
+     "shield_water_h": 331.0417,
+     "shield_pcm_h": 1142.6181,
+     "t_pcm_max": 63.6409,
+     "t_water_max": 72.1623,
+     "sf_pcm": 0.7121,
+     "sf_plain": 0.5891,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 25.3338,
+     "run_id": "heldout_2da11230bfb5"
+    },
+    {
+     "regime": 2,
+     "role": "chosen",
+     "pcm": "RT57HC",
+     "R_in_m": 0.04,
+     "fraction": 0.2987,
+     "N": 105,
+     "flow": 0.0267,
+     "arrangement": "staggered",
+     "year": 2015,
+     "tau_hold_mean_h": 70.2785,
+     "gain_tau_hold_mean_h": 0.5563,
+     "tau_serve_mean_h": 1.8328,
+     "gain_tau_serve_mean_h": 0.1703,
+     "serve_frac_45_mean": 0.3458,
+     "gain_serve_frac_45_mean": 0.0464,
+     "serve_T_out_min_mean_C": 27.7974,
+     "gain_serve_T_out_min_mean_C": 0.1384,
+     "g_window": 272.2652,
+     "g_annual": 277.956,
+     "g_useful": 146.9875,
+     "d_overheat": 881.0208,
+     "shield_water_h": 349.9028,
+     "shield_pcm_h": 1187.9931,
+     "t_pcm_max": 63.4879,
+     "t_water_max": 72.1849,
+     "sf_pcm": 0.7178,
+     "sf_plain": 0.5909,
+     "residual_pct": 0.0,
+     "pcm_mass_kg": 25.3338,
+     "run_id": "heldout_2da11230bfb5"
+    }
+   ]
+  }
+ ],
+ "held_out_test": {
+  "status": "COMPLETED AND LOCKED - do not re-run, do not tune against these years",
+  "years": [
+   2011,
+   2012,
+   2013,
+   2014,
+   2015
+  ],
+  "run_id": "heldout_2da11230bfb5",
+  "locked_utc": "2026-10-30T09:56:22.980791+00:00",
+  "selection_fingerprint": "2da11230bfb56844c244fb39e38a9fcd7b4301d957cd62340e65871b11f6e298",
+  "n_designs_tested": 9,
+  "coverage": "The chosen design of each regime PLUS the best design of every other Objective 1 shortlisted PCM - 9 designs, not 3, so the result cannot be a cherry-pick.",
+  "gates": {
+   "beats_water_only_twin": "9 of 9",
+   "pcm_peak_under_65C": "9 of 9 (63.3-64.0 C)",
+   "water_peak_under_75C": "9 of 9 (72.2-72.9 C)"
+  }
+ },
+ "weather_sequences": {
+  "training": {
+   "years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020
+   ],
+   "role": "explore"
+  },
+  "validation": {
+   "years": [
+    2021,
+    2022,
+    2023
+   ],
+   "role": "select"
+  },
+  "held_out_test": {
+   "years": [
+    2011,
+    2012,
+    2013,
+    2014,
+    2015
+   ],
+   "role": "test",
+   "note": "Objective 2's one-shot test is DONE and locked. Objective 3 must NOT tune against these years."
+  },
+  "forbidden": {
+   "years": [
+    2024,
+    2025
+   ],
+   "role": "used_test_v1",
+   "note": "Spent by Objective 2's v1 held-out test. Accepted for NO purpose."
+  },
+  "enforcement": "src/weather/roles.py refuses to load a year whose role differs from the stated purpose; the test years additionally require acquire_test_lock().",
+  "medoid_points": {
+   "0": "TNP_0006",
+   "1": "TNP_0007",
+   "2": "TNP_0001"
+  }
+ },
+ "time_step_s": 150,
+ "time_step_confirm_s": 37.5,
+ "demand_profile_file": "data/demand/demand_profile_tamilnadu.csv",
+ "demand_daily_total_L": 300.0,
+ "action_space": {
+  "discrete_version": {
+   "actions": [
+    "charge",
+    "discharge",
+    "bypass"
+   ],
+   "note": "simulator applies a validated flow-rate and valve command for each mode"
+  },
+  "hybrid_version": {
+   "mode": [
+    "charge",
+    "discharge",
+    "bypass"
+   ],
+   "continuous": {
+    "flow_rate_kg_s": "within this regime's flow_envelope_kg_s above"
+   },
+   "note": "preferred if hardware can modulate pump/valve continuously -- this project's pump range (0.010-0.050 kg/s) is continuous, so the hybrid version is RECOMMENDED"
+  },
+  "recommended": "hybrid_version",
+  "hard_rule": "the controller must never command a flow or temperature outside this regime's flow_envelope_kg_s / max_safe_water_temp_C / max_safe_pcm_temp_C -- the safety shield below overrides the policy if it tries"
+ },
+ "reset_scenarios": [
+  {
+   "name": "fully_solid",
+   "initial_pcm_state": "solid",
+   "initial_water_temp_C": 30.0,
+   "note": "matches src/simulation/tank_model.py's default cold-start condition"
+  },
+  {
+   "name": "partially_charged",
+   "initial_pcm_state": "mid",
+   "initial_water_temp_C": 30.0,
+   "note": "PCM initialized at Tm_C (roughly 50% notional charge state)"
+  },
+  {
+   "name": "fully_liquid",
+   "initial_pcm_state": "liquid",
+   "initial_water_temp_C": 30.0,
+   "note": "stresses discharge-heavy policies from a fully-charged start"
+  }
+ ],
+ "acceptance_test_before_drl_training": [
+  "every action stays within flow_envelope_kg_s / temperature limits above",
+  "charge/discharge/bypass transitions are physically valid",
+  "the environment conserves energy (reuse Phase 4 Gate 1's <0.1% residual check)",
+  "the safety shield cannot be bypassed by the policy",
+  "the same seed reproduces the same trajectory",
+  "simulator output matches this Objective 2 re-evaluation for identical actions"
+ ],
+ "dynamic_state_schema": {
+  "description": "One observation per control timestep. Fields marked measurable=false need an estimator (energy-balance + calibrated melt-fraction observer), not a raw sensor.",
+  "fields": [
+   {
+    "name": "I_t",
+    "unit": "W/m2",
+    "measurable": true,
+    "source": "pyranometer or weather feed"
+   },
+   {
+    "name": "T_amb_t",
+    "unit": "C",
+    "measurable": true,
+    "source": "ambient sensor"
+   },
+   {
+    "name": "T_water_t",
+    "unit": "C",
+    "measurable": true,
+    "source": "tank thermocouple"
+   },
+   {
+    "name": "T_pcm_t",
+    "unit": "C",
+    "measurable": false,
+    "source": "estimator (no direct PCM sensor assumed)"
+   },
+   {
+    "name": "f_melt_t",
+    "unit": "fraction [0,1]",
+    "measurable": false,
+    "source": "estimator, derived from T_pcm_t via the frozen enthalpy model"
+   },
+   {
+    "name": "H_pcm_t",
+    "unit": "J/kg",
+    "measurable": false,
+    "source": "estimator (integral of Q_pcm)"
+   },
+   {
+    "name": "T_in_t",
+    "unit": "C",
+    "measurable": true,
+    "source": "mains/inlet sensor"
+   },
+   {
+    "name": "T_out_t",
+    "unit": "C",
+    "measurable": true,
+    "source": "delivery-point sensor"
+   },
+   {
+    "name": "D_t",
+    "unit": "kg/s or L",
+    "measurable": true,
+    "source": "flow meter at the draw-off point"
+   },
+   {
+    "name": "t_day",
+    "unit": "hour of day [0,24)",
+    "measurable": true,
+    "source": "clock"
+   },
+   {
+    "name": "d_season",
+    "unit": "categorical/cyclical encoding",
+    "measurable": true,
+    "source": "calendar"
+   },
+   {
+    "name": "mdot_t",
+    "unit": "kg/s",
+    "measurable": true,
+    "source": "commanded/measured pump flow"
+   },
+   {
+    "name": "dp_t",
+    "unit": "Pa",
+    "measurable": true,
+    "source": "differential pressure sensor or Ergun estimate from mdot_t"
+   },
+   {
+    "name": "E_unmet_t",
+    "unit": "kWh (cumulative)",
+    "measurable": false,
+    "source": "estimator, from T_out_t vs delivery target"
+   },
+   {
+    "name": "mode_t",
+    "unit": "categorical {charge, discharge, bypass}",
+    "measurable": true,
+    "source": "controller's own last commanded mode"
+   },
+   {
+    "name": "T_water_top_C",
+    "unit": "C",
+    "measurable": true,
+    "source": "sensor at the tank outlet - this is the DELIVERY temperature"
+   },
+   {
+    "name": "T_water_bottom_C",
+    "unit": "C",
+    "measurable": true,
+    "source": "sensor at the collector return - this is the collector INLET"
+   },
+   {
+    "name": "recoverable_energy_above_45C_kWh",
+    "unit": "kWh",
+    "measurable": false,
+    "source": "estimator (WP1 E_rec,45), not a raw sensor"
+   }
+  ],
+  "stratification_note": "The tank is stratified and multi-node. Delivery temperature is the TOP node; the collector inlet is the BOTTOM node. Loop flow sets stratification, not collector heat."
+ },
+ "safety_shield": {
+  "enabled": true,
+  "bypass_water_C": 72.0,
+  "bypass_pcm_C": 62.0,
+  "guard_band_K": 3.0,
+  "enforced_in": "src/simulation/tank_model.py - inside the physics, NOT in the policy",
+  "note": "This is ALREADY ENFORCED, not a specification to implement. The shield forces the collector off at 72 C water / 62 C PCM, a 3 C guard band below the 75/65 C hard limits. The acceptance-test item 'the shield cannot be bypassed by the policy' therefore passes trivially against the baseline. Objective 3's job is to build a BETTER controller than this blunt reactive trip - one that anticipates the limit instead of reacting at it.",
+  "standard": "IS 12976:2023 Sec 8.2 validates this exact mechanism for overheat protection."
+ },
+ "reward_function": {
+  "status": "SUGGESTED. Weights are deliberately NOT chosen - Objective 3 sets and justifies them. The w1..w5 defaults in the 2026-10-27 contract came from retired designs and are NOT carried over.",
+  "formula": "r_t = w1*E_del45_t - w2*overheat_step_t - w3*safety_violation_t - w4*bypass_switch_t",
+  "term_definitions": {
+   "E_del45_t": "energy delivered up to the 45 C target in this step. The WP1 window is 18:00-09:00; night and morning steps may be weighted more.",
+   "overheat_step_t": "shield-active time in the step (the quantity behind d_overheat)",
+   "safety_violation_t": "1 if TOP water >= 72 C or PCM >= 62 C (the shield guard band), else 0",
+   "bypass_switch_t": "1 if the mode changes into bypass at this step, else 0"
+  },
+  "removed_terms": "The pump-energy term is removed: pump energy is not meaningful in this model, which has only an Ergun pressure drop across the capsule bed.",
+  "normalisation": "To be computed by Objective 3 from the water-only twin of the chosen design over the explore years 2016-2020."
+ },
+ "design_space_caveats": {
+  "NOT_A_GLOBAL_OPTIMUM": true,
+  "statement": "The designs above are the best found WITHIN the declared search bounds under a pre-declared selection rule. They are not proven global optima.",
+  "searched_bounds": {
+   "capsule_inner_radius_mm": [
+    10,
+    40
+   ],
+   "pcm_volume_fraction": [
+    0.02,
+    0.3
+   ],
+   "flow_kg_s": [
+    0.01,
+    0.05
+   ],
+   "arrangement": [
+    "single-layer",
+    "staggered",
+    "radial"
+   ]
+  },
+  "binding_bound_pcm_fraction": "The 30% PCM-fraction cap IS BINDING. The g17 widened-bound diagnostic shows that at 40% the window gain is higher by more than the repeatability band in EVERY regime, with PCM and water peaks still inside 65 C and 75 C. The cap is administrative: the packing engine accepts 28-48% at R 40 mm, and the only literature in the files read (Chen 2025) covers 10-20%. A 40% run is planned, not done.",
+  "flow_optimum_may_be_artefact": "collector.flow_dependent_fr.enabled is FALSE, so F_R does not vary with flow in this model. Any optimum sitting at the low flow bound is therefore suspect. Objective 3 MUST NOT treat the inherited nominal flow as a physical optimum to defend; it is a starting point inside a verified-safe envelope. g17 does establish that the UPPER flow bound is not limiting (0.080 kg/s moves g_window by less than the band).",
+  "radius_bound_not_limiting": "R 45 mm and R 50 mm are both below the chosen design in every regime, so 40 mm sits at or near an interior optimum."
+ },
+ "temperature_specification": {
+  "note": "Four temperatures appear across O1 and O2 and have been mistaken for contradictions. They are different physical quantities.",
+  "o1_T_DELIVERY_C": {
+   "value": 60.0,
+   "meaning": "delivery temperature Objective 1 sizes the night load against (Avargani et al. 2021)"
+  },
+  "o1_DT_APPROACH_C": {
+   "value": 7.0,
+   "meaning": "driving dT a PCM needs above delivery"
+  },
+  "o1_TM_TARGET_C": {
+   "value": 67.0,
+   "meaning": "aspirational PCM melting target (= delivery + approach)",
+   "binds": false
+  },
+  "o1_Tm_target_capped_C": {
+   "range": [
+    55.95,
+    62.88
+   ],
+   "mean": 61.45,
+   "meaning": "THE OPERATIVE CEILING. Feasibility Constraint 6 is Tm <= this. Capped by achievability via kt_worst_month.",
+   "binds": true
+  },
+  "o2_delivery_target_temp_C": {
+   "value": 45.0,
+   "meaning": "threshold at which O2 MEASURES usable delivered energy"
+  },
+  "o2_max_pcm_temp_C": {
+   "value": 65.0,
+   "meaning": "PCM material-stability ceiling (Rubitherm datasheets)"
+  },
+  "o2_max_water_temp_C": {
+   "value": 75.0,
+   "meaning": "scald prevention"
+  },
+  "is_67C_vs_65C_a_safety_problem": "NO. TM_TARGET_C=67 C never reaches a selection decision. Constraint 6 screens on Tm_target_capped_C (mean 61.45 C); every shortlisted PCM melts at 54.0-58.0 C; and the held-out test measured PCM peaks of 63.4-64.0 C, inside the 65 C limit. Objective 3 inherits NO safety risk from this figure.",
+  "open_item_service_mismatch": "Objective 1 sizes latent heat for a 60 C delivery service while Objective 2 scores delivered energy at 45 C. O2's comparison is sound (both arms of every paired run use the same 45 C metric), but whether O1 would have shortlisted different PCMs had it sized against 45 C is UNQUANTIFIED. Open."
+ },
+ "verification_status": {
+  "simulator_verification": {
+   "status": "DONE",
+   "evidence": "89 tests pass; Gate-1 energy balance residual within tolerance; g2 timestep convergence"
+  },
+  "model_consistency_cross_check": {
+   "status": "DONE, with caveats",
+   "method": "ANSYS Fluent, enthalpy-porosity, one capsule / six hours",
+   "caveats": [
+    "three v3 cases returned 0% liquid fraction",
+    "first-order upwind is the only scheme under which all four PCMs converge, so melt fractions are conservative",
+    "symmetry half-slice mesh excludes buoyancy-driven melt convection"
+   ]
+  },
+  "experimental_validation": {
+   "status": "NOT DONE",
+   "scope": "Objective 4"
+  },
+  "o1_physics_agreement": "WEAK AND NOT STATISTICALLY SIGNIFICANT. Objective 1's MCDM ranking vs its own physics model gives mean Spearman rho = +0.169 (per cluster +0.381/+0.103/+0.024), p = 0.12-0.96, n = 8-10 per cluster. The PCM shortlist Objective 2 inherited is an MCDM consensus ranking, NOT a physics-confirmed one.",
+  "wording_rule": "Say 'simulator verification', 'model consistency cross-check' and 'experimental validation' - never 'CFD-validated' or 'physics-validated'."
+ },
+ "deferred_future_work": [
+  "40% PCM-fraction run (the binding cap, see design_space_caveats)",
+  "flow-dependent collector F_R: the model's F_R is flow-independent, so any flow optimum at the low bound is a model artefact",
+  "dense-grid cross-check for rank-2/3 PCM pairs (only rank-1 pairs have one)",
+  "g18 novert/vert states were never run; that with/without comparison is incomplete",
+  "CFD-derived PCM resistance correction is NOT applied (lumped r/(5k) with a liquid-convection factor of 2.0)",
+  "node-count (N=10 vs 20) uncertainty is inside the WP6 band, not removed",
+  "hardware validation (Objective 4)"
+ ],
+ "objective_boundary": "Objective 1 selected the PCM shortlist. Objective 2 selected the physical design (PCM identity, capsule geometry, arrangement, flow) and the validated operating envelope. OBJECTIVE 3 SELECTS THE REAL-TIME ACTION AND NOTHING ELSE. It must not change PCM identity, capsule geometry, tank volume, safety limits, or the released physics model, and must not re-cluster or merge the regimes.",
+ "provenance": {
+  "selection": {
+   "g10_selection_r0.json": "8c6f69ecba467bb00aa03abd54ac5f9cf2d3c56e1d050215fa1718a174d9d9c0",
+   "g10_selection_r1.json": "a4daac62b0049d821dae987ecdd0acd5d5b85771564159fa32c3b0fcdb631787",
+   "g10_selection_r2.json": "924a5d25a2a135cc3a81feb785d4efad2c0ac908cd6e00d0662139dfb1c658b6"
+  },
+  "g10_heldout_results.csv": "432a8781f35351f5ad9945b1d386b3861e41b6c12e5158af060dce1d1dbb0558",
+  "held_out_test.lock": "4b095c2e96eba94e45d801d2c0aae6cb91beabf33c4dec56b7fad6c08c3ff997",
+  "wp6_band.csv": "011478e693670d5fd5b57bdad138211e312a0f68f65748f678b0a3fb51032bf4",
+  "configs/system_config_shared.yaml": "a787796f1d3906ea02d82cf564300982b6127872f8a820d929c476825858fc4c",
+  "configs/states/tamilnadu.yaml": "79f632fa1980b2dfade92e338bec9362040f73449b50adacd4792ebaf2dde94f",
+  "configs/design_space.yaml": "73b23dfb267270386135d96f8f56e5ba8d7164bf0650b90d7b84717a8194fc72",
+  "generic_blocks_reused_from": "archive\\superseded_obj3_contract_2026-10-27\\obj3_environment_contract_tamilnadu.json",
+  "generic_blocks_reused_sha256": "8f4f871a49999212a9d8bbbec8756d6996018366308524bd1c498e0c9efd50c8"
+ }
+}

@@ -1,0 +1,15 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Claude / assistant files
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.mcp.json
+
+# Large files (GitHub rejects >100MB; keep anything >50MB out of git)
+# Track large model/data artifacts with Git LFS or store them externally.
+*.bin
