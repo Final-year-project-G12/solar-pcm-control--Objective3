@@ -1,0 +1,8 @@
+{
+  "ppo": {
+    "seed": 42,
+    "model": "results\\sweep_wshield0\\ppo\\r1_seed42\\ppo_final.zip",
+    "sha256": "7f55c78ba79bc50d1e20a1348499f89e784eeb724ea3204fd2d9e1e1b0df3958",
+    "rule": "lexicographic (zero hard-limit violations, window gain, shield hours, switches) on validation years"
+  }
+}

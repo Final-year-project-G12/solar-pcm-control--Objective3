@@ -1,0 +1,8 @@
+{
+  "ppo": {
+    "seed": 42,
+    "model": "D:\\Final Year Project\\solar-pcm-control--Objective3\\rajasthan\\results\\ppo\\r1_seed42\\ppo_final.zip",
+    "sha256": "c7972c5021f320ab60116aae5bc2d658908ffa15a290cbaae7cf5d6de604eb49",
+    "rule": "lexicographic (zero hard-limit violations, window gain, shield hours, switches) on validation years"
+  }
+}

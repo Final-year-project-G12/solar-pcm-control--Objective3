@@ -1,0 +1,27 @@
+{
+  "source": "water-only twin, training years 2016-2020 (plan section 6 / Q2)",
+  "years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020
+  ],
+  "regimes": {
+    "0": {
+      "E_norm_Wh_per_hour": 95.64480644121734,
+      "max_one_hour_delivery_Wh": 1069.9057730650597,
+      "w3_dominance": 11.29810254213691
+    },
+    "1": {
+      "E_norm_Wh_per_hour": 89.95500224751262,
+      "max_one_hour_delivery_Wh": 1023.9219013892891,
+      "w3_dominance": 11.496427042018977
+    },
+    "2": {
+      "E_norm_Wh_per_hour": 96.44170705370684,
+      "max_one_hour_delivery_Wh": 1093.2746258838938,
+      "w3_dominance": 11.449479751823736
+    }
+  }
+}

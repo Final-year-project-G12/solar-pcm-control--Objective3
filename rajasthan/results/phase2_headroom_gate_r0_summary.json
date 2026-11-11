@@ -1,0 +1,27 @@
+{
+  "regime": 0,
+  "years": [
+    2021,
+    2022,
+    2023
+  ],
+  "n_policies": 92,
+  "band_g_window_kWh": 21.07202674549013,
+  "B0_gain_window_kWh": 130.34011324807867,
+  "B0_shield_h": 837.2962962962964,
+  "best_gain_window_kWh": 130.34011324807867,
+  "best_minus_B0_kWh": 0.0,
+  "HEADROOM_ON_DELIVERY": false,
+  "best_shield_cut_within_band": {
+    "gain_window_kWh": 117.24374316201408,
+    "shield_h": 833.8402777777778,
+    "switches": 358.0,
+    "params": {
+      "bypass_water_guard_C": 75.0,
+      "bypass_pcm_guard_C": 60.0,
+      "ghi_charge_thresh_W": 0.0,
+      "f_melt_charge_max": 1.01
+    }
+  },
+  "rule": "headroom iff best gain > B0 gain + O2 repeatability band (g_window), zero hard-limit violations; validation years only"
+}

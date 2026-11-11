@@ -1,0 +1,8 @@
+{
+  "contract": "obj3_environment_contract_rajasthan_v3.json",
+  "sha256": "ae6997ff77954385f5f0bd38d8307d7b7c8ba6e96ad46a73abc15fb111b36760",
+  "version": "obj3_contract_v3.0_rajasthan_2026-11-11",
+  "tank_L": 50.0,
+  "collector_m2": 1.5,
+  "status": "PASSED"
+}
