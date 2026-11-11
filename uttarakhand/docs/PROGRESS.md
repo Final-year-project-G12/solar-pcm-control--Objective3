@@ -85,3 +85,11 @@ Each controller x regime x validation year (51 episodes):
   other algorithms, recurrent policies, flow control, forecasts, sensor noise, O4 hand-off.
 
 ## Commit record
+
+* Branch `uttarakhand-objective3` (not merged to `main`, not pushed).
+* `bc2452e` - first commit of `uttarakhand/` (git line-ending normalisation altered some CRLF files: contract JSON,
+  weather CSVs; do not check out this commit alone for hash checks).
+* `caa7e8d` - `.gitattributes` `* -text`: files stored byte-exact. Verified 2026-11-11 with a fresh clone made with
+  `core.autocrlf=true`: all 642 files byte-identical to the working folder; contract check, all frozen-policy hashes,
+  the lock fingerprint and the 96-file O2 snapshot test pass inside the clone. **`caa7e8d` is the first commit that
+  contains exactly the files the frozen policies and the M6 lock refer to.**
