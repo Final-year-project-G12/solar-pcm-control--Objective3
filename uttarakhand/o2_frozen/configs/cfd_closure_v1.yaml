@@ -1,0 +1,19 @@
+# Copied unchanged from objective2-rajasthan/configs/cfd_closure_v1.yaml (2026-11-11) so the closure switch works the same way in both states.
+# The two numbers were fitted to a RAJASTHAN OpenFOAM capsule (savE OM55); no Uttarakhand fit exists. Paths below are relative to objective2-rajasthan/.
+# cfd_closure_v1 - OPTIONAL capsule closure for the lumped PCM model (WP2-C, B2, 2026-11-10).
+# Selected only by  system_config_overrides: {pcm_integration: {closure: cfd_closure_v1}}.  The default (key absent, or "legacy")
+# keeps the frozen configs/system_config_shared.yaml values c = 5, F = 2 bit-for-bit.
+#
+# STATUS: UNVALIDATED.  These two numbers are the best fit of the lumped capsule to ONE OpenFOAM case, and that fit sits on the edge of
+# the search grid (c in [2, 10], F in [1, 5]) with a melt-fraction RMSE of 0.25, so they are a bound of the search, not a minimum.
+# The CFD itself reproduces neither Tan 2009 nor Dong 2022 (it melts about 1.6-2x too fast) and its mesh study is not grid-independent
+# (docs/07_OPENFOAM_VALIDATION.md sections 2.2-2.5).  Model-to-model agreement is not a measurement.  Do not use for reported results.
+version: cfd_closure_v1
+status: UNVALIDATED_upper_bound
+conduction_coefficient_c: 10.0           # R_pcm = r_in / (c k_eff A_in); legacy 5.0
+liquid_convection_enhancement: 5.0       # k_eff multiplier once f_melt >= 0.5; legacy 2.0
+source:
+  fit_file: rj_openfoam/results/calib_r0_charge_70_n40.csv      # row lumped_fitted: c 10.00, F 5.00, rmse_meltfrac 0.2519
+  cfd_case: rj_openfoam/results/runs/r0_charge_70_n40/meltAndTemp.dat   # r0, savE OM55, R 39.5 mm, wall 70 C, 40 cells across the radius
+  other_meshes: {n20: "c 10.00, F 5.00, rmse 0.2678", n80: "c 10.00, F 1.00, rmse 0.4658"}   # calib_r0_charge_70_n20.csv / _n80.csv
+  fit_grid: "c linspace(2,10,17) x F linspace(1,5,17) (rj_openfoam/scripts/calibrate_lumped.py line 169)"

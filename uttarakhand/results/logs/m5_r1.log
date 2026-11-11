@@ -1,0 +1,37 @@
+r1 B0 done
+r1 B1 done
+r1 PPO_seed0 done
+r1 PPO_seed1 done
+r1 PPO_seed2 done
+                                                   E_del_window_kWh  g_window_kWh  overheat_h  hours_over_limit  bypass_switches
+regime demand        scenario          controller                                                                               
+1      deterministic fully_liquid      B0                     616.5          72.9       607.4               0.0              0.0
+                                       B1                     609.3          65.7       405.6               0.0            134.3
+                                       PPO_seed0              566.3          22.7         0.1               0.0            583.7
+                                       PPO_seed1              567.7          24.1         0.8               0.0            199.3
+                                       PPO_seed2              539.7          -3.9        13.5               0.0            465.7
+                     fully_solid       B0                     615.7          72.1       607.4               0.0              0.0
+                                       B1                     608.5          64.9       405.6               0.0            134.3
+                                       PPO_seed0              565.5          21.9         0.1               0.0            583.7
+                                       PPO_seed1              566.9          23.3         0.8               0.0            199.3
+                                       PPO_seed2              538.9          -4.7        13.5               0.0            465.7
+                     partially_charged B0                     616.1          72.5       607.4               0.0              0.0
+                                       B1                     608.9          65.3       405.6               0.0            134.3
+                                       PPO_seed0              565.9          22.3         0.1               0.0            583.7
+                                       PPO_seed1              567.3          23.7         0.8               0.0            199.3
+                                       PPO_seed2              539.3          -4.3        13.5               0.0            465.7
+       stochastic    fully_liquid      B0                     573.2          70.4       573.4               0.0              0.0
+                                       B1                     566.1          63.4       360.2               0.0            132.9
+                                       PPO_seed0              530.0          27.2         0.6               0.0            575.8
+                                       PPO_seed1              531.5          28.7         1.8               0.0            190.0
+                                       PPO_seed2              502.5          -0.2        37.4               0.0            458.6
+                     fully_solid       B0                     572.4          69.6       573.4               0.0              0.0
+                                       B1                     565.3          62.6       360.2               0.0            132.9
+                                       PPO_seed0              529.2          26.5         0.6               0.0            575.8
+                                       PPO_seed1              530.7          27.9         1.8               0.0            190.0
+                                       PPO_seed2              501.7          -1.0        37.4               0.0            458.6
+                     partially_charged B0                     572.8          70.0       573.4               0.0              0.0
+                                       B1                     565.7          63.0       360.2               0.0            132.9
+                                       PPO_seed0              529.6          26.9         0.6               0.0            575.8
+                                       PPO_seed1              531.1          28.3         1.8               0.0            190.0
+                                       PPO_seed2              502.1          -0.6        37.4               0.0            458.6

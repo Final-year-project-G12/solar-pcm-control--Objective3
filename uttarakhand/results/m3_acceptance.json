@@ -1,0 +1,47 @@
+{
+ "contract_list": [
+  "every action stays within flow_envelope_kg_s / temperature limits above",
+  "charge/discharge/bypass transitions are physically valid",
+  "the environment conserves energy (reuse Phase 4 Gate 1's <0.1% residual check)",
+  "the safety shield cannot be bypassed by the policy",
+  "the same seed reproduces the same trajectory",
+  "simulator output matches this Objective 2 re-evaluation for identical actions"
+ ],
+ "all_pass": true,
+ "per_test": {
+  "A1_limits": true,
+  "A2_transitions": true,
+  "A3_energy": true,
+  "A4_shield": true,
+  "A5_determinism": true,
+  "A6_matches_O2": true
+ },
+ "per_controller": {
+  "r0|B0": true,
+  "r0|B1": true,
+  "r0|PPO_seed0": true,
+  "r0|PPO_seed1": true,
+  "r0|PPO_seed2": true,
+  "r1|B0": true,
+  "r1|B1": true,
+  "r1|PPO_seed0": true,
+  "r1|PPO_seed1": true,
+  "r1|PPO_seed2": true,
+  "r2|B0": true,
+  "r2|B1": true,
+  "r2|PPO_seed0": true,
+  "r2|PPO_seed1": true,
+  "r2|PPO_seed2": true,
+  "r3|B0": true,
+  "r3|B1": true
+ },
+ "n_rows": 51,
+ "years": [
+  2021,
+  2022,
+  2023
+ ],
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "A4_shield_engaged_against_enable_h_total": 8141,
+ "A4_shield_changed_outcome_h_total": 8129
+}

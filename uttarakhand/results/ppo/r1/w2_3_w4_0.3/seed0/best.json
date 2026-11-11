@@ -1,0 +1,42 @@
+{
+ "regime": 1,
+ "w2": 3.0,
+ "w4": 0.3,
+ "seed": 0,
+ "weights": {
+  "w1": 1.0,
+  "w2": 3.0,
+  "w4": 0.3,
+  "w3": 29.699387800860464,
+  "E_norm_Wh": 127.7358463174008
+ },
+ "best": {
+  "E_del_window_kWh": 563.064240622078,
+  "E_del_annual_kWh": 1140.979472170741,
+  "serve_frac_window": 0.01903948707953955,
+  "tau_serve_insitu_h": 0.0,
+  "collector_kWh": 1320.0439755558727,
+  "shield_water_h": 0.17824074074074073,
+  "shield_pcm_h": 1.7337962962962965,
+  "overheat_h": 1.912037037037037,
+  "hours_over_limit": 0.0,
+  "guard_hours": 9.333333333333334,
+  "t_water_max_C": 72.02431979194479,
+  "t_pcm_max_C": 62.02003898608499,
+  "bypass_hours": 1915.3333333333333,
+  "bypass_switches": 576.0,
+  "residual_pct": 1.5524564065415012e-12,
+  "reward": 8476.605396222463,
+  "g_window_kWh": 19.461274996490413,
+  "g_annual_kWh": 32.04764770919913,
+  "twin_E_del_window_kWh": 543.6029656255877,
+  "twin_shield_water_h": 312.625,
+  "steps": 600064,
+  "ckpt": "ckpt_600064.zip",
+  "wall_s": 851.9274952411652
+ },
+ "diagnostic_w3_override": null,
+ "total_timesteps": 600064,
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "normalisation_sha256": "20fab57c0bb593e9979d0a18a3cac1c7ed179ee37b785388a67f850c9bf2511e"
+}

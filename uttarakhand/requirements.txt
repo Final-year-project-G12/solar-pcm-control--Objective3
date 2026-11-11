@@ -1,0 +1,15 @@
+# Objective 3 Uttarakhand -- tested with Python 3.12 (pip wheels only; avoid mixing with conda MKL, see docs/HOW_TO_RUN.md)
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.13.1
+numba==0.60.0
+PyYAML==6.0.1
+requests==2.32.3
+gymnasium==1.0.0
+stable-baselines3==2.4.1
+torch==2.5.1
+matplotlib==3.9.2
+plotly==5.24.1
+streamlit==1.39.0
+pyarrow==17.0.0          # streamlit tables; pyarrow >= 18 needs NumPy 2, which numba 0.60 / this pipeline do not use
+pytest==8.3.3
