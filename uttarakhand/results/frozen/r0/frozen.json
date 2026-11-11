@@ -1,0 +1,49 @@
+{
+ "regime": 0,
+ "weight_set": "w2_3_w4_0.3",
+ "w2": 3.0,
+ "w4": 0.3,
+ "w3": 27.688566503640015,
+ "validation_seed_means": {
+  "E_del_window_kWh": 551.5709279575062,
+  "g_window_kWh": 15.724491288197468,
+  "E_del_annual_kWh": 1088.0721905446326,
+  "overheat_h": 3.8024691358024696,
+  "shield_water_h": 1.1558641975308643,
+  "shield_pcm_h": 2.646604938271605,
+  "guard_hours": 23.0,
+  "hours_over_limit": 0.0,
+  "bypass_hours": 856.3333333333334,
+  "bypass_switches": 292.77777777777777,
+  "t_pcm_max_C": 61.76743477122474,
+  "t_water_max_C": 72.0443742250089,
+  "reward": 8118.4351649760965
+ },
+ "policies": {
+  "seed0": {
+   "file": "policy_seed0.zip",
+   "sha256": "377dc1c01dca1dcb81191a7a6847b05afaa41e625dcf50e197dc78066fb3e5cf",
+   "checkpoint": "ckpt_262800.zip"
+  },
+  "seed1": {
+   "file": "policy_seed1.zip",
+   "sha256": "1624611bfb4b5b885b471a343ef77c88d0dcdc7f63a803bbdb1058fd063bd3a9",
+   "checkpoint": "ckpt_350400.zip"
+  },
+  "seed2": {
+   "file": "policy_seed2.zip",
+   "sha256": "686c64d5ba5a8ad62c4f36bb867b28a1380c89fab44e0157e454c807d6ff0796",
+   "checkpoint": "ckpt_525600.zip"
+  }
+ },
+ "primary_seed": 0,
+ "normalisation_sha256": "bc5a69a267787f210f7a5340d3f8b2f33a6e5a9107fb4c4c8bc516f89386c891",
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "contract_sha256": "49b0389855dd4fcac415c49f243d6e6366951034c2cd98e1e68bb312ea99e516",
+ "git": {
+  "commit": "7a6875bcfb9bd9737d9f616d2d8054aa418c3c82",
+  "uncommitted_changes": true
+ },
+ "rule": "plan 8.3 lexicographic on seed means, tie 1.0 kWh/yr",
+ "fingerprint": "25278831fce0e8e143a426a7a2e0ee60c43582296335eac420150267b8d4e511"
+}

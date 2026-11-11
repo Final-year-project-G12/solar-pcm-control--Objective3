@@ -1,0 +1,64 @@
+# ============================================================================
+# o3_config.yaml -- Objective 3, Uttarakhand. Every value here is an O3 CHOICE unless a source is named.
+# Its SHA-256 is written into every result file (o3/config.py: config_hash()).
+# ============================================================================
+version: o3_uttarakhand_v1_2026-11-11
+
+regimes:
+  pcm: [0, 1, 2]          # O2 meaningful_on_primary_metric = true -> controller trained here
+  water_only: [3]         # O2: PCM gives no gain (4 capsules, 2 %); baselines only, no PPO (plan Q8 / section 7)
+  primary: 1              # largest population regime (23 pts, 3.99 M), O2 choice = O1 #1 (PureTemp 58)
+
+control:
+  interval_s: 3600        # one decision per hour (plan 3.0): the kernel takes hourly weather/demand
+  actions: {0: bypass, 1: enable}
+
+reset_scenarios: [fully_solid, partially_charged, fully_liquid]   # contract reset_scenarios, water 30 C
+
+observation:
+  # 13 contract fields (contract dynamic_state_schema / state_vector) + prev_action.
+  # hour_of_day is encoded as (sin, cos) -- same field, continuous at midnight.
+  # prev_action is NOT a contract field: it is added because bypass_switch_t depends on it (Markov reward).
+  draw_threshold_kg: 1.0  # an hour "has a draw" if >= 1 kg (O3 choice; O2's curve has ~0 kg at night)
+  minutes_since_draw_cap: 1440
+
+reward:
+  # r_t = w1 * E_del50_t / E_norm - w2 * overheat_h_t - w3 * safety_violation_t - w4 * bypass_switch_t
+  # (contract v2 reward_function; delivery target 50 C for Uttarakhand)
+  w1: 1.0
+  # E_norm = water-only twin's mean hourly E_del,50 over 2016-2020 (fully_solid, deterministic demand),
+  # computed in scripts/m3_baselines.py -> results/normalisation_r{k}.json
+  w3_dominance_factor: 2.0  # w3 = factor x (largest possible one-hour normalised delivery) -> not tuned (Q2)
+  sweep:                    # only w2 and w4 are swept (Q2), fixed after M1 timing
+    # Q2 allows "off or on for each weight" under a compute limit. Measured limit on this laptop (2026-11-11): each
+    # training process commits ~1.6 GB, so only 3 run in parallel in 15.7 GB RAM; the first grid (w2 in
+    # {0, 0.3, 3}, 54 runs) was cut to off/on before any run finished.
+    w2: [0.0, 3.0]
+    w4: [0.0, 0.3]
+
+demand:
+  deterministic_first: true
+  stochastic:               # ASSUMED ranges (Q3 open: no Indian measured draw-off data found)
+    volume_factor_sd: 0.15  # daily volume factor ~ N(1, 0.15), clipped
+    volume_factor_clip: [0.6, 1.4]
+    timing_shift_h: [-1, 0, 1]   # daily whole-hour shift of the 24-point curve, uniform
+
+selection:
+  # lexicographic rule (plan 8.3): (1) zero hours over the 75/65 C hard limits, (2) window delivery,
+  # (3) shield hours (water + PCM), (4) bypass switches. Delivery values within this tolerance count as tied.
+  delivery_tie_kWh_per_yr: 1.0
+
+ppo:
+  total_timesteps: 600000   # ~68 simulated years per run; fixed after M1 (0.1 ms/step kernel)
+  seeds: [0, 1, 2]
+  n_envs: 1
+  eval_every_steps: 87600   # score checkpoints every 10 simulated years on the validation years
+  policy_kwargs: {net_arch: [64, 64]}
+  # all other PPO hyperparameters: Stable-Baselines3 defaults
+  gamma: 0.995              # declared: 24-h horizon needs gamma close to 1 (SB3 default 0.99 -> ~4 h)
+
+years:
+  train: [2016, 2017, 2018, 2019, 2020]
+  validate: [2021, 2022, 2023]
+  o2_used: [2024, 2025]
+  test: [2006, 2007, 2008, 2009, 2010]

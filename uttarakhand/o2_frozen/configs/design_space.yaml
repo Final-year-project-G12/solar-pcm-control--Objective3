@@ -1,0 +1,45 @@
+# Objective 2 current chain - APPROVED design space, Uttarakhand.
+# Ported unchanged from objective2-rajasthan/configs/design_space.yaml (its v3, cap 30 %) on 2026-10-28; the user chose to run
+# Uttarakhand with Rajasthan's approved box rather than re-deciding the ranges (docs/PROGRESS.md section 0).
+# Rajasthan history of this box: approved 2026-10-26 after its G7 sensitivity study with a 20 % cap; raised to 30 % on 2026-10-27
+# because the 20 % cap was the only bound that limited the result there.
+version: design_space_o2_v3_cap30_2026-10-27_uttarakhand
+
+variables:
+  inner_radius_m:      {min: 0.010, max: 0.040}   # PCM thickness = sphere inner radius (decision D3); outer D = 2*(R_in + wall)
+  pcm_volume_fraction: {min: 0.02,  max: 0.30}    # capsule OUTER volume / tank volume; count N is derived (below)
+  flow_rate_kg_s:      {min: 0.010, max: 0.050}   # kept as in the legacy bounds (decision: option b, see flow_note)
+  arrangement:         [single-layer, staggered, radial]
+
+count_rule: "N = clip(round(f * V_tank / V_capsule_outer(R)), ceil(0.02*V_tank/V), floor(0.30*V_tank/V))"
+
+constraints:
+  pcm_peak_limit_C: 65.0       # a design whose PCM peak exceeds this in ANY simulated year is INFEASIBLE (user decision)
+  water_peak_limit_C: 75.0
+  geometry: "exact: src/design/geometry.py (packing, passage fraction >= 0.05, spacing >= 3 mm)"
+
+model:
+  tank_model: multinode
+  n_nodes: 10                  # user decision; N-sensitivity (10 -> 20: 0.15-0.25 pp on the gain) goes into the WP6 band
+  stack_anchor: center         # ablated in G11
+  timestep_s: 150              # same value as solver.timestep_s in system_config_shared.yaml
+
+baseline: "water-only tank at the SAME flow, weather year, demand, shield and tank model (user decision)"
+
+flow_note: >
+  The project collector model has a flow-independent F_R, so lower flow always helps the multi-node water tank.
+  Any optimum found at the 0.010 kg/s floor is to be reported as a MODEL ARTEFACT, not a physical optimum
+  (user decision, option b).
+
+fixed_not_optimised: [tank_volume_L, collector_area_m2, demand_profile, O1_pcm_shortlist]
+
+geometry_engine:
+  # Bounds for the exact geometry check. Deliberately wide so they do not bind: the approved box above is enforced by
+  # src/design/space.to_design(). The fraction cap and flow range come from `variables`.
+  capsule_shape: [sphere]
+  pcm_thickness_m:    {min: 0.004, max: 0.2}
+  capsule_diameter_m: {min: 0.01,  max: 0.2}
+  capsule_count:      {min: 1, max: 5000, step: 1}
+  pcm_volume_fraction_min: 0.0       # loading floor of the geometry check; the 2 % floor is applied by space.count_for_fraction
+  spacing_min_m: 0.003               # minimum capsule surface-to-surface clearance
+  passage_min_fraction: 0.05         # minimum free-flow (void) volume fraction of the tank

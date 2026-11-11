@@ -1,0 +1,31 @@
+lock acquired o3test_e6ea0abf636a fd91543a31d9428ed56f2276740ea6b39a13219be3cb3262b847bc09fa13826b
+r0 B0 done
+r0 B1 done
+r0 PPO_seed0 done
+r0 PPO_seed1 done
+r0 PPO_seed2 done
+r1 B0 done
+r1 B1 done
+r1 PPO_seed0 done
+r1 PPO_seed1 done
+r1 PPO_seed2 done
+r2 B0 done
+r2 B1 done
+r2 PPO_seed0 done
+r2 PPO_seed1 done
+r2 PPO_seed2 done
+r3 B0 done
+r3 B1 done
+              E_del_window_kWh  g_window_kWh  g_annual_kWh  overheat_h  shield_water_h  shield_pcm_h  guard_hours  hours_over_limit  t_water_max_C  t_pcm_max_C  bypass_switches  residual_pct
+regime group                                                                                                                                                                                  
+0      B0               636.92         84.29         94.10      717.71          342.99        374.72      1241.20               0.0          72.16        63.03             0.00           0.0
+       B1               613.33         60.70         70.51      305.88          189.26        116.62       810.40               0.0          72.13        62.75           263.60           0.0
+       PPO              568.21         15.58         25.37        3.03            1.47          1.56        25.60               0.0          72.04        61.61           306.27           0.0
+1      B0               631.64         76.06         89.22      681.43          192.46        488.97       997.60               0.0          72.49        63.50             0.00           0.0
+       B1               623.50         67.93         81.09      445.01           96.76        348.25       841.60               0.0          72.38        63.42           153.20           0.0
+       PPO              569.51         13.94         27.03        4.20            0.65          3.55        16.27               0.0          72.04        61.78           426.40           0.0
+2      B0               653.58         69.75         81.43      573.53          196.72        376.81       967.60               0.0          72.21        62.81             0.00           0.0
+       B1               641.22         57.39         69.06      295.58          109.66        185.92       690.60               0.0          72.11        62.65           167.40           0.0
+       PPO              601.56         17.73         29.19        1.25            0.19          1.06         8.13               0.0          72.06        61.87           367.20           0.0
+3      B0               626.30         -5.63         -4.21      180.44           54.78        125.67       368.80               0.0          72.11        63.57             0.00           0.0
+       B1               623.31         -8.61         -7.20      100.80           28.32         72.47       304.80               0.0          72.10        63.28            68.00           0.0

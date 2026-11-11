@@ -1,0 +1,27 @@
+{
+ "regime": 2,
+ "validation_years": [
+  2021,
+  2022,
+  2023
+ ],
+ "tie_kWh": 1.0,
+ "B0": {
+  "E_del_window_kWh": 634.5586478285898,
+  "overheat_h": 498.82638888888886,
+  "hours_over_limit": 0.0
+ },
+ "b1_grid_n": 35,
+ "b1_grid_n_beat_B0": 0,
+ "b1_best_delivery_gap_kWh": -11.293969312440254,
+ "random_n": 60,
+ "random_n_beat_B0": 2,
+ "random_best_delivery_gap_kWh": 0.0,
+ "single_hour_year": 2021,
+ "single_hour_n": 200,
+ "single_hour_max_d_window_kWh": 0.004591959138906532,
+ "single_hour_max_d_annual_kWh": 0.004597933693048617,
+ "single_hour_n_window_gain_gt_1e-6": 4,
+ "single_hour_mean_d_overheat_h": -0.4499305555555827,
+ "G2_pass": true
+}

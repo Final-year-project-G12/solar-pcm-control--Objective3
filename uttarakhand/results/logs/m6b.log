@@ -1,0 +1,19 @@
+attached to o3test_e6ea0abf636a (EXPLORATORY post-lock checks)
+r0 done
+r1 done
+r2 done
+r3 done
+demo reproduces M6: True (85 rows); night run E_del equals M6: True
+              tau_serve_o2_mean_h  twin_tau_serve_o2_mean_h  gain_tau_serve_o2_h  serve_frac_o2_mean
+regime group                                                                                        
+0      B0                   0.256                     0.367               -0.111               0.037
+       B1                   0.221                     0.367               -0.147               0.033
+       PPO                  0.183                     0.367               -0.184               0.027
+1      B0                   0.193                     0.299               -0.105               0.027
+       B1                   0.173                     0.299               -0.126               0.025
+       PPO                  0.111                     0.299               -0.188               0.017
+2      B0                   0.113                     0.276               -0.163               0.014
+       B1                   0.081                     0.276               -0.194               0.011
+       PPO                  0.038                     0.276               -0.237               0.006
+3      B0                   0.091                     0.095               -0.004               0.016
+       B1                   0.084                     0.095               -0.011               0.014

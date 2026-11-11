@@ -1,0 +1,12 @@
+r1: E_norm 127.7 Wh/h, max hour normalised 14.8
+r1: B1 chosen {'theta_top': 72, 'theta_f': 1.01, 'theta_hot': 50}
+                                 E_del_window_kWh  g_window_kWh  overheat_h  shield_water_h  shield_pcm_h  guard_hours  hours_over_limit   t_pcm_max_C  bypass_switches  residual_pct
+regime purpose  controller                                                                                                                                                           
+1      train    B0                         620.96         71.56      627.75          170.20        457.55       930.60               0.0  6.347000e+01             0.00           0.0
+                B1                         613.59         64.19      412.16           82.95        329.21       779.40               0.0  6.338000e+01           139.20           0.0
+                B4                         334.64       -214.76       44.14           17.84         26.30        97.20               0.0  6.308000e+01          2190.53           0.0
+                water_only_twin            549.40           NaN      325.12          325.12          0.00       578.80               0.0 -1.000000e+09             0.00           0.0
+       validate B0                         615.66         72.05      607.37          159.14        448.24       908.33               0.0  6.348000e+01             0.00           0.0
+                B1                         608.51         64.91      405.57           77.25        328.32       767.67               0.0  6.340000e+01           134.33           0.0
+                B4                         331.75       -211.86       41.36           15.95         25.41        90.33               0.0  6.303000e+01          2190.56           0.0
+                water_only_twin            543.60           NaN      312.62          312.62          0.00       556.33               0.0 -1.000000e+09             0.00           0.0

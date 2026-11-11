@@ -1,0 +1,76 @@
+{
+ "lock_run_id": "o3test_e6ea0abf636a",
+ "fingerprint": "fd91543a31d9428ed56f2276740ea6b39a13219be3cb3262b847bc09fa13826b",
+ "label": "EXPLORATORY",
+ "demo_reproduces_m6_all": true,
+ "n_rows_compared": 85,
+ "same_E_del_window_as_m6": true,
+ "night": {
+  "r0|B0": {
+   "tau_serve_o2_mean_h": 0.2563674282220004,
+   "twin_tau_serve_o2_mean_h": 0.3674563824130714,
+   "gain_tau_serve_o2_h": -0.11108895419107101,
+   "serve_frac_o2_mean": 0.03748206524057499
+  },
+  "r0|B1": {
+   "tau_serve_o2_mean_h": 0.22055361521757785,
+   "twin_tau_serve_o2_mean_h": 0.3674563824130714,
+   "gain_tau_serve_o2_h": -0.14690276719549353,
+   "serve_frac_o2_mean": 0.03335295531986111
+  },
+  "r0|PPO": {
+   "tau_serve_o2_mean_h": 0.18348414086932602,
+   "twin_tau_serve_o2_mean_h": 0.36745638241307144,
+   "gain_tau_serve_o2_h": -0.18397224154374536,
+   "serve_frac_o2_mean": 0.027411165927100228
+  },
+  "r1|B0": {
+   "tau_serve_o2_mean_h": 0.19337477584329682,
+   "twin_tau_serve_o2_mean_h": 0.29886157105926453,
+   "gain_tau_serve_o2_h": -0.10548679521596774,
+   "serve_frac_o2_mean": 0.02697941035480144
+  },
+  "r1|B1": {
+   "tau_serve_o2_mean_h": 0.17273181455834807,
+   "twin_tau_serve_o2_mean_h": 0.29886157105926453,
+   "gain_tau_serve_o2_h": -0.12612975650091646,
+   "serve_frac_o2_mean": 0.02529380710845362
+  },
+  "r1|PPO": {
+   "tau_serve_o2_mean_h": 0.11108105936764782,
+   "twin_tau_serve_o2_mean_h": 0.29886157105926453,
+   "gain_tau_serve_o2_h": -0.18778051169161672,
+   "serve_frac_o2_mean": 0.016813746006120973
+  },
+  "r2|B0": {
+   "tau_serve_o2_mean_h": 0.11262566364219725,
+   "twin_tau_serve_o2_mean_h": 0.27561240215599453,
+   "gain_tau_serve_o2_h": -0.16298673851379725,
+   "serve_frac_o2_mean": 0.014481485242648593
+  },
+  "r2|B1": {
+   "tau_serve_o2_mean_h": 0.08141354520011779,
+   "twin_tau_serve_o2_mean_h": 0.27561240215599453,
+   "gain_tau_serve_o2_h": -0.19419885695587674,
+   "serve_frac_o2_mean": 0.011296339162324804
+  },
+  "r2|PPO": {
+   "tau_serve_o2_mean_h": 0.03845557251894385,
+   "twin_tau_serve_o2_mean_h": 0.27561240215599453,
+   "gain_tau_serve_o2_h": -0.23715682963705068,
+   "serve_frac_o2_mean": 0.005776330074998959
+  },
+  "r3|B0": {
+   "tau_serve_o2_mean_h": 0.0909776289402837,
+   "twin_tau_serve_o2_mean_h": 0.09487700100852992,
+   "gain_tau_serve_o2_h": -0.0038993720682462124,
+   "serve_frac_o2_mean": 0.015526286019813634
+  },
+  "r3|B1": {
+   "tau_serve_o2_mean_h": 0.08364512418499016,
+   "twin_tau_serve_o2_mean_h": 0.09487700100852992,
+   "gain_tau_serve_o2_h": -0.011231876823539757,
+   "serve_frac_o2_mean": 0.014381298866756062
+  }
+ }
+}
