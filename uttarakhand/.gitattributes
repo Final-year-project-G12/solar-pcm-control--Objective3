@@ -1,0 +1,2 @@
+# byte-exact: config, contract, O2 snapshot and frozen policies are verified by SHA-256
+* -text
