@@ -106,11 +106,17 @@ def replay_view() -> None:
 def live_view() -> None:
     st.write("One simulator hour per click, fed by the provider's current-hour value (a nowcast; the stored-year GHI is an hourly "
              "mean). Needs internet; failures fall back to persistence, then to a synthetic day, and are flagged below.")
-    algo = st.selectbox("Policy", ["b1", "b0", "b2"], format_func=lambda k: POLICY_LABELS[k])
-    if "live" not in st.session_state or st.session_state.get("live_key") != (algo, st.session_state.regime):
-        r = LiveDemoRunner(algo=algo, regime_id=st.session_state.regime, mode=DemoMode.LIVE, log_dir=ROOT / "results" / "demo_logs")
+    models = available_models(st.session_state.regime)
+    choice = st.selectbox("Policy", ["b1", "b0", "b2"] + list(models), format_func=lambda k: POLICY_LABELS.get(k, k))
+    if choice.startswith(("b0", "b1", "b2")) and choice in POLICY_LABELS:
+        algo, kw = choice, {}
+    else:                                                   # a trained agent; Gen-2 (V3) agents get the provider's next-3-hour forecast
+        algo, path, ov = models[choice]
+        kw = dict(model_path=path, obs_version=ov)
+    if "live" not in st.session_state or st.session_state.get("live_key") != (choice, st.session_state.regime):
+        r = LiveDemoRunner(algo=algo, regime_id=st.session_state.regime, mode=DemoMode.LIVE, log_dir=ROOT / "results" / "demo_logs", **kw)
         r.reset()
-        st.session_state.live, st.session_state.live_key, st.session_state.live_rows = r, (algo, st.session_state.regime), []
+        st.session_state.live, st.session_state.live_key, st.session_state.live_rows = r, (choice, st.session_state.regime), []
     c1, c2 = st.columns(2)
     if c1.button("Advance one hour (fetch weather)", type="primary"):
         st.session_state.live_rows.append(st.session_state.live.step_once())

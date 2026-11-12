@@ -44,6 +44,8 @@ def main():
                         choices=["ppo", "dqn", "recurrent", "qrdqn", "maskable", "sac", "b0", "b1", "b2"])
     parser.add_argument("--years", type=int, nargs="+", default=VAL_YEARS[:2])
     parser.add_argument("--results-dir", type=str, default=None)
+    parser.add_argument("--run", type=str, default=None,
+                        help="Generation-2 run directory (results/gen2/<tag>): scored in its own observation layout; overrides --algo/--regime")
     add_parallel_args(parser, envs=False)
     args = parser.parse_args()
     n_jobs, _ = resolve(args)
@@ -53,7 +55,17 @@ def main():
     print(f"Phase O3-5 — Robustness | algo {args.algo} | regime {args.regime} | years {args.years} | n_jobs {n_jobs}")
     print("=" * 70)
 
-    if args.algo in ("b0", "b1", "b2"):
+    out_name = f"phase5_robustness_r{args.regime}_{args.algo}.csv"
+    if args.run:
+        import json
+        from o3.agents.gen2 import run_model_path
+        rd = pathlib.Path(args.run)
+        meta = json.loads((rd / "run_meta.json").read_text())
+        args.regime, args.algo = meta["regime_id"], meta["algo"]
+        env_kw = dict(obs_version=meta["obs_version"], control_step_min=meta["control_step_min"])
+        spec, name = ("model", meta["algo"], str(run_model_path(rd)), env_kw), ALGO_LABEL[meta["algo"]] + "[" + meta["tag"] + "]"
+        out_name = f"phase5_robustness_{meta['tag']}.csv"
+    elif args.algo in ("b0", "b1", "b2"):
         spec, name = ("baseline", args.algo), args.algo.upper()
     else:
         path = find_model(args.algo, args.regime, None, res_dir)
@@ -65,7 +77,7 @@ def main():
     t0 = time.time()
     results = run_robustness_suite(policy_name=name, regime_id=args.regime, years=args.years, policy_spec=spec, n_jobs=n_jobs)
     print_robustness_summary(results)
-    save_robustness_results(results, res_dir / f"phase5_robustness_r{args.regime}_{args.algo}.csv")
+    save_robustness_results(results, res_dir / out_name)
     print(f"[INFO] {len(results)} episodes in {time.time() - t0:.0f} s with n_jobs={n_jobs}")
 
 

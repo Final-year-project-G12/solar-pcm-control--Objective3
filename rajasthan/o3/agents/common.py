@@ -33,31 +33,36 @@ def default_out_dir(algo_dir: str, regime_id: int) -> pathlib.Path:
 
 def make_env(regime_id: int, years: list[int], fixed_year: int | None = None, cycle_years: bool = False,
              reward_weights: dict | None = None, continuous: bool = False, contract_path=CONTRACT_PATH,
-             obs_version: str = "V2", demand_mode: str = "deterministic"):
+             obs_version: str = "V2", demand_mode: str = "deterministic", control_step_min: int = 60,
+             domain_randomize: bool = False):
     """A Monitor-wrapped PCMGymEnv. Module-level so it can be pickled into worker processes."""
     from stable_baselines3.common.monitor import Monitor
     cls = PCMContinuousGymEnv if continuous else PCMGymEnv
     return Monitor(cls(contract_path, regime_id=regime_id, years=years, fixed_year=fixed_year,
                        cycle_years=cycle_years, reward_weights=reward_weights, obs_version=obs_version,
-                       demand_mode=demand_mode))
+                       demand_mode=demand_mode, control_step_min=control_step_min, domain_randomize=domain_randomize))
 
 
 def make_train_vec(regime_id: int, n_envs: int = 1, vec: str = "auto", reward_weights: dict | None = None,
-                   continuous: bool = False, years: list[int] | None = None, demand_mode: str = "deterministic"):
+                   continuous: bool = False, years: list[int] | None = None, demand_mode: str = "deterministic",
+                   obs_version: str = "V2", control_step_min: int = 60, domain_randomize: bool = False):
     """Training VecEnv. vec: 'auto' (Subproc if n_envs > 1) | 'subproc' | 'dummy'."""
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
     fn = functools.partial(make_env, regime_id, list(years or TRAIN_YEARS), None, False, reward_weights, continuous,
-                           CONTRACT_PATH, "V2", demand_mode)
+                           CONTRACT_PATH, obs_version, demand_mode, control_step_min, domain_randomize)
     use_subproc = vec == "subproc" or (vec == "auto" and n_envs > 1)
     if use_subproc:
         return SubprocVecEnv([fn] * n_envs, start_method="spawn")
     return DummyVecEnv([fn] * n_envs)
 
 
-def make_eval_vec(regime_id: int, reward_weights: dict | None = None, continuous: bool = False):
-    """Validation VecEnv: cycles through the validation years 2021-2023 (one env, deterministic order)."""
+def make_eval_vec(regime_id: int, reward_weights: dict | None = None, continuous: bool = False,
+                  obs_version: str = "V2", control_step_min: int = 60):
+    """Validation VecEnv: cycles through the validation years 2021-2023 (one env, deterministic order).
+    Domain randomisation is always OFF here so validation reward stays comparable across runs (plan 19.1)."""
     from stable_baselines3.common.vec_env import DummyVecEnv
-    fn = functools.partial(make_env, regime_id, list(VAL_YEARS), None, True, reward_weights, continuous)
+    fn = functools.partial(make_env, regime_id, list(VAL_YEARS), None, True, reward_weights, continuous,
+                           CONTRACT_PATH, obs_version, "deterministic", control_step_min, False)
     return DummyVecEnv([fn])
 
 

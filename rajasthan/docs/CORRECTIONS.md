@@ -32,7 +32,7 @@ cited via the O2 YAML comments, not re-read).
 3,000-step smoke policy, regime 1, test year 2011 only, against a lock file in the scratch folder (not `results/o3_test.lock`).
 Its output (B0 / B1 / twin / smoke-policy numbers for 2011) was not used for any decision and is not in the repository.
 `test_T7_lock_is_exclusive` also loads a 2011 weather file to check its shape. 2012–2015 were never loaded outside the tests'
-refusal checks. The real one-shot test is still unspent.
+refusal checks. The real one-shot test was later spent on the selected Gen-2 DQN run (2026-11-12; see the Gen-2 section).
 
 ---
 
@@ -268,10 +268,130 @@ every result row; git commit in the phase-6 fingerprint.
 
 ---
 
+## Plan sections 16.9–19 (added to the plan 2026-11-11/12): what was done for Rajasthan, and what it shows
+
+The updated plan adds Tamil Nadu's as-built selection (DQN, then SAC), deployment metrics (§18.2), and five advisor-feedback
+items (§19.1) with a Generation-2 training study (§19.3). Those TN numbers (2146 kWh, 50,307 shields, 128.8 kWh savings …) are
+TN's and are NOT used here. Rajasthan equivalents:
+
+**Code (D19–D22)**
+* D19 sub-hourly control: `PCMEnv(control_step_min=…)`, default 60 (unchanged). The O2 kernel runs one hour per call; for
+  sub-hour periods `o2_adapter.period_kernel()` builds a copy from the O2 SOURCE TEXT with exactly two lines replaced
+  (`nsteps = int(round(3600/dt))` → `int(P[35])`, `mdot_d = hour_mass/3600` → `hour_mass/(nsteps*dt)`); it raises if O2's source
+  changes. The 150 s sub-stepping and the shield are untouched. `tests/test_gen2.py`: four 15-minute steps with one action equal one
+  hourly step to 1e-9.
+* D20 observation V3 (17 dims) = the 13 contract fields + GHI at +1/+2/+3 h + next-hour draw. (The plan's "V2 15-dim" is TN's
+  layout over TN's 11-field V1; Rajasthan's V2 is already the 13-field contract vector, so the forecast version is named V3.)
+  The forecast is the stored year's actual irradiance — a PERFECT forecast, like B2's.
+* D21 training-time domain randomisation (`domain_randomize=True`): per episode GHI ×U[0.90,1.10], T_amb +U[−2,2] C, demand
+  ×U[0.85,1.15], applied to the physics inputs; seeded; validation/test/baselines never randomise.
+* D22 `scripts/train_one.py`, `scripts/gen2_study.py`, `scripts/phase9_deployment_metrics.py`, `scripts/make_gen2_plots.py`,
+  `o3/agents/gen2.py`; phase 6 accepts Gen-2 runs (`--run`) and now checks the plan-18.1 rule (delivery ≥ 95 % of B0, annual and
+  window) instead of "window gain ≥ B0".
+* The shield-weight sweep uses multiples {0, 0.5, 1, 1.5, 2} × Rajasthan's per-regime default (D4), not TN's {0, 5, 10, 15, 20}.
+
+**DQN Generation-2 study, regime 1 first (18 runs × 300k steps, validation years 2021–2023, `results/gen2/`)**
+
+| Shield weight | seeds meeting "delivery ≥ 95 % of B0" | mean % of B0 delivery | mean shield cut |
+|---|---|---|---|
+| 0 | 3 / 3 | 100.0 | 0 % (collapsed to B0) |
+| 0.85 | 3 / 3 | 100.0 | 0 % (collapsed to B0) |
+| **1.7 (default)** | **2 / 3** | 96.8 | 32.8 % |
+| 2.55 | 1 / 3 | 84.0 | 62.5 % |
+| 3.4 | 0 / 3 | 74.4 | 97.5 % |
+
+* **First Rajasthan policy that is not B0.** At the default weight, seed 42 delivers 98.2 % of B0's energy (97.3 % in the night
+  window) with **57 % fewer shield hours** (447 vs 1043 h) and zero hard-limit hours; it is the selected run under the plan-18.1
+  rule (`results/gen2/gen2_selected_dqn.json`, SHA-256 inside). Frontier: more shield penalty buys fewer shield hours at a steep
+  delivery cost; the 95 % delivery constraint is met at weight ≤ 1.7 for 2 of 3 seeds.
+* **Seed spread is large**: at w = 1.7 seed 123 collapses to B0 (100 % / 0 % cut), seed 0 gives 92 % delivery / 41 % cut, seed 42
+  98 % / 57 %. The selection is the best of three on validation years — the claim is "an anticipatory policy exists and can be
+  found", not "DQN reliably finds it".
+* **This does not contradict G2.** G2 asked for headroom on DELIVERY and found none; the DQN agent trades ~2 % of delivery
+  (−16 kWh in the night window, just outside O2's 14.4 kWh band) for the shield-time cut. What changed from the failed PPO run
+  is the information (forecast), the training distribution (randomisation) and the learner (off-policy ε-greedy), not the
+  action space. Which of the three matters has NOT been separated (no ablation without forecast / without randomisation);
+  the plan's item 16 (randomisation overlay) is therefore not produced.
+* **Sub-hourly control (feedback item 1) did not help here**: 15-minute control, same weight and seed: 98.8 % of B0 delivery but
+  only a 0.2 % shield cut (it returned to near-B0 behaviour). One run, one seed: not evidence either way.
+* **Regimes 0 and 2** (one seed, default weight): regime 2 collapsed to B0; regime 0 delivers 93.4 % of B0 with a 58 % shield
+  cut, so it does NOT meet the 95 % rule. "Climate-adaptive" coverage is therefore not established beyond regime 1.
+  **Follow-up, 3 seeds × shield weights 0.25×–4× the default (DQN, validation years):** regime 2 stays at exactly B0 in 14 of 15
+  runs; only the two heaviest-weight seeds (w 2.55 and 3.4, seed 42) leave B0, at 84 % of B0 delivery (shield cut 74 % / 94 %), which fails the
+  95 % rule. Regime 0 is B0 in most runs; the runs that leave B0 do so by giving up delivery (w 3.9 seed 42: 93.4 %; w 5.85 and 7.8:
+  70–87 %). No weight in either regime satisfies the plan-18.1 rule, so the regime-0 and regime-2 "selected" entries in
+  `gen2_selected_dqn.json` are B0-equivalent fall-backs (100 % delivery, 0 % shield cut), not learned policies. This is recorded as a
+  limit: DQN works in regime 1 only.
+* Run times: 8.6–10.9 min per DQN run, 6 in parallel, 34.5 min wall for 18 runs.
+
+**Deployment metrics (phase 9, regime 1, selected DQN, validation years, `results/deployment_metrics_r1.json`)**
+Thermal efficiency (E45 / incident solar on 1.5 m² = 2,955 kWh/yr): DQN 30.8 %, B0 31.3 %, twin 26.4 %, B1 26.2 %. Demand
+coverage: 37.4 / 38.1 / 32.1 / 31.8 %. Extra heat versus B1: DQN +136 kWh/yr (+17.6 %), B0 +153 (+19.8 %) — B1 is the
+weakest controller here, unlike TN. Inference: 0.21 ms/decision, 5,507 acting-network parameters, 22 kB fp32 weights
+(single thread, this CPU; against a 1-hour control period). Sensor faults (7 scenarios, observation only): zero hard-limit
+violations everywhere (the shield acts on the true state); DQN loses ≤ 0.2 % delivery in the worst scenario, B1 loses 97.5 %
+with a dead pyranometer (it never charges when it reads no sun).
+"Backup-heater electricity avoided" (TN §18.2): no project file gives a heater efficiency, so the figure is reported as an
+**assumption**, not a result. At an ASSUMED resistive efficiency of 1.0 the selected DQN avoids +136.7 kWh/yr of backup energy vs B1
+(+17.6 %); B0 avoids +153.2 kWh/yr but with 1043 shield-hours against DQN's 447. The JSON also carries the sensitivity at efficiencies
+0.85 / 1.0 / 3.0 (`backup_energy_avoided_vs_B1_kWh_yr_at_efficiency`). Replace the assumed value before quoting it in the paper.
+
+**SAC Generation-2 (regime 1, w = 1.7, 3 seeds, 300k steps, 98 min wall at 3 parallel; `results/gen2/gen2_summary_sac.csv`):**
+delivery 94.5 / 94.7 / 95.0 % of B0 (window 91.7–92.2 %), shield hours 136–140 vs 1043 (cut 87 %), 0 violations, but ~3,100–3,700
+on/off switches per year. No run meets the plan-18.1 rule (delivery >= 95 % of B0, annual AND window): SAC lands just under the
+line and is very consistent across seeds (unlike DQN), trading ~5 % delivery for an 87 % shield cut. DQN seed 42 remains the
+selected run. No SAC weight sweep was run (a lower weight would likely move SAC above 95 %); not claimed.
+
+**LOCKED TEST SPENT (2026-11-12, user-approved), regime 1, selected run `dqn_r1_w1.7_s42_V3_60min_dr`, test years 2006-2010
+(fresh weather, 3 initial PCM states x 5 years, `results/phase6_final_test_dqn.csv`, `phase6_summary_dqn.json`, lock `o3_test.lock`).**
+Mean delivered to 45 C: DQN 941.0 kWh, B0 960.6, B1 797.9, water-only twin 805.5. DQN = 98.0 % of B0 annual, 96.9 % in the night
+window (plan-18.1 rule PASSED on unseen years); shield hours 464 vs B0 1180 (-61 %); 0 hard-limit violations; energy residual
+2.6e-12 %. Window gain vs twin 128.2 kWh (B0 147.8): the agent is NOT better than B0 on delivery; it matches ~98 % of it with
+far less shield action. Validation numbers (98.2 % / 57 % cut) held up out of sample. Only regime 1 was tested; the test is
+now spent and nothing may be tuned on it. Cosmetic: the run banner prints "Algorithm: ppo | Regimes: [0]" (argparse defaults
+not overridden by --run); the evaluated rows are regime 1 / DQN as the CSV shows.
+
+**Ingredient ablation (2026-11-12; DQN, regime 1, w = 1.7, 300k steps, validation years, 3 seeds per variant;
+`scripts/gen2_ablation.py`, `results/gen2/gen2_ablation_dqn_r1.csv`).** Seeds 42 / 0 / 123:
+
+| Variant | delivery % of B0 | shield cut vs B0 | meets the 95 % rule |
+|---|---|---|---|
+| full (V3 forecast + training randomisation) | 98.2 / 92.3 / 100.0 | 57 / 41 / 0 % | 1 of 3 (seed 123 is B0) |
+| no forecast (V2) | 100.0 / 100.0 / 100.0 | 0 / 0 / 0 % | 3 of 3, but all three ARE B0 |
+| no randomisation (V3) | 81.1 / 88.1 / 97.9 | 99 / 57 / 64 % | 1 of 3 (seed 123: 97.9 %, window 96.8 %, cut 64 %) |
+
+* **The forecast is what lets DQN leave B0**: without it all three seeds sit exactly on B0. This holds across seeds.
+* **Training-time randomisation is NOT shown to matter.** With one seed (42) it looked as if randomisation moved the policy from a
+  near-always-bypass one to the 98 % one; the other seeds contradict that: the no-randomisation seed 123 meets the 95 % rule with
+  a larger shield cut (64 %) than the selected randomised run (57 %). Both variants find a good policy in about 1 seed of 3.
+  Randomisation is kept as the default because the plan asks for it and robustness did not suffer, not because it was shown to help.
+* The selected run used for the locked test was chosen by the plan-18.1 rule among the main-study runs before this ablation; the
+  ablation runs are not eligible for selection and the locked test is not repeated.
+* Robustness (phase-5, 13 scenarios x 2 validation years, seed-42 runs, `gen2_ablation_robustness_dqn_r1.csv`): zero violations for
+  every variant in every scenario. The selected (full) run's delivery moves by 128 kWh across scenarios, almost all of it the
+  demand scenarios (x0.7 / x1.3); 20 % GHI noise changes it by < 1 kWh. Plot 16 (randomisation overlay) is drawn from these files.
+* Code for this round: phase 5 and the Streamlit replay accept Gen-2 runs (`phase5_robustness.py --run`, `o3/demo/replay.py`),
+  `scripts/gen2_ablation.py`, `make_gen2_plots.py` plots 13b / 14b / 16, and `gen2_study.py summarise` counts only V3 + randomised
+  runs so ablation runs cannot change the selection.
+
+**Live mode for Gen-2 agents (2026-11-12).** `LiveDemoRunner(..., obs_version="V3")`, `phase7_demo.py --run results/gen2/<tag>` and the
+Streamlit live tab now accept Gen-2 agents. A V3 agent's forecast fields come from the DEMO's weather source (Open-Meteo's own next
+three hours; the next three recorded hours in replay; the synthetic day in stub mode; persistence of the current GHI if a fetch
+fails), never from the stored year: `PCMEnv.set_weather_override(ghi, tamb, hour, forecast_ghi)`. Replay of a stored year through
+the demo reproduces the evaluation numbers for a V3 agent (`tests/test_demo.py`). Live mode is a nowcast + provider forecast, so a
+live session is not exactly the perfect-forecast setting the agent was trained and validated in.
+
+**Still not done:** no SAC Pareto sweep; the locked 2006–2010
+test is spent (see above) (it should be run on the selected DQN run: `phase6_locked_eval.py --run results/gen2/<tag>`); no run trained
+without forecast / randomisation for an ablation; Streamlit portal items of §19.4 are already covered by `app/streamlit_app.py`
+(replay/live, banner) and do not yet list Gen-2 agents.
+
+---
+
 ## Still open (not fixed here)
 
 1. B1 tuning: done. Shield weight: 0 and 1.7 trained (both collapse to B0); the plan-Q2 (w2, w4) grid is implemented but not run.
-2. Headroom gate G2: run, FAILED in all regimes (no on/off policy beats B0). Next step per plan: revisit the action space (F_R(flow)) — an O2 change, not made.
+2. Headroom gate G2: run, FAILED on delivery in all regimes (no on/off RULE beats B0); a Gen-2 DQN trades ~2 % delivery for a 57 % shield cut in regime 1 (see above). F_R(flow) still not enabled.
 3. (done 2026-11-11) 2006–2010 fresh test weather downloaded and accepted (D6).
 4. Live-weather provider and location mapping (plan Q5/Q6).
 5. O2's own caveats stand: 30 % PCM cap and 40 mm radius bind, `cfd_closure_v1` unvalidated, F_R(flow) not enabled,

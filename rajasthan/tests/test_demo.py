@@ -52,3 +52,24 @@ def test_live_fetch_failure_falls_back_visibly(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     fr = L.fetch_live_frame(REGIME, None)
     assert fr.quality_ok is False and "failed" in fr.note
+
+
+def test_v3_agent_replay_through_the_demo_matches_the_environment_and_live_forecast_is_not_the_stored_year(tmp_path):
+    """A V3 (forecast) agent driven by the demo's weather frames reproduces the stored-year run; with a different forecast
+    from the weather source its observation changes (the stored year's look-ahead is never used in demo mode)."""
+    import numpy as np
+    from o3.demo.live_adapter import LiveDemoRunner, DemoMode
+    from o3.environment.pcm_env import PCMEnv
+    n = 48
+    runner = LiveDemoRunner(algo="b0", regime_id=REGIME, mode=DemoMode.REPLAY, replay_year=2021, log_dir=tmp_path, obs_version="V3")
+    frames = runner.run(n_steps=n, verbose=False)
+    env = PCMEnv(CONTRACT_PATH, regime_id=REGIME, year=2021, obs_version="V3")
+    env.reset(year=2021)
+    for f in frames:
+        o = env.step(0)[4]
+        assert f["E_del45_Wh"] == o["E_del45_Wh"]
+    e = PCMEnv(CONTRACT_PATH, regime_id=REGIME, year=2021, obs_version="V3")
+    e.reset(year=2021)
+    a = e.set_weather_override(500.0, 30.0, 10, (100.0, 200.0, 300.0))
+    b = e.set_weather_override(500.0, 30.0, 10, None)                       # persistence
+    assert np.allclose(a[13:16], [0.1, 0.2, 0.3]) and np.allclose(b[13:16], 0.5)

@@ -1,0 +1,52 @@
+{
+  "run_id": "o3test_653f3f54e6b7",
+  "fingerprint": "653f3f54e6b7a07f24649c1c143a94d6bdfebbfa54e4d63f23e80e77ead0ff8b",
+  "passed_primary_criteria": true,
+  "years": [
+    2006,
+    2007,
+    2008,
+    2009,
+    2010
+  ],
+  "B0_fixed_charge": {
+    "delivered_kWh_mean": 960.636765418488,
+    "delivered_kWh_std": 10.88990238928763,
+    "E_del45_window_kWh_mean": 627.0110119420639,
+    "gain_window_kWh_mean": 147.78902415567845,
+    "unmet_kWh_mean": 1467.99848409104,
+    "shield_h_mean": 1180.4800925925924,
+    "safety_violations": 0,
+    "hours_over_limit": 0.0
+  },
+  "B1_reactive_rule": {
+    "delivered_kWh_mean": 797.8878479568386,
+    "delivered_kWh_std": 8.743960306033681,
+    "E_del45_window_kWh_mean": 464.35083957930965,
+    "gain_window_kWh_mean": -14.871148207075578,
+    "unmet_kWh_mean": 1631.2191971479522,
+    "shield_h_mean": 47.95833333333333,
+    "safety_violations": 0,
+    "hours_over_limit": 0.0
+  },
+  "DQN": {
+    "delivered_kWh_mean": 941.0109388121411,
+    "delivered_kWh_std": 9.507385055201036,
+    "E_del45_window_kWh_mean": 607.3864285432223,
+    "gain_window_kWh_mean": 128.16444075683697,
+    "unmet_kWh_mean": 1487.656087729349,
+    "shield_h_mean": 464.06342592592597,
+    "safety_violations": 0,
+    "hours_over_limit": 0.0
+  },
+  "TWIN_water_only": {
+    "delivered_kWh_mean": 805.5110278658943,
+    "delivered_kWh_std": 7.800021206165105,
+    "E_del45_window_kWh_mean": 479.22198778638534,
+    "gain_window_kWh_mean": NaN,
+    "unmet_kWh_mean": 1623.7676484066026,
+    "shield_h_mean": 899.5416666666667,
+    "safety_violations": 0,
+    "hours_over_limit": 0.0
+  }
+}

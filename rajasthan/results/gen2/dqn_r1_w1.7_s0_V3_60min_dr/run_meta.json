@@ -1,0 +1,13 @@
+{
+  "tag": "dqn_r1_w1.7_s0_V3_60min_dr",
+  "algo": "dqn",
+  "regime_id": 1,
+  "steps": 300000,
+  "seed": 0,
+  "shield_weight": 1.7,
+  "obs_version": "V3",
+  "control_step_min": 60,
+  "domain_randomize": true,
+  "train_minutes": 10.954190806547802,
+  "generation": 2
+}

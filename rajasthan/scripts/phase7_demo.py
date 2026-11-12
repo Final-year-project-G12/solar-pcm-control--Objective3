@@ -43,15 +43,24 @@ def main():
     parser.add_argument("--steps", type=int, default=72)
     parser.add_argument("--interval", type=float, default=0.0, help="seconds between steps (live demo: 3600)")
     parser.add_argument("--model", type=str, default=None, help="explicit model .zip (default: results/<algo>/r<regime>)")
+    parser.add_argument("--run", type=str, default=None, help="Generation-2 run directory (results/gen2/<tag>): its algorithm, model, "
+                        "observation layout (V3: forecast fields from the demo's weather source) and regime are used")
     add_parallel_args(parser)
     args = parser.parse_args()
+    obs_version = "V2"
+    if args.run:
+        import json
+        from o3.agents.gen2 import run_model_path
+        m = json.loads((pathlib.Path(args.run) / "run_meta.json").read_text())
+        args.algo, args.regime, obs_version = m["algo"], m["regime_id"], m["obs_version"]
+        args.model = str(run_model_path(pathlib.Path(args.run)))
 
     print("=" * 70)
     print(f"*** {BANNER} ***")
     print(f"Phase O3-7 — Demo | mode={args.mode} | algo={args.algo} | regime {args.regime} ({MEDOIDS[args.regime]['place']})")
     print("=" * 70)
     runner = LiveDemoRunner(algo=args.algo, regime_id=args.regime, mode=DemoMode(args.mode), replay_year=args.year,
-                            model_path=args.model)
+                            model_path=args.model, obs_version=obs_version)
     frames = runner.run(n_steps=args.steps, interval_s=args.interval, verbose=True)
     delivered = sum(f["E_del45_Wh"] for f in frames) / 1000.0
     shield = sum(1 for f in frames if f["shield_override"])

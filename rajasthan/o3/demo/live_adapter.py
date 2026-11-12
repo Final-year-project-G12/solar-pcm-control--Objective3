@@ -54,9 +54,10 @@ class DemoMode(str, Enum):
 
 class WeatherFrame:
     """One hour of weather for the simulator."""
-    __slots__ = ["timestamp", "ghi_wm2", "t_amb_C", "local_hour", "source", "quality_ok", "latency_s", "note"]
+    __slots__ = ["timestamp", "ghi_wm2", "t_amb_C", "local_hour", "source", "quality_ok", "latency_s", "note", "forecast"]
 
-    def __init__(self, timestamp, ghi, t_amb, local_hour, source="unknown", quality_ok=True, latency_s=0.0, note=""):
+    def __init__(self, timestamp, ghi, t_amb, local_hour, source="unknown", quality_ok=True, latency_s=0.0, note="", forecast=None):
+        self.forecast = forecast            # (GHI +1 h, +2 h, +3 h) for V3 agents; None -> the env falls back to persistence
         self.timestamp = timestamp
         self.ghi_wm2 = max(0.0, float(ghi))
         self.t_amb_C = float(t_amb)
@@ -71,12 +72,18 @@ class WeatherFrame:
 # Weather sources
 # ---------------------------------------------------------------------------
 
+def _stub_ghi(step: int) -> float:
+    hour = step % 24
+    return max(0.0, 850.0 * np.sin((hour - 6) / 12.0 * np.pi)) if 6 <= hour <= 18 else 0.0
+
+
 def _stub_frame(step: int) -> WeatherFrame:
     """Deterministic synthetic day (sunrise ~6 h, peak 12 h, sunset ~18 h)."""
     hour = step % 24
-    ghi = max(0.0, 850.0 * np.sin((hour - 6) / 12.0 * np.pi)) if 6 <= hour <= 18 else 0.0
+    ghi = _stub_ghi(step)
     t_amb = 29.0 + 7.0 * np.sin((hour - 9) / 24.0 * 2 * np.pi)
-    return WeatherFrame(datetime.datetime(2024, 6, 1) + datetime.timedelta(hours=step), ghi, t_amb, hour, "stub")
+    return WeatherFrame(datetime.datetime(2024, 6, 1) + datetime.timedelta(hours=step), ghi, t_amb, hour, "stub",
+                        forecast=tuple(_stub_ghi(step + k) for k in (1, 2, 3)))
 
 
 def fetch_live_frame(regime_id: int, last: WeatherFrame | None = None) -> WeatherFrame:
@@ -88,7 +95,7 @@ def fetch_live_frame(regime_id: int, last: WeatherFrame | None = None) -> Weathe
     try:
         import urllib.request
         url = (f"https://api.open-meteo.com/v1/forecast?latitude={m['lat']}&longitude={m['lon']}"
-               f"&hourly=shortwave_radiation,temperature_2m&forecast_days=1&timezone=Asia%2FKolkata")
+               f"&hourly=shortwave_radiation,temperature_2m&forecast_days=2&timezone=Asia%2FKolkata")
         with urllib.request.urlopen(url, timeout=5) as resp:
             data = json.loads(resp.read())
         now = datetime.datetime.now()
@@ -96,11 +103,14 @@ def fetch_live_frame(regime_id: int, last: WeatherFrame | None = None) -> Weathe
         ghi, tamb = data["hourly"]["shortwave_radiation"][h], data["hourly"]["temperature_2m"][h]
         if ghi is None or tamb is None:
             raise ValueError("missing value in provider response")
-        return WeatherFrame(now, ghi, tamb, h, "open-meteo", True, time.time() - t0, f"{m['place']} {m['point']}")
+        fc = tuple(float(x or 0.0) for x in data["hourly"]["shortwave_radiation"][h + 1:h + 4])      # provider's own next 3 hours
+        return WeatherFrame(now, ghi, tamb, h, "open-meteo", True, time.time() - t0, f"{m['place']} {m['point']}",
+                            forecast=fc if len(fc) == 3 else None)
     except Exception as e:      # noqa: BLE001
         if last is not None and (datetime.datetime.now() - last.timestamp).total_seconds() < STALE_AFTER_S:
             return WeatherFrame(datetime.datetime.now(), last.ghi_wm2, last.t_amb_C, datetime.datetime.now().hour,
-                                "persistence", False, time.time() - t0, f"live fetch failed ({e}); persistence")
+                                "persistence", False, time.time() - t0, f"live fetch failed ({e}); persistence",
+                                forecast=(last.ghi_wm2,) * 3)
         f = _stub_frame(datetime.datetime.now().hour)
         f.quality_ok, f.note = False, f"live fetch failed ({e}); stub fallback"
         return f
@@ -110,8 +120,9 @@ def replay_frames(regime_id: int, year: int) -> list[WeatherFrame]:
     """Recorded hourly weather for an allowed year (weather_roles refuses test years without the lock)."""
     w = weather_roles.load_weather(regime_id, year)
     t0 = datetime.datetime(year, 1, 1)
-    return [WeatherFrame(t0 + datetime.timedelta(hours=i), w["GHI_Wm2"][i], w["T_amb_C"][i], w["local_hour"][i],
-                         f"replay:{year}") for i in range(len(w["GHI_Wm2"]))]
+    g, n = w["GHI_Wm2"], len(w["GHI_Wm2"])
+    return [WeatherFrame(t0 + datetime.timedelta(hours=i), g[i], w["T_amb_C"][i], w["local_hour"][i], f"replay:{year}",
+                         forecast=tuple(float(g[i + k]) if i + k < n else 0.0 for k in (1, 2, 3))) for i in range(n)]
 
 
 # ---------------------------------------------------------------------------
@@ -127,12 +138,12 @@ class LiveDemoRunner:
     ACTION_NAMES = {CHARGE: "CHARGE", IDLE: "IDLE", BYPASS: "BYPASS"}
 
     def __init__(self, algo: str = "recurrent", regime_id: int = 1, mode: DemoMode = DemoMode.STUB,
-                 replay_year: int = 2021, log_dir: pathlib.Path | None = None, model_path=None):
+                 replay_year: int = 2021, log_dir: pathlib.Path | None = None, model_path=None, obs_version: str = "V2"):
         self.algo, self.regime_id, self.mode, self.replay_year = algo, regime_id, DemoMode(mode), replay_year
         self.log_dir = pathlib.Path(log_dir) if log_dir else (config_O2.RESULTS_DIR / "demo_logs")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self._policy = self._load_policy(model_path)
-        self._env = PCMEnv(CONTRACT_PATH, regime_id=regime_id, year=weather_roles.VAL_YEARS[0])
+        self._env = PCMEnv(CONTRACT_PATH, regime_id=regime_id, year=weather_roles.VAL_YEARS[0], obs_version=obs_version)
         self._frames = replay_frames(regime_id, replay_year) if self.mode == DemoMode.REPLAY else []
         self._step = 0
         self._last_frame: WeatherFrame | None = None
@@ -165,7 +176,7 @@ class LiveDemoRunner:
             self._policy.attach_env(self._env)
         self._step = 0
         self._last_frame = None
-        return self._env.set_weather_override(0.0, 25.0, 0)
+        return self._env.set_weather_override(0.0, 25.0, 0, (0.0, 0.0, 0.0))
 
     def _get_weather(self) -> WeatherFrame:
         if self.mode == DemoMode.LIVE:
@@ -177,7 +188,7 @@ class LiveDemoRunner:
 
     def step_once(self) -> dict:
         wx = self._get_weather()
-        obs = self._env.set_weather_override(wx.ghi_wm2, wx.t_amb_C, wx.local_hour)
+        obs = self._env.set_weather_override(wx.ghi_wm2, wx.t_amb_C, wx.local_hour, wx.forecast)
         action = self._policy.act(obs)
         _, reward, _, _, info = self._env.step(action)
         self._step += 1

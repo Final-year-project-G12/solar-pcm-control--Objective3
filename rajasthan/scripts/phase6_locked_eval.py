@@ -57,16 +57,30 @@ def _job(kind: str, lock_run_id: str, lock_path: str, **kw):
         return evaluate_twin(**kw)
     if kind == "MODEL":
         return evaluate_model(lock_run_id=None, **kw)
+    if kind == "RUN":                      # Generation-2 run: scored in its own observation layout / control cadence
+        from o3.agents.gen2 import evaluate_run
+        return evaluate_run(**kw)
+    if kind == "BASE_AS":
+        from o3.agents.gen2 import evaluate_baseline_as
+        return evaluate_baseline_as(**kw)
     return evaluate_baseline(**kw)
 
 
 def run_locked(algo: str, regimes: list[int], years: list[int], inits: list[str], model_paths: dict,
-               run_id: str, lock_path: str, n_jobs: int) -> list[dict]:
+               run_id: str, lock_path: str, n_jobs: int, run_dirs: dict | None = None) -> list[dict]:
     jobs = []
     for r in regimes:
         for y in years:
             for pi in inits:
                 base = dict(lock_run_id=run_id, lock_path=lock_path, regime_id=r, year=y, initial_pcm_state=pi)
+                if run_dirs:               # Gen-2 run: baselines and twin at the run's own control cadence
+                    cad = run_dirs[r][1]
+                    jobs.append(dict(kind="BASE_AS", baseline="b0", water_only=True, control_step_min=cad, **base))
+                    for b in ("b0", "b1"):
+                        jobs.append(dict(kind="BASE_AS", baseline=b, control_step_min=cad, **base))
+                    jobs.append(dict(kind="RUN", run_dir=str(run_dirs[r][0]), year=y, initial_pcm_state=pi,
+                                     lock_run_id=run_id, lock_path=lock_path))
+                    continue
                 jobs.append(dict(kind="TWIN", **base))
                 for b in ("b0", "b1"):
                     jobs.append(dict(kind=b, baseline=b, **base))
@@ -91,8 +105,11 @@ def success_criteria(rows: list[dict], algo: str) -> bool:
     print(f"  {'PASS' if ok else 'FAIL'}  zero hard-limit violations / zero hours over limit: {sv}")
     ok_all &= ok
     g, g0 = np.mean([r["gain_window_kWh"] for r in mine]), np.mean([r["gain_window_kWh"] for r in b0])
-    ok = g >= g0
-    print(f"  {'PASS' if ok else 'FAIL'}  window gain vs water-only twin >= B0:  {g:.1f} vs {g0:.1f} kWh")
+    print(f"  INFO  window gain vs water-only twin: {g:.1f} kWh (B0 {g0:.1f})")
+    d, d0 = np.mean([r["total_delivered_kWh"] for r in mine]), np.mean([r["total_delivered_kWh"] for r in b0])
+    w, w0 = np.mean([r["E_del45_window_kWh"] for r in mine]), np.mean([r["E_del45_window_kWh"] for r in b0])
+    ok = d >= 0.95 * d0 and w >= 0.95 * w0                    # plan 18.1 selection rule, checked on unseen years
+    print(f"  {'PASS' if ok else 'FAIL'}  delivery >= 95 % of B0: annual {100 * d / d0:.1f} %, window {100 * w / w0:.1f} %")
     ok_all &= ok
     res = max(r["residual_pct_of_collector"] for r in mine)
     ok = res < 0.1
@@ -120,6 +137,8 @@ def main():
     parser.add_argument("--regime", type=int, nargs="+", default=[0])
     parser.add_argument("--years", type=int, nargs="+", default=TEST_YEARS)
     parser.add_argument("--results-dir", type=str, default=None, help="models are read from and results written here")
+    parser.add_argument("--run", type=str, nargs="+", default=None,
+                        help="Generation-2 run directories (results/gen2/<tag>), one per regime; overrides --algo/--regime model lookup")
     parser.add_argument("--lock-path", type=str, default=None, help="override the lock file (development dry runs only)")
     add_parallel_args(parser, envs=False)
     args = parser.parse_args()
@@ -133,8 +152,18 @@ def main():
     print("WARNING: results from this run must NOT be used for further tuning.")
     print("=" * 70)
 
-    model_paths = {}
-    for r in args.regime:
+    model_paths, run_dirs = {}, None
+    if args.run:
+        import json as _json
+        from o3.agents.gen2 import run_model_path
+        run_dirs = {}
+        for d in args.run:
+            m = _json.loads((pathlib.Path(d) / "run_meta.json").read_text())
+            run_dirs[m["regime_id"]] = (pathlib.Path(d), m["control_step_min"])
+            model_paths[m["regime_id"]] = run_model_path(pathlib.Path(d))
+            args.algo = m["algo"]
+        args.regime = sorted(run_dirs)
+    for r in ([] if args.run else args.regime):
         p = find_model(args.algo, r, None, res_dir)
         if p is None:
             print(f"[FAIL] No trained {args.algo} model for regime {r} in {res_dir}. Freeze a policy with phase 4 first.")
@@ -153,7 +182,7 @@ def main():
     print(f"[LOCK] acquired {lock_path}  run_id={run_id}")
 
     t0 = time.time()
-    rows = run_locked(args.algo, args.regime, args.years, PCM_INITS, model_paths, run_id, str(lock_path), n_jobs)
+    rows = run_locked(args.algo, args.regime, args.years, PCM_INITS, model_paths, run_id, str(lock_path), n_jobs, run_dirs)
     res_dir.mkdir(parents=True, exist_ok=True)
     out_csv = res_dir / f"phase6_final_test_{args.algo}.csv"
     keys = list(dict.fromkeys(k for r in rows for k in r))

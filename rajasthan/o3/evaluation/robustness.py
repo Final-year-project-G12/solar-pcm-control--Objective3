@@ -35,7 +35,7 @@ from o3.environment import obs as _obs
 
 CONTRACT_PATH = config_O2.CONTRACT_FILE
 
-_IDX = {"V2": {"ghi": 5, "tamb": 6}, "V1": {"ghi": 0, "tamb": 1}}
+_IDX = {"V2": {"ghi": 5, "tamb": 6}, "V3": {"ghi": 5, "tamb": 6}, "V1": {"ghi": 0, "tamb": 1}}
 
 
 class NoisyPCMEnv:
@@ -120,9 +120,10 @@ def robustness_job(policy_spec: tuple, policy_name: str, regime_id: int, year: i
         from o3.utils import weather_roles
         weather_roles.assume_test_lock(lock_run_id, lock_path)
     pol = _policy_from_spec(policy_spec)
+    env_kw = policy_spec[3] if len(policy_spec) > 3 else {}      # Gen-2 runs: their own obs_version / control_step_min
     inner = PCMEnv(contract_path, regime_id=regime_id, year=year,
                    demand_mode=scenario.get("demand_mode", "deterministic"),
-                   demand_volume_multiplier=scenario.get("demand_scale", 1.0))
+                   demand_volume_multiplier=scenario.get("demand_scale", 1.0), **env_kw)
     env = NoisyPCMEnv(inner, ghi_noise_pct=scenario.get("ghi_noise_pct", 0.0), tamb_noise_C=scenario.get("tamb_noise_C", 0.0),
                       demand_scale=scenario.get("demand_scale", 1.0))
     pcm_init = scenario.get("pcm_init", "solid")
@@ -140,7 +141,7 @@ def run_robustness_suite(policy_fn=None, policy_name: str = "policy", regime_id:
     """Run the policy across all perturbation scenarios and years.
 
     policy_fn   : callable(obs) -> int (serial only)
-    policy_spec : ('baseline', 'b1') or ('model', algo, path) — picklable, enables n_jobs > 1
+    policy_spec : ('baseline', 'b1') or ('model', algo, path[, env_kwargs]) — picklable, enables n_jobs > 1
     n_jobs      : worker processes, one (scenario, year) episode per job. n_jobs=1 -> serial.
     """
     years = years or [2021]

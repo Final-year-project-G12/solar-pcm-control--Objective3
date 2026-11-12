@@ -62,6 +62,22 @@ python scripts/phase4_reeval.py --regime 1 --n-jobs 11     # re-score saved mode
 `phase4_multiseed.py` freezes the best seed per algorithm (lexicographic rule, validation years) into
 `results/phase4_selected_r<regime>.json` with its SHA-256.
 
+## 5a. Generation-2 study (plan §19) and deployment metrics (Phase O3-9)
+
+```bash
+python scripts/train_one.py --algo dqn --regime 1 --steps 300000 --seed 42 --shield-weight 1.7 --obs-version V3 --control-step-min 60 --domain-randomize
+python scripts/gen2_study.py --algo dqn --study A B C --regime 1 --n-jobs 6     # 18 runs, ~35 min wall (6 parallel, 9-11 min each)
+python scripts/gen2_study.py --algo sac --study A --multipliers 1 --n-jobs 3    # SAC: ~30 steps/s, hours
+python scripts/gen2_study.py --algo dqn --summarise-only                        # re-score + selection (plan 18.1)
+python scripts/phase9_deployment_metrics.py --regime 1 --algo dqn --n-jobs 5
+python scripts/train_one.py --algo dqn --regime 1 --seed 42 --shield-weight 1.7 --obs-version V2          # ablation: no forecast
+python scripts/train_one.py --algo dqn --regime 1 --seed 42 --shield-weight 1.7 --no-domain-randomize     # ablation: no randomisation
+python scripts/gen2_ablation.py --regime 1 --n-jobs 3                                                      # scores them + robustness
+python scripts/phase5_robustness.py --run results/gen2/<tag> --years 2021 2022 --n-jobs 6                  # robustness of any Gen-2 run
+python scripts/make_gen2_plots.py --algo dqn
+python scripts/phase6_locked_eval.py --run results/gen2/<selected tag> --n-jobs 5    # the one-shot locked test, 2006-2010
+```
+
 ## 5b. Robustness (Phase O3-5)
 
 ```bash

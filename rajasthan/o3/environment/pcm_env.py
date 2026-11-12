@@ -88,6 +88,9 @@ def load_reward_norm(regime_id: int) -> dict:
         raise FileNotFoundError(f"{REWARD_NORM_FILE} missing: run `python scripts/phase2_baselines.py --reward-norm` first")
     return json.loads(REWARD_NORM_FILE.read_text())["regimes"][str(int(regime_id))]
 
+# training-time domain randomisation (plan 19.1 item 5): one draw per episode, applied to the PHYSICS inputs
+DOMAIN_RAND_RANGES = {"ghi_mult": (0.90, 1.10), "tamb_bias_C": (-2.0, 2.0), "demand_mult": (0.85, 1.15)}
+
 # stochastic demand (plan 3.4): ASSUMED ranges, no measured Indian draw-off data was found (plan Q3).
 STOCH_VOLUME_SD = 0.20       # day-to-day volume factor ~ LogNormal(mean 1, sd 0.20), clipped to [0.5, 1.5]
 STOCH_SHIFT_SD_H = 1.0       # day-to-day timing shift ~ Normal(0, 1 h)
@@ -112,7 +115,8 @@ class PCMEnv:
     def __init__(self, contract_path: str | pathlib.Path, regime_id: int = 0, year: int = 2016,
                  obs_version: str = "V2", reward_weights: dict | None = None, water_only: bool = False,
                  demand_mode: str = "deterministic", demand_volume_multiplier: float = 1.0,
-                 demand_timing_shift_h: float = 0.0, reward_mode: str = "R2"):
+                 demand_timing_shift_h: float = 0.0, reward_mode: str = "R2", control_step_min: int = 60,
+                 domain_randomize: bool = False, domain_rand_ranges: dict | None = None):
         self.contract = assert_contract_valid(contract_path)
         self.regime_id = regime_id
         self.year = year
@@ -123,6 +127,14 @@ class PCMEnv:
             raise ValueError(f"obs_version must be one of {list(_obs.OBS_DIMS)}")
         if demand_mode not in ("deterministic", "stochastic"):
             raise ValueError("demand_mode must be 'deterministic' or 'stochastic'")
+        if control_step_min < 1 or 60 % int(control_step_min):
+            raise ValueError("control_step_min must divide 60")
+        # plan 19.1: decision cadence (60 = hourly, unchanged), training-time domain randomisation of the PHYSICS inputs
+        self.control_step_min = int(control_step_min)
+        self._tph = 60 // self.control_step_min                    # ticks (decisions) per hour
+        self.domain_randomize = bool(domain_randomize)
+        self._dr_ranges = {**DOMAIN_RAND_RANGES, **(domain_rand_ranges or {})}
+        self._dr = (1.0, 0.0, 1.0)                                 # (GHI multiplier, T_amb bias C, demand multiplier)
 
         rw = reward_weights or {}
         self.w_energy = rw.get("energy", W_ENERGY)
@@ -143,7 +155,7 @@ class PCMEnv:
 
         self._rt = build_runtime(self.contract, regime_id, water_only=water_only,
                                  volume_multiplier=demand_volume_multiplier, timing_shift_hours=demand_timing_shift_h)
-        self._k = OneHourKernel(self._rt)
+        self._k = OneHourKernel(self._rt, self._tph)
         self.system_config = self._rt.cfg
         self.mains_temp_C = self._rt.mains_C
         self.pcm_props = self._rt.pcm_props
@@ -156,6 +168,7 @@ class PCMEnv:
         self._daily_demand: np.ndarray | None = None
         self._log: dict | None = None
         self._override: tuple | None = None       # (ghi, tamb, hour_of_day) injected by the live demo
+        self._fc_override: tuple | None = None    # (GHI +1h, +2h, +3h) injected with it (V3 observation); None -> persistence
 
     # ------------------------------------------------------------------
     # Gymnasium-style interface
@@ -168,9 +181,15 @@ class PCMEnv:
             self.year = year
             self._load_weather()
         T, h = self._k.initial_state(initial_pcm_state)
-        n = self._n_hours
+        n = self._n_ticks = self._n_hours * self._tph
+        if self.domain_randomize:                 # one draw per episode, held fixed for the episode
+            rng = np.random.default_rng(None if seed is None else [int(seed), 7919])
+            r = self._dr_ranges
+            self._dr = (float(rng.uniform(*r["ghi_mult"])), float(rng.uniform(*r["tamb_bias_C"])), float(rng.uniform(*r["demand_mult"])))
+        else:
+            self._dr = (1.0, 0.0, 1.0)
         if self.demand_mode == "stochastic":
-            self._daily_demand = self._draw_daily_demand(seed, n)
+            self._daily_demand = self._draw_daily_demand(seed, self._n_hours)
         else:
             self._daily_demand = None
         d = self._k.derived(T, h)
@@ -189,22 +208,36 @@ class PCMEnv:
             "T_top_max", "T_pcm_max", "hod", "action", "executed")}
         self._coll_J = 0.0
         self._resid_J = 0.0
-        return self._get_obs(), {"year": self.year, "regime_id": self.regime_id, "initial_pcm_state": initial_pcm_state}
+        return self._get_obs(), {"year": self.year, "regime_id": self.regime_id, "initial_pcm_state": initial_pcm_state,
+                                 "domain_rand": self._dr}
+
+    def _wx(self, hi: int) -> tuple:
+        """Weather of hour `hi` as the PLANT sees it (domain randomisation applied to the physics inputs)."""
+        m, b, _ = self._dr
+        return float(self._ghi[hi]) * m, float(self._tamb[hi]) + b, int(self._hod[hi])
+
+    def _d24(self, hi: int) -> np.ndarray:
+        base = self._rt.demand24 if self._daily_demand is None else self._daily_demand[min(hi // 24, len(self._daily_demand) - 1)]
+        return base * self._dr[2] if self._dr[2] != 1.0 else base
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
         """Run one hour of the simulator with the given action."""
         assert self._state is not None, "Call reset() before step()."
         assert action in (CHARGE, IDLE, BYPASS), f"Invalid action {action}"
         s = self._state
-        i = s["hour_idx"]
-        if i >= self._n_hours:
+        i = s["hour_idx"]                            # tick index (= hour index when control_step_min == 60)
+        if i >= self._n_ticks:
             raise RuntimeError("Episode already ended. Call reset().")
+        hi = i // self._tph
 
         if self._override is not None:               # live / demo mode: weather supplied from outside
             ghi, tamb, hod = self._override
         else:
-            ghi, tamb, hod = float(self._ghi[i]), float(self._tamb[i]), int(self._hod[i])
-        d24 = None if self._daily_demand is None else self._daily_demand[i // 24]
+            ghi, tamb, hod = self._wx(hi)
+        if self._daily_demand is None and self._dr[2] == 1.0 and self._tph == 1:
+            d24 = None                               # O2's own curve, untouched (the bit-for-bit hourly path)
+        else:
+            d24 = self._d24(hi) / self._tph          # mass per control period
         hr, sc, T_new, h_new = self._k.hour(s["T_nodes"], s["h_nodes"], ghi, tamb, hod, action == CHARGE, d24)
 
         e_del45 = hr[HR["E_del45"]]
@@ -225,7 +258,7 @@ class PCMEnv:
                   "T_w_mean": d["T_mean"], "T_pcm": d["T_pcm"], "f_melt": d["f_melt"], "h_pcm": float(np.mean(h_new)),
                   "E_stored_kWh": d["E_stored_kWh"], "E_rec45_kWh": d["E_rec45_kWh"],
                   "prev_action": action, "hour_idx": i + 1,
-                  "hours_since_draw": 0.0 if draw > 1e-3 else min(s["hours_since_draw"] + 1.0, 24.0)})
+                  "hours_since_draw": 0.0 if draw > 1e-3 / self._tph else min(s["hours_since_draw"] + 1.0 / self._tph, 24.0)})
         s["cumulative_delivered_Wh"] += e_del45
         s["cumulative_unmet_Wh"] += e_unmet
         s["n_shield_water"] += n_sw
@@ -250,7 +283,7 @@ class PCMEnv:
         else:
             reward = (self.w_energy * e_del45 - self.w_unmet * e_unmet - self.w_safety * n_saf
                       - self.w_switching * switched - self.w_shield * n_shield)
-        terminated = (i + 1) >= self._n_hours
+        terminated = (i + 1) >= self._n_ticks
         info = {
             "hour_idx": i, "hour_of_day": hod,
             "T_w_C": s["T_w"], "T_top_C": s["T_w"], "T_bottom_C": s["T_bottom"], "T_w_mean_C": s["T_w_mean"],
@@ -270,10 +303,13 @@ class PCMEnv:
     def close(self) -> None:
         pass
 
-    def set_weather_override(self, ghi: float, tamb: float, hour_of_day: int) -> np.ndarray:
+    def set_weather_override(self, ghi: float, tamb: float, hour_of_day: int, forecast_ghi=None) -> np.ndarray:
         """Demo mode only: use this hour's weather instead of the stored year, and return the observation
-        for it. Pass None to go back to the stored series. Never used by training or evaluation."""
+        for it. Pass None to go back to the stored series. forecast_ghi = (GHI +1 h, +2 h, +3 h) for the V3
+        observation; without it the demo uses persistence (the current GHI repeated), never the stored year's values.
+        Never used by training or evaluation."""
         self._override = None if ghi is None else (float(max(ghi, 0.0)), float(tamb), int(hour_of_day) % 24)
+        self._fc_override = None if (ghi is None or forecast_ghi is None) else tuple(float(max(x, 0.0)) for x in forecast_ghi)
         return self._get_obs()
 
     # ------------------------------------------------------------------
@@ -321,6 +357,8 @@ class PCMEnv:
         return {
             "state": "rajasthan", "regime_id": int(self.regime_id), "contract_sha256": contract_sha256(contract_path),
             "obs_version": self.obs_version, "n_actions": N_ACTIONS, "water_only": bool(self.water_only), "reward": reward,
+            "control_step_min": self.control_step_min, "domain_randomize": self.domain_randomize,
+            "domain_rand_ranges": {k: list(v) for k, v in self._dr_ranges.items()} if self.domain_randomize else None,
             "demand": {"mode": self.demand_mode, "volume_multiplier": vol_mult, "timing_shift_h": shift_h,
                        "stochastic_volume_sd": STOCH_VOLUME_SD, "stochastic_shift_sd_h": STOCH_SHIFT_SD_H},
             "reset_scenarios": ["solid", "partial", "liquid"],
@@ -330,8 +368,8 @@ class PCMEnv:
 
     def forecast_ghi(self, k: int) -> float:
         """GHI of the hour k steps ahead of the current one (perfect-forecast baselines; 0 past the end)."""
-        j = self._state["hour_idx"] + k
-        return float(self._ghi[j]) if j < self._n_hours else 0.0
+        j = self._state["hour_idx"] // self._tph + k
+        return float(self._ghi[j]) * self._dr[0] if j < self._n_hours else 0.0
 
     def _energy_J(self, T, h) -> float:
         rt = self._rt
@@ -347,14 +385,24 @@ class PCMEnv:
             ghi, tamb, hod = self._override
             d24 = self._rt.demand24 if self._daily_demand is None else self._daily_demand[min(i // 24, len(self._daily_demand) - 1)]
             draw = float(d24[hod])
-        elif i < self._n_hours:
-            ghi, tamb, hod = float(self._ghi[i]), float(self._tamb[i]), int(self._hod[i])
-            d24 = self._rt.demand24 if self._daily_demand is None else self._daily_demand[i // 24]
+        elif i < self._n_ticks:
+            ghi, tamb, hod = self._wx(i // self._tph)
+            d24 = self._d24(i // self._tph)
             draw = float(d24[hod])
         else:
             ghi = tamb = draw = 0.0
             hod = 0
-        return _obs.build(self.obs_version, {
+        extra = {}
+        if self.obs_version == "V3" and self._override is not None:       # demo: forecast comes from the demo's weather source
+            f = self._fc_override or (ghi, ghi, ghi)
+            extra = {"GHI_p1": f[0], "GHI_p2": f[1], "GHI_p3": f[2], "draw_p1": float(d24[(hod + 1) % 24])}
+        elif self.obs_version == "V3":               # plan 19.1 item 2: next 1/2/3-hour GHI and next-hour demand
+            hi = min(i // self._tph, self._n_hours - 1)
+            f = [self.forecast_ghi(k) for k in (1, 2, 3)]
+            nh = hi + 1
+            extra = {"GHI_p1": f[0], "GHI_p2": f[1], "GHI_p3": f[2],
+                     "draw_p1": float(self._d24(nh)[int(self._hod[nh])]) if nh < self._n_hours else 0.0}
+        return _obs.build(self.obs_version, {**extra, 
             "T_top": s["T_w"], "T_bottom": s["T_bottom"], "T_mean": s["T_w_mean"], "T_pcm": s["T_pcm"],
             "f_melt": s["f_melt"], "GHI": ghi, "T_amb": tamb, "hour": hod, "draw": draw,
             "T_mains": self.mains_temp_C, "E_stored_kWh": s["E_stored_kWh"], "E_rec45_kWh": s["E_rec45_kWh"],

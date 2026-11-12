@@ -67,7 +67,7 @@ class PCMGymEnv(gym.Env):
     def __init__(self, contract_path=CONTRACT_PATH, regime_id: int = 0, years: list[int] | None = None,
                  fixed_year: int | None = None, reward_weights: dict | None = None, cycle_years: bool = False,
                  pcm_inits: tuple | list | None = None, obs_version: str = _obs.DEFAULT_VERSION,
-                 demand_mode: str = "deterministic"):
+                 demand_mode: str = "deterministic", control_step_min: int = 60, domain_randomize: bool = False):
         super().__init__()
         self._years = list(years or TRAIN_YEARS)
         self._fixed_year = fixed_year
@@ -81,7 +81,8 @@ class PCMGymEnv(gym.Env):
 
         init_year = fixed_year if fixed_year else self._years[0]
         self._env = PCMEnv(contract_path=contract_path, regime_id=regime_id, year=init_year,
-                           obs_version=obs_version, reward_weights=reward_weights, demand_mode=demand_mode)
+                           obs_version=obs_version, reward_weights=reward_weights, demand_mode=demand_mode,
+                           control_step_min=control_step_min, domain_randomize=domain_randomize)
 
         self.action_space = spaces.Discrete(N_ACTIONS)
         self.observation_space = spaces.Box(low=OBS_LOW, high=OBS_HIGH, shape=(self._obs_dim,), dtype=np.float32)

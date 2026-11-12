@@ -22,7 +22,7 @@ In both layouts 'T_water' means the TOP node (the delivery node, where the shiel
 
 import numpy as np
 
-OBS_DIMS = {"V1": 11, "V2": 13}
+OBS_DIMS = {"V1": 11, "V2": 13, "V3": 17}
 DEFAULT_VERSION = "V2"
 
 V2_FIELDS = ["T_water_top_C", "T_water_bottom_C", "T_water_mean_C", "T_pcm_C", "f_melt", "GHI_Wm2", "T_amb_C",
@@ -33,7 +33,7 @@ V2_FIELDS = ["T_water_top_C", "T_water_bottom_C", "T_water_mean_C", "T_pcm_C", "
 def decode(obs: np.ndarray) -> dict:
     """Physical values from a normalised observation (layout inferred from its length)."""
     o = np.asarray(obs, dtype=float).reshape(-1)
-    if o.shape[0] == 13:
+    if o.shape[0] in (13, 17):          # V3 = V2 + [GHI +1h, +2h, +3h (/1000), next-hour draw (/20)]
         return {"T_water_C": o[0] * 40.0 + 30.0, "T_bottom_C": o[1] * 40.0 + 30.0, "T_mean_C": o[2] * 40.0 + 30.0,
                 "T_pcm_C": o[3] * 40.0 + 30.0, "f_melt": o[4], "GHI_Wm2": o[5] * 1000.0, "T_amb_C": o[6] * 25.0 + 15.0,
                 "hour": int(round(o[7] * 24.0)) % 24, "draw_kg": o[8] * 20.0, "T_mains_C": o[9] * 20.0 + 20.0,
@@ -48,6 +48,9 @@ def decode(obs: np.ndarray) -> dict:
 
 def build(version: str, d: dict) -> np.ndarray:
     """Normalised observation from physical values. `d` holds the keys used below."""
+    if version == "V3":
+        return np.concatenate([build("V2", d), np.array([d["GHI_p1"] / 1000.0, d["GHI_p2"] / 1000.0, d["GHI_p3"] / 1000.0,
+                                                         d["draw_p1"] / 20.0], dtype=np.float32)])
     if version == "V2":
         return np.array([
             (d["T_top"] - 30.0) / 40.0, (d["T_bottom"] - 30.0) / 40.0, (d["T_mean"] - 30.0) / 40.0,

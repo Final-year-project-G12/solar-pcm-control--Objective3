@@ -66,6 +66,15 @@ B0 policy under both a delivery-only reward and the default shield-penalised rew
 zero hard-limit hours. Conclusion: with loop on/off as the only action, hourly control has no headroom on delivered energy here.
 Items below marked "not run" that are now done: G2, B1 tuning, a PPO multi-seed run, M5 for the frozen policy.
 
+## 3c. Generation-2 results (plan §19) — added 2026-11-12
+
+With a 3-hour irradiance + next-hour-demand forecast in the observation (V3), training-time domain randomisation and an
+off-policy ε-greedy learner (DQN), regime 1 yields a policy that is not B0: 98.2 % of B0's delivered energy with 57 % fewer
+shield hours (seed 42 of 3; seed 123 collapses to B0, seed 0 gives 92 %/41 %). Frontier over shield weights {0…3.4}: the 95 %
+delivery rule holds for weights ≤ 1.7 (2 of 3 seeds). 15-minute control did not help in the one run made; regimes 0 and 2
+(one seed) do not meet the rule. Deployment metrics, robustness to 7 sensor faults (0 hard-limit violations) and inference
+cost (0.21 ms, 22 kB) are in `CORRECTIONS.md`. Not separated: the contributions of forecast, randomisation and learner.
+
 ## 4. What has NOT been established (not run)
 
 * Any trained agent's performance. Smoke training (3,000 steps) only proves the plumbing; the smoke PPO collapsed to a near-

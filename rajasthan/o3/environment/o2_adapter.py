@@ -170,11 +170,46 @@ def build_runtime(contract: dict, regime_id: int, water_only: bool = False,
                    h_mains=h_mains, h_target=h_target, sel=rd)
 
 
-class OneHourKernel:
-    """Calls mn._kernel for a single hour. Re-uses small input arrays to keep the per-call cost low."""
+_PERIOD_KERNEL = None
 
-    def __init__(self, rt: Runtime):
+
+def period_kernel():
+    """O2's kernel with ONE generalisation: the number of solver steps per call is an input (P[35]) instead of
+    'one hour'. Built from the O2 source text at import time (O2 file untouched) by replacing exactly two lines:
+        nsteps = int(round(3600.0 / dt))   ->  nsteps = int(P[35])
+        mdot_d = hour_mass / 3600.0        ->  mdot_d = hour_mass / (nsteps * dt)
+    With nsteps*dt = 3600 it is the original kernel (tests/test_gen2.py: four 15-minute calls == one hourly call).
+    The physics sub-stepping (150 s steps, melt-band / stiffness sub-steps, shield) is unchanged. If O2's source ever
+    changes so that a line is not found, this raises instead of silently diverging."""
+    global _PERIOD_KERNEL
+    if _PERIOD_KERNEL is None:
+        import inspect
+        from numba import njit
+        src = inspect.getsource(mn._kernel.py_func)
+        a, b = "nsteps = int(round(3600.0 / dt))", "mdot_d = hour_mass / 3600.0"
+        if src.count(a) != 1 or src.count(b) != 1:
+            raise RuntimeError("O2 kernel source changed: cannot build the sub-hourly period kernel")
+        src = src.replace(a, "nsteps = int(P[35])").replace(b, "mdot_d = hour_mass / (nsteps * dt)")
+        src = src[src.index("def _kernel"):].replace("def _kernel(", "def _kernel_period(", 1)
+        ns = dict(vars(mn))
+        exec(compile(src, "<o3 period kernel from O2 source>", "exec"), ns)
+        _PERIOD_KERNEL = njit(ns["_kernel_period"])
+    return _PERIOD_KERNEL
+
+
+class OneHourKernel:
+    """Calls the O2 kernel for one control period (one hour by default). Re-uses small input arrays."""
+
+    def __init__(self, rt: Runtime, ticks_per_hour: int = 1):
         self.rt = rt
+        self.tph = int(ticks_per_hour)
+        steps_per_hour = int(round(3600.0 / rt.P[5]))
+        if self.tph < 1 or steps_per_hour % self.tph:
+            raise ValueError(f"control period must be a whole number of {rt.P[5]:.0f} s solver steps")
+        if self.tph > 1:
+            self._P = rt.P.copy()
+            self._P[35] = steps_per_hour // self.tph
+            self._kern = period_kernel()
         self._tamb = np.zeros(1)
         self._hod = np.zeros(1, dtype=np.int64)
         self._a = np.zeros(1)
@@ -242,7 +277,11 @@ class OneHourKernel:
             self._c[0] = 0.0
         self._tamb[0] = tamb
         self._hod[0] = hod
-        hr, node_T, node_h, sc = mn._kernel(self._dummy, self._tamb, self._hod, self._a, self._b, self._c,
-                                            rt.demand24 if demand24 is None else demand24,
-                                            rt.m_w, rt.n_caps, rt.loss_ua, rt.P, T, h, 1.0)
+        d24 = rt.demand24 if demand24 is None else demand24
+        if self.tph == 1:
+            hr, node_T, node_h, sc = mn._kernel(self._dummy, self._tamb, self._hod, self._a, self._b, self._c,
+                                                d24, rt.m_w, rt.n_caps, rt.loss_ua, rt.P, T, h, 1.0)
+        else:          # `demand24` must already be the mass per PERIOD (hourly mass / ticks_per_hour)
+            hr, node_T, node_h, sc = self._kern(self._dummy, self._tamb, self._hod, self._a, self._b, self._c,
+                                                d24, rt.m_w, rt.n_caps, rt.loss_ua, self._P, T, h, 1.0)
         return hr[0], sc, node_T[0].copy(), node_h[0].copy()

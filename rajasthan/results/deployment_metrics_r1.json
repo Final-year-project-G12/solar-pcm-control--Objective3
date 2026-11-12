@@ -1,0 +1,194 @@
+{
+  "regime_id": 1,
+  "run": {
+    "tag": "dqn_r1_w1.7_s42_V3_60min_dr",
+    "algo": "dqn",
+    "regime_id": 1,
+    "steps": 300000,
+    "seed": 42,
+    "shield_weight": 1.7,
+    "obs_version": "V3",
+    "control_step_min": 60,
+    "domain_randomize": true,
+    "train_minutes": 10.875827733675639,
+    "generation": 2
+  },
+  "years": [
+    2021,
+    2022,
+    2023
+  ],
+  "incident_solar_kWh_yr": 2954.86861,
+  "collector_area_m2": 1.5,
+  "heater_efficiency_ASSUMED": 1.0,
+  "heater_note": "Backup-heater energy avoided = backup heat avoided / heater efficiency. The efficiency is an assumption (not in any project file); 1.0 = resistive electric element. Sensitivity (0.85 gas-like, 1.0 resistive, 3.0 heat pump) is stored per policy.",
+  "policies": {
+    "DQN": {
+      "E_del45_kWh_yr": 909.2830834500079,
+      "thermal_efficiency_pct": 30.772369382948902,
+      "demand_coverage_pct": 37.43985834268708,
+      "shield_h_yr": 447.3333333333333,
+      "violations": 0,
+      "backup_heat_kWh_yr": 1519.3668198892044,
+      "extra_heat_vs_B1_kWh_yr": 136.34691116228328,
+      "extra_heat_vs_B1_pct": 17.640125543448914,
+      "backup_heat_avoided_vs_B1_kWh_yr": 136.72313374280975,
+      "backup_energy_avoided_vs_B1_kWh_yr_at_efficiency": {
+        "0.85": 160.85074557977617,
+        "1.0": 136.72313374280975,
+        "3.0": 45.57437791426992
+      },
+      "backup_energy_avoided_vs_B1_kWh_yr": 136.72313374280975
+    },
+    "TWIN_water_only": {
+      "E_del45_kWh_yr": 780.7559937485368,
+      "thermal_efficiency_pct": 26.422697479890203,
+      "demand_coverage_pct": 32.140594389368125,
+      "shield_h_yr": 799.4166666666666,
+      "violations": 0,
+      "backup_heat_kWh_yr": 1648.4336605871813,
+      "extra_heat_vs_B1_kWh_yr": 7.819821460812136,
+      "extra_heat_vs_B1_pct": 1.0117033904193162,
+      "backup_heat_avoided_vs_B1_kWh_yr": 7.656293044832864,
+      "backup_energy_avoided_vs_B1_kWh_yr_at_efficiency": {
+        "0.85": 9.00740358215631,
+        "1.0": 7.656293044832864,
+        "3.0": 2.5520976816109546
+      },
+      "backup_energy_avoided_vs_B1_kWh_yr": 7.656293044832864
+    },
+    "B0_fixed_charge": {
+      "E_del45_kWh_yr": 925.7266332468236,
+      "thermal_efficiency_pct": 31.328859432664373,
+      "demand_coverage_pct": 38.11736249576033,
+      "shield_h_yr": 1043.1805555555557,
+      "violations": 0,
+      "backup_heat_kWh_yr": 1502.8953191503006,
+      "extra_heat_vs_B1_kWh_yr": 152.79046095909894,
+      "extra_heat_vs_B1_pct": 19.76753921437937,
+      "backup_heat_avoided_vs_B1_kWh_yr": 153.1946344817136,
+      "backup_energy_avoided_vs_B1_kWh_yr_at_efficiency": {
+        "0.85": 180.22898174319246,
+        "1.0": 153.1946344817136,
+        "3.0": 51.0648781605712
+      },
+      "backup_energy_avoided_vs_B1_kWh_yr": 153.1946344817136
+    },
+    "B1_reactive_rule": {
+      "E_del45_kWh_yr": 772.9361722877246,
+      "thermal_efficiency_pct": 26.158055545072937,
+      "demand_coverage_pct": 31.820825805035597,
+      "shield_h_yr": 40.020833333333336,
+      "violations": 0,
+      "backup_heat_kWh_yr": 1656.0899536320142,
+      "extra_heat_vs_B1_kWh_yr": 0.0,
+      "extra_heat_vs_B1_pct": 0.0,
+      "backup_heat_avoided_vs_B1_kWh_yr": 0.0,
+      "backup_energy_avoided_vs_B1_kWh_yr_at_efficiency": {
+        "0.85": 0.0,
+        "1.0": 0.0,
+        "3.0": 0.0
+      },
+      "backup_energy_avoided_vs_B1_kWh_yr": 0.0
+    }
+  },
+  "inference": {
+    "ms_per_decision": 0.5836544999619946,
+    "policy_parameters": 5507,
+    "fp32_weights_kB": 22.028,
+    "checkpoint_kB": 111.685,
+    "control_period_s": 3600,
+    "note": "single thread on the development x86 CPU; only the acting network is counted (not target / critic networks)"
+  },
+  "sensor_faults": {
+    "DQN": {
+      "nominal": {
+        "E45_kWh": 909.2830834500079,
+        "loss_pct": 0.0,
+        "shield_h": 447.3333333333333,
+        "violations": 0
+      },
+      "pyranometer_dead": {
+        "E45_kWh": 922.2083436114767,
+        "loss_pct": -1.421478128948328,
+        "shield_h": 724.2152777777777,
+        "violations": 0
+      },
+      "pyranometer_stuck": {
+        "E45_kWh": 915.0975039781242,
+        "loss_pct": -0.6394510833804601,
+        "shield_h": 554.0787037037038,
+        "violations": 0
+      },
+      "water_sensor_bias_p2C": {
+        "E45_kWh": 907.4577458675279,
+        "loss_pct": 0.20074469829068908,
+        "shield_h": 417.3148148148148,
+        "violations": 0
+      },
+      "sensor_noise_2pct": {
+        "E45_kWh": 909.519468289316,
+        "loss_pct": -0.025996836805908252,
+        "shield_h": 454.2152777777778,
+        "violations": 0
+      },
+      "pcm_sensor_dropout": {
+        "E45_kWh": 917.534144325094,
+        "loss_pct": -0.9074248740865043,
+        "shield_h": 654.9467592592592,
+        "violations": 0
+      },
+      "combined": {
+        "E45_kWh": 921.4753656057356,
+        "loss_pct": -1.3408675887236043,
+        "shield_h": 702.7800925925926,
+        "violations": 0
+      }
+    },
+    "B1": {
+      "nominal": {
+        "E45_kWh": 772.9361722877246,
+        "loss_pct": 0.0,
+        "shield_h": 40.020833333333336,
+        "violations": 0
+      },
+      "pyranometer_dead": {
+        "E45_kWh": 19.409334166512302,
+        "loss_pct": 97.48888267073012,
+        "shield_h": 0.0,
+        "violations": 0
+      },
+      "pyranometer_stuck": {
+        "E45_kWh": 723.5321562087478,
+        "loss_pct": 6.391732959366047,
+        "shield_h": 40.113425925925924,
+        "violations": 0
+      },
+      "water_sensor_bias_p2C": {
+        "E45_kWh": 738.5870203053897,
+        "loss_pct": 4.443982985123962,
+        "shield_h": 39.98148148148149,
+        "violations": 0
+      },
+      "sensor_noise_2pct": {
+        "E45_kWh": 779.8474647814136,
+        "loss_pct": -0.8941608300246928,
+        "shield_h": 62.0787037037037,
+        "violations": 0
+      },
+      "pcm_sensor_dropout": {
+        "E45_kWh": 809.786332780535,
+        "loss_pct": -4.767555435236237,
+        "shield_h": 79.71064814814814,
+        "violations": 0
+      },
+      "combined": {
+        "E45_kWh": 19.409334166512302,
+        "loss_pct": 97.48888267073012,
+        "shield_h": 0.0,
+        "violations": 0
+      }
+    }
+  },
+  "label": "Software-in-the-loop simulation. Not field validation."
+}
