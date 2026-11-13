@@ -106,7 +106,8 @@ def main():
     out["o3_config_sha256"] = o3c.config_hash()
     tag = "_".join(f"r{k}" for k in a.regimes)
     out.to_csv(o3c.RESULTS / f"m3_baselines_{tag}.csv", index=False)
-    pd.concat(grids, ignore_index=True).to_csv(o3c.RESULTS / f"m3_b1_grid_{tag}.csv", index=False)
+    pd.concat(grids, ignore_index=True).assign(o3_config_sha256=o3c.config_hash()).to_csv(
+        o3c.RESULTS / f"m3_b1_grid_{tag}.csv", index=False)
     cols = ["E_del_window_kWh", "g_window_kWh", "overheat_h", "shield_water_h", "shield_pcm_h", "guard_hours",
             "hours_over_limit", "t_pcm_max_C", "bypass_switches", "residual_pct"]
     print(out.groupby(["regime", "purpose", "controller"])[cols].mean().round(2).to_string())

@@ -1,0 +1,42 @@
+{
+ "regime": 1,
+ "params": {
+  "theta_top": 72,
+  "theta_f": 0.9,
+  "theta_hot": 50,
+  "ghi_ahead_Wm2": 200,
+  "horizon_h": 2
+ },
+ "grid": {
+  "theta_top": [
+   68,
+   72
+  ],
+  "theta_f": [
+   0.9,
+   0.99
+  ],
+  "theta_hot": [
+   50,
+   55,
+   60
+  ],
+  "ghi_ahead_Wm2": [
+   200,
+   400,
+   600
+  ],
+  "horizon_h": [
+   2,
+   4
+  ]
+ },
+ "rule": "plan 8.3 lexicographic, tie 1.0 kWh/yr",
+ "years": [
+  2021,
+  2022,
+  2023
+ ],
+ "forecast": "perfect (episode's own future GHI)",
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5"
+}

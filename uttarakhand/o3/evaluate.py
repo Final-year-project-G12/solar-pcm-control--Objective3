@@ -35,9 +35,16 @@ def run_episode(controller, regime: int, year: int, scenario: str, purpose: str,
     """Returns (hourly DataFrame, reward sum). night=True adds O2's night serve scenario (o3/night.py) in
     df.attrs['night'] (about 60 % more kernel steps; evaluation only, never in training)."""
     normalise = controller.needs_norm if normalise is None else normalise
-    env = env or UKPCMEnv(regime=regime, purpose=purpose, years=[year], scenarios=[scenario], demand_mode=demand_mode,
-                          water_only=water_only, normalise=normalise, weights=weights or METRIC_WEIGHTS)
+    ekw = getattr(controller, "env_kwargs", None) or {}
+    if env is None:
+        cls = UKPCMEnv
+        if ekw:                                           # post-lock extension policies (o3/env_ext.py)
+            from o3.env_ext import UKPCMEnvExt as cls
+        env = cls(regime=regime, purpose=purpose, years=[year], scenarios=[scenario], demand_mode=demand_mode,
+                  water_only=water_only, normalise=normalise, weights=weights or METRIC_WEIGHTS, **ekw)
     obs, _ = env.reset(seed=seed, options={"year": year, "scenario": scenario})
+    if hasattr(controller, "bind"):            # forecast-aware controllers (B2) read the episode's weather
+        controller.bind(env)
     rows, total, states = [], 0.0, []
     done = False
     while not done:

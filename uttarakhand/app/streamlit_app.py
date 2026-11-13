@@ -41,38 +41,50 @@ def run_replay(regime: int, year: int, scenario: str):
     return live.simulate(regime, frame, get_controllers(regime), scenario)
 
 
-def run_frame(regime: int, frame: pd.DataFrame, scenario: str):
-    return live.simulate(regime, frame, get_controllers(regime), scenario)
+def run_frame(regime: int, frame: pd.DataFrame, scenario: str, nowcast: bool = True):
+    """Live sessions and re-runs of saved live logs: the policy sees a persistence nowcast (plan 3.2)."""
+    return live.simulate(regime, frame, get_controllers(regime), scenario, nowcast=nowcast)
 
 
 def plot_runs(runs: dict, t0=None, t1=None):
+    """Plan 15.9 panels: top / bottom / PCM temperature, melt fraction, draw, action, shield status, cumulative delivered
+    energy, over-limit time (+ weather). PCM temperature and melt fraction are simulator state, not sensor values."""
     names = [n for n in runs if n != "water_only_twin"]
-    fig = make_subplots(rows=5, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.18, 0.26, 0.18, 0.2, 0.18],
-                        subplot_titles=["Weather (GHI W/m2)", "Top-node water temperature (C)",
-                                        "PCM temperature (C, simulator state)", "Action (1 enable / 0 bypass) and shield",
-                                        "Cumulative delivered energy to 50 C (kWh)"])
+    titles = ["Weather: GHI (W/m2)", "Water temperature (C): top solid, bottom dashed",
+              "PCM temperature (C) - simulator state", "PCM melt fraction (-) - simulator state",
+              "Hot-water draw (kg/h)", "Action (1 enable / 0 bypass)",
+              "Shield active (h/h) and time over hard limit (h/h, red dotted)", "Cumulative delivered energy to 50 C (kWh)"]
+    fig = make_subplots(rows=8, cols=1, shared_xaxes=True, vertical_spacing=0.025, subplot_titles=titles,
+                        row_heights=[0.10, 0.17, 0.13, 0.11, 0.09, 0.11, 0.13, 0.16])
     ref = runs[names[0]]
     sel = slice(None) if t0 is None else (ref["local_time"] >= t0) & (ref["local_time"] < t1)
-    x = ref.loc[sel, "local_time"]
-    fig.add_trace(go.Scatter(x=x, y=ref.loc[sel, "GHI_Wm2"], name="GHI", line=dict(color="#f59e0b"), showlegend=False), 1, 1)
+    r0 = ref.loc[sel]
+    fig.add_trace(go.Scatter(x=r0.local_time, y=r0.GHI_Wm2, name="GHI", line=dict(color="#f59e0b"), showlegend=False), 1, 1)
+    fig.add_trace(go.Bar(x=r0.local_time, y=r0.draw_kg, name="draw", marker_color="#0ea5e9", showlegend=False), 5, 1)
     for n, df in runs.items():
         d = df.loc[sel]
         c = COLORS.get(n.split("_seed")[0], "#10b981")
-        dash = "dot" if n == "water_only_twin" else None
+        twin = n == "water_only_twin"
+        dash = "dot" if twin else None
         fig.add_trace(go.Scatter(x=d.local_time, y=d.T_top, name=n, legendgroup=n, line=dict(color=c, dash=dash)), 2, 1)
-        if n != "water_only_twin":
+        fig.add_trace(go.Scatter(x=d.local_time, y=d.T_bottom, name=n, legendgroup=n, showlegend=False,
+                                 line=dict(color=c, dash="dash", width=1)), 2, 1)
+        if not twin:
             fig.add_trace(go.Scatter(x=d.local_time, y=d.T_pcm, name=n, legendgroup=n, showlegend=False,
                                      line=dict(color=c)), 3, 1)
+            fig.add_trace(go.Scatter(x=d.local_time, y=d.f_melt, name=n, legendgroup=n, showlegend=False,
+                                     line=dict(color=c)), 4, 1)
             fig.add_trace(go.Scatter(x=d.local_time, y=d.action, name=n, legendgroup=n, showlegend=False,
-                                     line=dict(color=c, shape="hv")), 4, 1)
+                                     line=dict(color=c, shape="hv")), 6, 1)
+            fig.add_trace(go.Scatter(x=d.local_time, y=(d.shield_water_s + d.shield_pcm_s) / 3600, name=n,
+                                     legendgroup=n, showlegend=False, line=dict(color=c, shape="hv")), 7, 1)
+            fig.add_trace(go.Scatter(x=d.local_time, y=d.over_limit_s / 3600, name=n, legendgroup=n, showlegend=False,
+                                     line=dict(color="#dc2626", shape="hv", dash="dot")), 7, 1)
         fig.add_trace(go.Scatter(x=d.local_time, y=d.Edel_Wh.cumsum() / 1000, name=n, legendgroup=n, showlegend=False,
-                                 line=dict(color=c, dash=dash)), 5, 1)
-    sh = ref.loc[sel]
-    fig.add_trace(go.Bar(x=sh.local_time, y=(sh.shield_water_s + sh.shield_pcm_s) / 3600, name=f"{names[0]} shield (h)",
-                         marker_color="rgba(220,38,38,0.35)"), 4, 1)
+                                 line=dict(color=c, dash=dash)), 8, 1)
     for y, r in ((72, 2), (75, 2), (62, 3), (65, 3)):
         fig.add_hline(y=y, line=dict(color="#dc2626", width=1, dash="dash" if y in (72, 62) else "solid"), row=r, col=1)
-    fig.update_layout(height=900, margin=dict(l=40, r=20, t=40, b=20), legend=dict(orientation="h", y=1.04))
+    fig.update_layout(height=1250, margin=dict(l=40, r=20, t=40, b=20), legend=dict(orientation="h", y=1.03))
     return fig
 
 
@@ -121,6 +133,8 @@ with tab_live:
     st.markdown(f"Provider **Open-Meteo** forecast API (hourly `shortwave_radiation`, `temperature_2m`) at the medoid "
                 f"grid point {lat} N, {lon} E. Only completed hours are used. Missing or stale data (> "
                 f"{live.STALE_AFTER_H} h old) are filled by **persistence** of the last value and flagged.")
+    st.caption("Decisions use a **nowcast**: the policy sees the last completed hour's GHI and air temperature, as a "
+               "real controller would; the simulator then runs the hour with its actual weather (plan 3.2).")
     st.caption("Open-Meteo radiation is a model product on a ~11 km grid, not NASA POWER (the training data); a live "
                "run is a pipeline demonstration, not a performance claim.")
     st.markdown("[Weather data by Open-Meteo.com](https://open-meteo.com/), licensed "
@@ -172,9 +186,11 @@ with tab_live:
             st.warning(f"Data stale: {ss.live_stale} hour(s) appended by persistence fallback (flagged in the log).")
         runs = run_frame(regime, fr, scenario)
         show_results(runs, regime, "live")
+        st.caption(f"Raw provider JSON of every fetch is stored unmodified in results/demo_logs/raw/ "
+                   f"(last: {Path(rec['raw_file']).name if rec.get('raw_file') else 'none - fetch failed'}).")
         if st.button("Save session log to results/demo_logs/"):
             p = live.save_live_log(regime, fr, ss.live_fetches)
-            st.success(f"Saved {p.name} (+ weather CSV). Raw provider JSON is stored unmodified.")
+            st.success(f"Saved {p.name} (+ weather CSV) for an exact re-run.")
         with st.expander("Fetch records (provider, timestamps, timezone, latency)"):
             st.json([{k: v for k, v in r.items() if k != "raw_json"} for r in ss.live_fetches])
 

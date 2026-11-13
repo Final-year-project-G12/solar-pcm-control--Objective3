@@ -131,16 +131,18 @@ an O2 sizing question and should be raised there (plan section 10).
 | Action space | 2 actions (enable / bypass) - in O2's kernel CHARGE and IDLE are the same thing | 3 actions CHARGE / IDLE / BYPASS (IDLE and BYPASS both switch the pump off) |
 | Shield metric | Shield-active **hours** from the kernel (O2's definition) | Shield **events** per solver sub-step (about 50,000 / yr for B0) |
 | Regimes | r0-r2 trained, r3 baselines only; all 4 in the locked test | Regime 0 only |
-| Algorithms | PPO, 4 weight sets x 3 seeds per regime (36 runs) | PPO, DQN, RecurrentPPO, QRDQN, MaskablePPO, SAC; one seed shown |
-| Delivery result | B0 best; PPO -8 to -11 % delivery, about -99 % shield hours | B0 2146 kWh; DQN 2144 kWh (-0.1 %) with 26 % fewer shield events; PPO / RecurrentPPO / QRDQN identical to B0 |
+| Algorithms | PPO, 4 weight sets x 3 seeds per regime (36 runs); post-lock: DQN 3 regimes x 3 seeds, PPO with forecast obs + domain randomisation, w2 / w3 frontier (section 9) | PPO, DQN, RecurrentPPO, QRDQN, MaskablePPO, SAC. The final plan PDF (sections 16.9, 18) reports DQN on 3 seeds and selects SAC; only regime-0 comparison files are in this repo (`results/phase4_comparison_r0.csv`, one seed) |
+| Delivery result | B0 best; PPO and DQN -8 to -11 % delivery, about -99 % shield hours | B0 2146 kWh; DQN 2144 kWh (-0.1 %) with 26 % fewer shield events; SAC 2097 kWh (-2.3 %) with 54 % fewer (PDF section 18.1); PPO / RecurrentPPO / QRDQN identical to B0 |
 | Rule baseline | B1 -1 to -4 % delivery, -35 to -60 % shield hours | B1 -6.1 % delivery, -55 % shield events |
 
 **What agrees across the two states:** with O2's shield inside the plant, no controller beats always-on on delivered
 energy; every rule or learned policy that reduces shield activity pays in delivery; and PPO either copies B0 (TN) or
 trades heavily toward safety margin (UK), depending on how the reward prices the shield. The TN DQN result (same
-delivery, 26 % fewer shield events) is the one claim that goes further, but it rests on a re-implemented
-single-node model, one weather sequence repeated three times, one seed and no locked test, so it **should be re-run
-on the TN multinode kernel with per-year weather before it is cited**. The Uttarakhand protocol (unchanged-kernel
+delivery, 26 % fewer shield events) is the one claim that goes further. The final plan PDF reports it on 3 seeds and
+behind a locked test, but that test uses 2011-2015, which O2 had already used, the model is a re-implemented
+single-node loop, and the TN validation file in this repo gives bit-identical numbers for 2021, 2022 and 2023 (one
+weather sequence). In Uttarakhand, with the contract reward, DQN behaves like PPO, not like B0 (section 9). The TN
+claim **should be re-run on the TN multinode kernel with per-year weather and O3-only test years before it is cited**. The Uttarakhand protocol (unchanged-kernel
 stepper + equivalence tests, O3-only test years, seeds, lock) is the one to port to Tamil Nadu.
 
 ## 8. Limits
@@ -150,6 +152,87 @@ stepper + equivalence tests, O3-only test years, seeds, lock) is the one to port
   is a hold-out by **year** at the same four medoids, not by location.
 * Current-hour GHI in the observation is the hour mean (mild look-ahead); the live demo uses Open-Meteo, whose
   radiation is a model product on a ~11 km grid (r1 cell elevation 1,743 m vs medoid 1,348 m).
-* No MPC or forecast baseline (B2, B3) was built; the literature suggests MPC is the strongest baseline, and its absence
-  must be stated.
+* No MPC baseline (B3) was built; the literature suggests MPC is the strongest baseline, and its absence must be stated.
+  The forecast rule B2 was built after the lock (section 9) and adds nothing over B1.
 * Pumping energy is not modelled (O2 reports it as 0).
+
+## 9. Additions from the final plan's as-built sections 16-19 (built after the lock)
+
+The final plan PDF adds Tamil Nadu's as-built extensions (sections 16-19). Their Uttarakhand equivalents were built
+**after** the one-shot test, so they are judged on the validation years 2021-2023 only; nothing here changes the
+frozen policies or the M6 numbers.
+
+### 9.1 B2 forecast-aware rule (PDF 16.2) - `results/m9_b2_*`, `b2_params_r{k}.json`
+
+B1 plus a perfect 2-4 h GHI look-ahead (pre-emptive bypass when the PCM is nearly full, the tank is hot and strong sun
+is coming), tuned on the validation years by the same rule as B1. **It lands on B1** in every regime (window delivery
+equal to 0.1 kWh/yr, at most 2 fewer shield hours), and 10 % / 20 % forecast error changes nothing. A forecast cannot
+create delivery headroom that G2 showed does not exist.
+
+### 9.2 Deployment metrics (PDF 18.2) - `results/m10_deployment_r{k}.json`, `m10_sensor_faults_r{k}.csv`
+
+| Regime | Controller | Thermal efficiency | Collector efficiency | Demand coverage | Annual delivery vs B1 |
+|---|---|---|---|---|---|
+| r0 | B0 / B1 / PPO | 43.0 / 42.2 / 40.7 % | 52.2 / 50.6 / 48.4 % | 32.1 / 31.5 / 30.4 % | +23.2 / 0 / -39.0 kWh |
+| r1 | B0 / B1 / PPO | 45.4 / 45.1 / 43.6 % | 53.9 / 53.1 / 50.4 % | 29.8 / 29.7 / 28.6 % | +7.1 / 0 / -41.6 kWh |
+| r2 | B0 / B1 / PPO | 46.2 / 45.7 / 44.5 % | 53.6 / 52.6 / 50.5 % | 29.5 / 29.2 / 28.4 % | +11.3 / 0 / -33.2 kWh |
+| r3 | B0 / B1 | 52.5 / 52.3 % | 58.6 / 58.2 % | 24.0 / 23.9 % | +2.8 / 0 kWh |
+
+Thermal efficiency = annual energy delivered to 50 C / solar incident on the 1.5 m2 collector; demand coverage =
+delivered / energy needed to heat every drawn kg from mains to 50 C (the 50 L tank meets under a third of the
+300 L/day demand, section 6). Backup-heater electricity = the delivery difference with an assumed resistive element
+(efficiency 1.0, O3 assumption): PPO would need 33-42 kWh/yr MORE backup than B1. **PPO inference:** 0.24 ms median
+per hourly decision (1 thread), 10,563 parameters, 42 kB fp32 weights, 157 kB checkpoint.
+
+**Sensor faults** (observation corrupted, physics untouched; 6 scenarios x 3 years x PPO / B1 / B2): **zero hard-limit
+hours in every case**, because the shield acts on the true state. PPO depends on the pyranometer: with it dead or
+stuck, PPO stops bypassing, falls back to B0-like behaviour (+3 to +6 % delivery, shield hours back to B0 level).
+A +2 C water-temperature bias makes B1 / B2 bypass earlier (-3 to -6 % delivery); PPO is insensitive to it.
+
+### 9.3 O4 hand-off package (PDF 16.4) - `results/o4_handoff/r{k}/`
+
+Per regime: hardware interface spec (13 contract signals, 4 of which need an estimator; one actuator, the collector
+pump on/off at the fixed design flow; O2's 72 C / 62 C shield restated as an independent hardware interlock, read
+from O2's own config; 75 / 65 C hard limits; fail-safe to B0), the frozen primary policy with its SHA-256 and
+normalisation file, and a 6-step test plan ending at hardware-in-the-loop. Simulation-derived; nothing is validated
+on hardware. Regime 3: no policy, always enable under the interlock.
+
+### 9.4 Extension study (PDF 16.8 / 19.1) - `results/ext/`, `results/m12_extensions*.csv`
+
+Validation window delivery, mean +- SD over 3 seeds (B0: r0 615.8, r1 615.7, r2 634.6 kWh/yr):
+
+| Study | r0 | r1 | r2 | Shield h/yr |
+|---|---|---|---|---|
+| Frozen PPO (M4) | 551.6 +- 2.6 | 557.1 +- 15.8 | 589.9 +- 0.7 | 1.9-4.8 |
+| **DQN**, same reward and selection rule | 545.9 +- 3.6 | 561.5 +- 8.0 | 588.3 +- 6.1 | 1.2-3.5 |
+| **PPO, forecast obs (1-3 h GHI, next-hour draw) + training-time domain randomisation** | - | 564.4 +- 2.4 | - | 1.4 |
+
+**DQN behaves like PPO**, not like B0 as in Tamil Nadu: with the contract reward, the exploration method does not
+change the answer. Forecast inputs plus domain randomisation gain about 7 kWh/yr and make the seeds much more
+consistent (SD 2.4 vs 15.8), but stay about 51 kWh/yr below B0.
+
+**Delivery vs shield frontier, regime 1** (PDF 19.1 item 3):
+
+| Reward setting | Window delivery | Shield h/yr |
+|---|---|---|
+| w2 (overheat) = 0, 1, 3, 10, 30, w3 by the dominance rule (29.7) | 553.7-558.0 | 1.0-4.8 |
+| w3 = 10 (DIAGNOSTIC) | 565.7 +- 2.6 | 1.1 |
+| w3 = 3 (DIAGNOSTIC) | 574.4 +- 4.3 | 8.5 |
+| w3 = 0 (DIAGNOSTIC: no guard penalty) | 614.3 +- 2.3 | 607 |
+| B0 always-on | 615.7 | 607 |
+
+Sweeping the overheat weight w2 is flat, because the safety-guard weight w3 already removes shield time. Lowering w3
+(diagnostic: Q2 fixes w3 by the dominance rule, so these runs are never selectable) shows a **cliff, not a curve**:
+with no guard penalty PPO learns exactly B0 (the same thing Tamil Nadu found for its delivery-only reward, PDF 16.1),
+and even a tenth of the agreed penalty removes about 99 % of shield time. There is no setting that keeps B0's
+delivery with materially fewer shield hours; B1 is the only point in between (608.5 kWh, 406 h).
+
+### 9.5 Not built, and why
+
+* **Sub-hourly control (PDF 19.1 item 1):** the unchanged O2 kernel consumes whole-hour weather rows (plan 3.0), so a
+  15-min decision step would need an edit to O2's physics, which the plan forbids. Tamil Nadu could do it only
+  because its environment re-implements the physics.
+* **SAC (PDF 16.3):** with two actions (bypass / enable), a continuous action binned to two values adds nothing that
+  DQN does not already test; it can be added on request.
+* **Regimes 1 and 2 (PDF 19.1 item 4):** already covered: Uttarakhand trained and tested regimes 0, 1 and 2 from the
+  start, and regime 3 with baselines.

@@ -1,0 +1,10 @@
+9 runs
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s0_w3_0.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s1_w3_0.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s2_w3_0.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s0_w3_3.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s1_w3_3.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s2_w3_3.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s0_w3_10.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s1_w3_10.0
+ok  w3diag_r1_ppo_w2_0_w4_0.3_s2_w3_10.0

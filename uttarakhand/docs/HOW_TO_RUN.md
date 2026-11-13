@@ -23,6 +23,13 @@ python -m venv .venv; .venv\Scripts\activate; pip install -r requirements.txt
 | M6 locked test (ONCE) | `python scripts/m6_locked_test.py --confirm-run-once` | `results/o3_test.lock`, `m6_test_*` |
 | post-lock checks (EXPLORATORY; demo reproduces M6, night metrics on test years) | `python scripts/m6b_postlock_checks.py` | `results/m6b_*` |
 | M7 demo | `streamlit run app/streamlit_app.py` | `results/demo_logs/` (when saved) |
+| reset scenarios on test years (EXPLORATORY) | `python scripts/m6c_reset_scenarios_postlock.py` | `results/m6c_*` |
+| B2 forecast rule (validation) | `python scripts/m9_b2_forecast.py --regime k` | `results/b2_params_r{k}.json`, `m9_b2_*` |
+| deployment metrics + sensor faults | `python scripts/m10_deployment_metrics.py --regime k` | `results/m10_*` |
+| O4 hand-off package | `python scripts/m11_o4_handoff.py` | `results/o4_handoff/r{k}/` |
+| extension study (DQN, sweeps, forecast obs + DR) | `python scripts/m12_run_all.py --jobs 2 [--only dqn pareto v2dr w3diag]` | `results/ext/` |
+| extension summary | `python scripts/m12_summary.py` | `results/m12_extensions*.csv` |
+| dashboard | `python scripts/make_plots.py` | `results/plots/dashboard.html` |
 
 Memory: each PPO training process commits about 1.6 GB. With 16 GB RAM and other programs open, use `--jobs 2`
 (three parallel G2 processes beside three trainers ran out of memory on 2026-11-11).

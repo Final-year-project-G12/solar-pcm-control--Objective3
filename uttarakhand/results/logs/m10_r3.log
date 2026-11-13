@@ -1,0 +1,51 @@
+{
+ "B0": {
+  "thermal_efficiency": 0.525,
+  "collector_efficiency": 0.586,
+  "demand_coverage": 0.24,
+  "E_del_annual_kWh": 1298.722,
+  "savings_vs_B1_annual_kWh": 2.813,
+  "savings_vs_B1_window_kWh": 2.813,
+  "backup_electricity_avoided_vs_B1_kWh": 2.813,
+  "overheat_h": 164.525,
+  "hours_over_limit": 0.0
+ },
+ "B1": {
+  "thermal_efficiency": 0.523,
+  "collector_efficiency": 0.582,
+  "demand_coverage": 0.239,
+  "E_del_annual_kWh": 1295.909,
+  "savings_vs_B1_annual_kWh": 0.0,
+  "savings_vs_B1_window_kWh": 0.0,
+  "backup_electricity_avoided_vs_B1_kWh": 0.0,
+  "overheat_h": 90.692,
+  "hours_over_limit": 0.0
+ },
+ "B2": {
+  "thermal_efficiency": 0.523,
+  "collector_efficiency": 0.582,
+  "demand_coverage": 0.239,
+  "E_del_annual_kWh": 1295.909,
+  "savings_vs_B1_annual_kWh": 0.0,
+  "savings_vs_B1_window_kWh": 0.0,
+  "backup_electricity_avoided_vs_B1_kWh": 0.0,
+  "overheat_h": 90.692,
+  "hours_over_limit": 0.0
+ }
+}
+                                d_annual_vs_nominal_pct  overheat_h  hours_over_limit
+controller scenario                                                                  
+B1         combined                               -0.38       28.23               0.0
+           none                                    0.00       90.69               0.0
+           pcm_dropout                             0.00       90.69               0.0
+           pyranometer_dead                        0.00       90.69               0.0
+           pyranometer_stuck                       0.00       90.69               0.0
+           sensor_noise                            0.06      112.44               0.0
+           water_temp_bias_+2C                    -0.30       26.96               0.0
+B2         combined                               -0.38       28.23               0.0
+           none                                    0.00       90.69               0.0
+           pcm_dropout                             0.00       90.69               0.0
+           pyranometer_dead                        0.00       90.69               0.0
+           pyranometer_stuck                       0.00       90.69               0.0
+           sensor_noise                            0.06      112.44               0.0
+           water_temp_bias_+2C                    -0.30       26.96               0.0

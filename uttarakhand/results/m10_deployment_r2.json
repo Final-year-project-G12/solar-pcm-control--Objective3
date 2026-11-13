@@ -1,0 +1,72 @@
+{
+ "regime": 2,
+ "years": [
+  2021,
+  2022,
+  2023
+ ],
+ "collector_area_m2": 1.5,
+ "eta_heater_assumed": 1.0,
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "controllers": {
+  "B0": {
+   "thermal_efficiency": 0.4615814891743561,
+   "collector_efficiency": 0.5361134474793015,
+   "demand_coverage": 0.294615643740415,
+   "E_del_annual_kWh": 1237.6607436170355,
+   "savings_vs_B1_annual_kWh": 11.305516470823704,
+   "savings_vs_B1_window_kWh": 11.293969312440254,
+   "backup_electricity_avoided_vs_B1_kWh": 11.305516470823704,
+   "overheat_h": 498.82638888888886,
+   "hours_over_limit": 0.0
+  },
+  "B1": {
+   "thermal_efficiency": 0.45736513412277924,
+   "collector_efficiency": 0.5256983361962952,
+   "demand_coverage": 0.29192445228908437,
+   "E_del_annual_kWh": 1226.3552271462117,
+   "savings_vs_B1_annual_kWh": 0.0,
+   "savings_vs_B1_window_kWh": 0.0,
+   "backup_electricity_avoided_vs_B1_kWh": 0.0,
+   "overheat_h": 251.36574074074073,
+   "hours_over_limit": 0.0
+  },
+  "B2": {
+   "thermal_efficiency": 0.45735542843571353,
+   "collector_efficiency": 0.5256755906950494,
+   "demand_coverage": 0.29191825739758664,
+   "E_del_annual_kWh": 1226.3292028186493,
+   "savings_vs_B1_annual_kWh": -0.02602432756248163,
+   "savings_vs_B1_window_kWh": -0.02599740408652451,
+   "backup_electricity_avoided_vs_B1_kWh": -0.02602432756248163,
+   "overheat_h": 251.27546296296296,
+   "hours_over_limit": 0.0
+  },
+  "PPO": {
+   "thermal_efficiency": 0.4450012042037367,
+   "collector_efficiency": 0.5048306348431898,
+   "demand_coverage": 0.2840328724539057,
+   "E_del_annual_kWh": 1193.2032246146482,
+   "savings_vs_B1_annual_kWh": -33.15200253156354,
+   "savings_vs_B1_window_kWh": -32.94596475968967,
+   "backup_electricity_avoided_vs_B1_kWh": -33.15200253156354,
+   "overheat_h": 0.8263888888888888,
+   "hours_over_limit": 0.0
+  }
+ },
+ "ppo_footprint": {
+  "latency_ms_median": 0.24459999985992908,
+  "latency_ms_p95": 0.32263490138575385,
+  "n_parameters": 10563,
+  "weights_fp32_bytes": 42252,
+  "checkpoint_bytes": 157949,
+  "threads": 1,
+  "note": "x86 laptop CPU, measured while other evaluation jobs were running (conservative)"
+ },
+ "sensor_faults_max_hours_over_limit": 0.0,
+ "sensor_faults_worst_annual_change_pct": {
+  "B1": -3.3706678816616855,
+  "B2": -3.3686172794372546,
+  "PPO": -0.5574758483311015
+ }
+}

@@ -1,0 +1,51 @@
+{
+ "regime": 3,
+ "years": [
+  2021,
+  2022,
+  2023
+ ],
+ "collector_area_m2": 1.5,
+ "eta_heater_assumed": 1.0,
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "controllers": {
+  "B0": {
+   "thermal_efficiency": 0.5245338070112019,
+   "collector_efficiency": 0.5855033110141892,
+   "demand_coverage": 0.23970388668594667,
+   "E_del_annual_kWh": 1298.721713983403,
+   "savings_vs_B1_annual_kWh": 2.8126751451363816,
+   "savings_vs_B1_window_kWh": 2.8126678555627223,
+   "backup_electricity_avoided_vs_B1_kWh": 2.8126751451363816,
+   "overheat_h": 164.52546296296296,
+   "hours_over_limit": 0.0
+  },
+  "B1": {
+   "thermal_efficiency": 0.5233978106034426,
+   "collector_efficiency": 0.58225079258314,
+   "demand_coverage": 0.23918475379010384,
+   "E_del_annual_kWh": 1295.9090388382667,
+   "savings_vs_B1_annual_kWh": 0.0,
+   "savings_vs_B1_window_kWh": 0.0,
+   "backup_electricity_avoided_vs_B1_kWh": 0.0,
+   "overheat_h": 90.69212962962963,
+   "hours_over_limit": 0.0
+  },
+  "B2": {
+   "thermal_efficiency": 0.5233978106034426,
+   "collector_efficiency": 0.58225079258314,
+   "demand_coverage": 0.23918475379010384,
+   "E_del_annual_kWh": 1295.9090388382667,
+   "savings_vs_B1_annual_kWh": 0.0,
+   "savings_vs_B1_window_kWh": 0.0,
+   "backup_electricity_avoided_vs_B1_kWh": 0.0,
+   "overheat_h": 90.69212962962963,
+   "hours_over_limit": 0.0
+  }
+ },
+ "sensor_faults_max_hours_over_limit": 0.0,
+ "sensor_faults_worst_annual_change_pct": {
+  "B1": -0.3783504754756121,
+  "B2": -0.3783504754756121
+ }
+}

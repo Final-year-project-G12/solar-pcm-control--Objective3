@@ -57,7 +57,7 @@ def main():
     df["group"] = df.controller.str.replace(r"_seed\d+$", "", regex=True)
     summ = df.groupby(["regime", "group"])[cols].agg(["mean", "std"]).round(3)
     (o3c.RESULTS / "m6_test_summary.json").write_text(json.dumps({
-        "run_id": run_id, "fingerprint": fingerprint, "years": years,
+        "run_id": run_id, "fingerprint": fingerprint, "years": years, "o3_config_sha256": o3c.config_hash(),
         "summary": {f"r{k}|{g}": {f"{c}_{s}": v for (c, s), v in row.items()}
                     for (k, g), row in summ.iterrows()}}, indent=1, default=float))
     print(df.groupby(["regime", "group"])[cols].mean().round(2).to_string())

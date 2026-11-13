@@ -95,3 +95,14 @@ def test_attach_existing_lock_guards(tmp_path, monkeypatch):
     assert roles_o3._lock_held is False
     assert roles_o3.attach_existing_lock("abc")["run_id"] == "x"
     assert roles_o3._lock_held is True
+
+
+def test_B2_reduces_to_B1_when_sun_always_forecast():
+    """B2 with a forecast threshold that is always met makes B1's decisions (same thresholds), except the final hour
+    where there is no forecast left."""
+    from o3.controllers import B1Reactive, B2Forecast
+    from o3.evaluate import run_episode
+    a, _ = run_episode(B1Reactive(68, 0.9, 50), 1, 2016, "fully_solid", "train")
+    b, _ = run_episode(B2Forecast(68, 0.9, 50, ghi_ahead_Wm2=-1.0), 1, 2016, "fully_solid", "train")
+    assert np.array_equal(a.action.to_numpy()[:-1], b.action.to_numpy()[:-1])
+    assert (b.action == 0).sum() > 0

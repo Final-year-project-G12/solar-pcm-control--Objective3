@@ -34,7 +34,7 @@ from o3 import config as o3c
 from o3 import o2_bridge as ob
 from o3 import roles_o3
 from o3.controllers import B0AlwaysOn
-from o3.env import UKPCMEnv
+from o3.env import OBS_FIELDS, UKPCMEnv
 from o3.evaluate import METRIC_WEIGHTS, episode_metrics, run_episode
 
 BANNER = "Software-in-the-loop simulation. Not field validation."
@@ -52,14 +52,28 @@ FRAME_COLS = ["timestamp_utc", "GHI_Wm2", "T_amb_C", "local_hour", "local_date"]
 
 
 class FrameEnv(UKPCMEnv):
-    """UKPCMEnv whose weather is a given hourly frame instead of a role-checked file (everything else identical)."""
+    """UKPCMEnv whose weather is a given hourly frame instead of a role-checked file (everything else identical).
 
-    def __init__(self, frame: pd.DataFrame, **kw):
+    nowcast=True (live mode, plan 3.2): the policy observes the PREVIOUS completed hour's GHI and air temperature
+    (persistence nowcast: what a real controller knows when it decides), while the kernel still simulates the hour
+    with its actual weather. nowcast=False (replay) keeps the training convention (current-hour mean), so replay
+    reproduces the evaluation numbers exactly."""
+
+    def __init__(self, frame: pd.DataFrame, nowcast: bool = False, **kw):
         self._frame = frame.reset_index(drop=True)
+        self.nowcast = nowcast
         super().__init__(years=[0], **kw)
 
     def _weather(self, year):
         return self._frame
+
+    def _raw_obs(self):
+        raw = super()._raw_obs()
+        if self.nowcast:
+            t = max(min(self.stepper.t, self.stepper.n_hours - 1) - 1, 0)
+            raw[OBS_FIELDS.index("GHI_Wm2")] = self.stepper.ghi[t]
+            raw[OBS_FIELDS.index("T_amb_C")] = self.stepper.tamb[t]
+        return raw
 
 
 # ---------------------------------------------------------------------------------------------------- weather
@@ -103,7 +117,8 @@ def fetch_live(regime: int, past_days: int = 3, now_utc: datetime | None = None,
         rec["latency_s"] = round(time.perf_counter() - t0, 3)
         rec["error"] = repr(e)
         return pd.DataFrame(columns=FRAME_COLS + ["missing", "stale_fill"]), rec
-    rec["raw_json"] = raw                                                          # stored unmodified
+    rec["raw_json"] = raw
+    rec["raw_file"] = str(store_raw(regime, raw, now_utc))                         # stored unmodified, every fetch
     h = raw.get("hourly", {})
     # Open-Meteo stamps the END of each averaging hour; O2/NASA POWER stamp the hour START -> shift back one hour
     ends = pd.to_datetime(h.get("time", []), utc=True)
@@ -121,6 +136,15 @@ def fetch_live(regime: int, past_days: int = 3, now_utc: datetime | None = None,
                 "grid_lat": raw.get("latitude"), "grid_lon": raw.get("longitude"),
                 "grid_elevation_m": raw.get("elevation")})
     return fr, rec
+
+
+def store_raw(regime: int, raw: dict, now_utc: datetime) -> Path:
+    """Write the provider's JSON exactly as received to results/demo_logs/raw/ (plan section 9: raw data unmodified)."""
+    d = DEMO_LOG_DIR / "raw"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"openmeteo_r{regime}_{now_utc.strftime('%Y%m%dT%H%M%SZ')}.json"
+    p.write_text(json.dumps(raw))
+    return p
 
 
 def persistence_fill(fr: pd.DataFrame) -> pd.DataFrame:
@@ -187,14 +211,15 @@ def controllers(regime: int) -> list:
     return out
 
 
-def simulate(regime: int, frame: pd.DataFrame, ctrls=None, scenario: str = "fully_solid") -> dict:
+def simulate(regime: int, frame: pd.DataFrame, ctrls=None, scenario: str = "fully_solid",
+             nowcast: bool = False) -> dict:
     """Run every controller and the water-only twin through `frame` with the same reset state and O2's deterministic
-    demand. Returns {name: hourly DataFrame} (the twin under 'water_only_twin')."""
+    demand. nowcast=True for live sessions (see FrameEnv). Returns {name: hourly DataFrame} (twin: 'water_only_twin')."""
     ctrls = ctrls if ctrls is not None else controllers(regime)
     out = {}
     for c in ctrls:
-        env = FrameEnv(frame, regime=regime, purpose="validate", scenarios=[scenario], normalise=c.needs_norm,
-                       weights=METRIC_WEIGHTS)
+        env = FrameEnv(frame, nowcast=nowcast, regime=regime, purpose="validate", scenarios=[scenario],
+                       normalise=c.needs_norm, weights=METRIC_WEIGHTS)
         df, _ = run_episode(c, regime, 0, scenario, "validate", env=env)
         out[c.name] = _stamp(df, frame)
     env = FrameEnv(frame, regime=regime, purpose="validate", scenarios=[scenario], normalise=False,

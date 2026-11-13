@@ -85,6 +85,7 @@ def main():
         rows.append({"policy": i, "hours": " ".join(map(str, hours)), "theta_top": th, "theta_f": tf, **s,
                      "beats_B0": beats(s, b0, tie)})
     rnd = pd.DataFrame(rows)
+    rnd["o3_config_sha256"] = o3c.config_hash()
     rnd.to_csv(o3c.RESULTS / f"g2_random_r{k}.csv", index=False)
 
     y = yrs[0]
@@ -100,6 +101,7 @@ def main():
                       "d_E_del_annual_kWh": m["E_del_annual_kWh"] - m0["E_del_annual_kWh"],
                       "d_overheat_h": m["overheat_h"] - m0["overheat_h"]})
     pr = pd.DataFrame(probe)
+    pr["o3_config_sha256"] = o3c.config_hash()
     pr.to_csv(o3c.RESULTS / f"g2_single_hour_r{k}.csv", index=False)
 
     summ = {"regime": k, "validation_years": yrs, "tie_kWh": tie,
@@ -114,6 +116,7 @@ def main():
             "single_hour_n_window_gain_gt_1e-6": int((pr.d_E_del_window_kWh > 1e-6).sum()),
             "single_hour_mean_d_overheat_h": float(pr.d_overheat_h.mean())}
     summ["G2_pass"] = bool(n_b1_beat + summ["random_n_beat_B0"] > 0)
+    summ["o3_config_sha256"] = o3c.config_hash()
     (o3c.RESULTS / f"g2_summary_r{k}.json").write_text(json.dumps(summ, indent=1))
     print(json.dumps(summ, indent=1))
 

@@ -59,6 +59,7 @@ def main():
         print(f"r{k} done", flush=True)
 
     rep = pd.DataFrame(rep)
+    rep["o3_config_sha256"] = o3c.config_hash()
     rep.to_csv(o3c.RESULTS / "m6b_demo_reproduces_m6.csv", index=False)
     nt = pd.concat(night, ignore_index=True)
     nt["label"] = "EXPLORATORY post-lock supplement (policies, config, years unchanged)"
@@ -68,6 +69,7 @@ def main():
     cols = ["tau_serve_o2_mean_h", "twin_tau_serve_o2_mean_h", "gain_tau_serve_o2_h", "serve_frac_o2_mean"]
     tbl = nt.groupby(["regime", "group"])[cols].mean()
     summ = {"lock_run_id": lock["run_id"], "fingerprint": fp, "label": "EXPLORATORY",
+            "o3_config_sha256": o3c.config_hash(),
             "demo_reproduces_m6_all": bool(rep.identical.all()), "n_rows_compared": len(rep),
             "same_E_del_window_as_m6": bool(np.allclose(nt.E_del_window_kWh.to_numpy(),
                                                          m6.set_index(["regime", "controller", "year"]).loc[

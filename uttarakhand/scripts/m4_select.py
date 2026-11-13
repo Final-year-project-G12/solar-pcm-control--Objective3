@@ -47,10 +47,12 @@ def main():
                      "seed": b["seed"], "ckpt": b["best"]["ckpt"], "steps": b["best"]["steps"],
                      "model": str(bj.parent / "best_model.zip"), **{k: b["best"][k] for k in KEYS}})
     runs = pd.DataFrame(rows)
+    runs["o3_config_sha256"] = o3c.config_hash()
     runs.to_csv(o3c.RESULTS / "m4_runs.csv", index=False)
     agg = runs.groupby(["regime", "set", "w2", "w4", "w3", "diagnostic"])[KEYS].agg(["mean", "std"])
     agg.columns = [f"{a}_{b}" for a, b in agg.columns]
     agg = agg.reset_index()
+    agg["o3_config_sha256"] = o3c.config_hash()
     agg["n_seeds"] = runs.groupby(["regime", "set"]).size().reindex(pd.MultiIndex.from_frame(agg[["regime", "set"]])).to_numpy()
     agg.to_csv(o3c.RESULTS / "m4_weight_sets.csv", index=False)
 

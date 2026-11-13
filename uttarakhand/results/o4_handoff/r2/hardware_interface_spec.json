@@ -1,0 +1,170 @@
+{
+ "label": "SIMULATION-DERIVED SPECIFICATION - NOT HARDWARE-VALIDATED",
+ "state": "uttarakhand",
+ "regime": 2,
+ "medoid": "UKP_0025",
+ "design": {
+  "pcm": "savE\u00ae OM55",
+  "N": 54,
+  "flow": 0.0198828380652761,
+  "fraction": 0.29971538562167643,
+  "arrangement": "single-layer"
+ },
+ "control_period_s": 3600,
+ "sensor_sampling_interval_s": 60,
+ "sensor_sampling_note": "O3 choice: 1-min samples, hourly mean fed to the policy (it was trained on hourly means)",
+ "sensors": [
+  {
+   "name": "GHI_Wm2",
+   "unit": "W/m2",
+   "measurable": true,
+   "source": "pyranometer or weather feed",
+   "role": "sensor"
+  },
+  {
+   "name": "T_amb_C",
+   "unit": "C",
+   "measurable": true,
+   "source": "ambient sensor",
+   "role": "sensor"
+  },
+  {
+   "name": "T_water_C",
+   "unit": "C",
+   "measurable": true,
+   "source": "tank thermocouple",
+   "role": "sensor"
+  },
+  {
+   "name": "T_pcm_C",
+   "unit": "C",
+   "measurable": false,
+   "source": "estimator (no direct PCM sensor assumed)",
+   "role": "ESTIMATOR REQUIRED (no direct sensor)"
+  },
+  {
+   "name": "f_melt",
+   "unit": "fraction [0,1]",
+   "measurable": false,
+   "source": "estimator, derived from T_pcm_C via the frozen enthalpy model",
+   "role": "ESTIMATOR REQUIRED (no direct sensor)"
+  },
+  {
+   "name": "T_mains_C",
+   "unit": "C",
+   "measurable": true,
+   "source": "mains/inlet sensor",
+   "role": "sensor"
+  },
+  {
+   "name": "draw_mass_kg_now",
+   "unit": "kg",
+   "measurable": true,
+   "source": "flow meter at the draw-off point",
+   "role": "sensor"
+  },
+  {
+   "name": "hour_of_day",
+   "unit": "hour [0,24)",
+   "measurable": true,
+   "source": "clock",
+   "role": "sensor"
+  },
+  {
+   "name": "minutes_since_last_draw",
+   "unit": "minutes",
+   "measurable": true,
+   "source": "derived from draw sensor history",
+   "role": "sensor"
+  },
+  {
+   "name": "store_energy_above_mains_kWh",
+   "unit": "kWh (cumulative)",
+   "measurable": false,
+   "source": "estimator, from T_water_C/T_pcm_C vs T_mains_C",
+   "role": "ESTIMATOR REQUIRED (no direct sensor)"
+  },
+  {
+   "name": "T_water_top_C",
+   "unit": "C",
+   "measurable": true,
+   "source": "sensor at the tank outlet",
+   "role": "sensor"
+  },
+  {
+   "name": "T_water_bottom_C",
+   "unit": "C",
+   "measurable": true,
+   "source": "sensor at the collector return",
+   "role": "sensor"
+  },
+  {
+   "name": "recoverable_energy_above_45C_kWh",
+   "unit": "kWh",
+   "measurable": false,
+   "source": "estimator (WP1 E_rec,45)",
+   "role": "ESTIMATOR REQUIRED (no direct sensor)"
+  }
+ ],
+ "actuators": [
+  {
+   "name": "collector_loop_pump",
+   "type": "on/off",
+   "commands": {
+    "0": "bypass (pump off)",
+    "1": "enable (pump on)"
+   },
+   "fixed_flow_kg_s": 0.0198828380652761,
+   "flow_envelope_kg_s": [
+    0.01,
+    0.05
+   ],
+   "note": "the policy never sets flow (plan 3.3)"
+  }
+ ],
+ "independent_hardware_interlock": {
+  "water": "pump OFF while top-of-tank >= 72.0 C",
+  "pcm": "PCM-side exchange cut at 62.0 C when the water is hotter (needs a PCM sensor or estimator)",
+  "source": "O2 configs/system_config_shared.yaml safety_shield (same values the kernel uses)",
+  "hard_limits_C": {
+   "water": 75.0,
+   "pcm": 65.0
+  },
+  "rule": "implemented in hardware/firmware below the policy; the policy can never override it"
+ },
+ "fail_safe": {
+  "sensor_or_policy_fault": "fall back to B0 (always enable) under the interlock",
+  "stale_weather": "persistence of the last valid value (as the O3 live demo)",
+  "watchdog_s": 7200
+ },
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5",
+ "contract_sha256": "49b0389855dd4fcac415c49f243d6e6366951034c2cd98e1e68bb312ea99e516",
+ "policy": {
+  "file": "policy_r2.zip",
+  "sha256": "191d517fd716a89cef163202f6f77ba89318257dd978818fa53298a175226786",
+  "algorithm": "PPO (Stable-Baselines3 2.4.1, MlpPolicy [64, 64])",
+  "weight_set": "w2_0_w4_0.3",
+  "seed": 0,
+  "observation_fields": [
+   "T_water_top_C",
+   "T_water_bottom_C",
+   "T_water_mean_C",
+   "T_pcm_C",
+   "f_melt",
+   "GHI_Wm2",
+   "T_amb_C",
+   "hour_sin",
+   "hour_cos",
+   "draw_mass_kg_now",
+   "T_mains_C",
+   "store_energy_above_mains_kWh",
+   "recoverable_energy_above_target_kWh",
+   "minutes_since_last_draw",
+   "prev_action"
+  ],
+  "hour_encoding": "sin/cos of 2*pi*hour/24",
+  "normalisation": "normalisation.json: (x - obs_mean) / obs_std",
+  "normalisation_sha256": "b066d22ab03ea7dddc856b6a1faf84a3e125e5d69905264be954e7d6a2f484c0",
+  "inference": "deterministic argmax; latency in results/m10_deployment_r{k}.json"
+ }
+}

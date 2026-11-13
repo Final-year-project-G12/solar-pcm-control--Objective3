@@ -23,5 +23,6 @@
  "single_hour_max_d_annual_kWh": 0.0023774828844125295,
  "single_hour_n_window_gain_gt_1e-6": 2,
  "single_hour_mean_d_overheat_h": -0.4387847222221973,
- "G2_pass": true
+ "G2_pass": true,
+ "o3_config_sha256": "c1e2162b768410323d842458c81b54bf306e2780e32ccf06d75267044a1fffa5"
 }

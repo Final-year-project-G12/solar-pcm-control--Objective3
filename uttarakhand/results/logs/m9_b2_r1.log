@@ -1,0 +1,8 @@
+r1 B2 chosen {'theta_top': 72, 'theta_f': 0.9, 'theta_hot': 50, 'ghi_ahead_Wm2': 200, 'horizon_h': 2}
+            E_del_window_kWh  g_window_kWh  overheat_h  hours_over_limit  bypass_switches
+controller                                                                               
+B0                     615.7          72.1       607.4               0.0              0.0
+B1                     608.5          64.9       405.6               0.0            134.3
+B2_noise10             608.5          64.9       403.0               0.0            136.7
+B2_noise20             608.5          64.9       402.6               0.0            137.1
+B2_perfect             608.5          64.9       403.8               0.0            135.7

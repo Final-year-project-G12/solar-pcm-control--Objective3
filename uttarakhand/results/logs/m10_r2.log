@@ -1,0 +1,70 @@
+{
+ "B0": {
+  "thermal_efficiency": 0.462,
+  "collector_efficiency": 0.536,
+  "demand_coverage": 0.295,
+  "E_del_annual_kWh": 1237.661,
+  "savings_vs_B1_annual_kWh": 11.306,
+  "savings_vs_B1_window_kWh": 11.294,
+  "backup_electricity_avoided_vs_B1_kWh": 11.306,
+  "overheat_h": 498.826,
+  "hours_over_limit": 0.0
+ },
+ "B1": {
+  "thermal_efficiency": 0.457,
+  "collector_efficiency": 0.526,
+  "demand_coverage": 0.292,
+  "E_del_annual_kWh": 1226.355,
+  "savings_vs_B1_annual_kWh": 0.0,
+  "savings_vs_B1_window_kWh": 0.0,
+  "backup_electricity_avoided_vs_B1_kWh": 0.0,
+  "overheat_h": 251.366,
+  "hours_over_limit": 0.0
+ },
+ "B2": {
+  "thermal_efficiency": 0.457,
+  "collector_efficiency": 0.526,
+  "demand_coverage": 0.292,
+  "E_del_annual_kWh": 1226.329,
+  "savings_vs_B1_annual_kWh": -0.026,
+  "savings_vs_B1_window_kWh": -0.026,
+  "backup_electricity_avoided_vs_B1_kWh": -0.026,
+  "overheat_h": 251.275,
+  "hours_over_limit": 0.0
+ },
+ "PPO": {
+  "thermal_efficiency": 0.445,
+  "collector_efficiency": 0.505,
+  "demand_coverage": 0.284,
+  "E_del_annual_kWh": 1193.203,
+  "savings_vs_B1_annual_kWh": -33.152,
+  "savings_vs_B1_window_kWh": -32.946,
+  "backup_electricity_avoided_vs_B1_kWh": -33.152,
+  "overheat_h": 0.826,
+  "hours_over_limit": 0.0
+ }
+}
+{'latency_ms_median': 0.24459999985992908, 'latency_ms_p95': 0.32263490138575385, 'n_parameters': 10563, 'weights_fp32_bytes': 42252, 'checkpoint_bytes': 157949, 'threads': 1, 'note': 'x86 laptop CPU, measured while other evaluation jobs were running (conservative)'}
+                                d_annual_vs_nominal_pct  overheat_h  hours_over_limit
+controller scenario                                                                  
+B1         combined                               -3.37       38.38               0.0
+           none                                    0.00      251.37               0.0
+           pcm_dropout                             0.00      251.37               0.0
+           pyranometer_dead                        0.00      251.37               0.0
+           pyranometer_stuck                       0.00      251.37               0.0
+           sensor_noise                           -0.16      275.35               0.0
+           water_temp_bias_+2C                    -3.33       36.96               0.0
+B2         combined                               -3.37       38.38               0.0
+           none                                    0.00      251.28               0.0
+           pcm_dropout                             0.00      251.37               0.0
+           pyranometer_dead                        0.00      251.28               0.0
+           pyranometer_stuck                       0.00      251.28               0.0
+           sensor_noise                           -0.16      275.13               0.0
+           water_temp_bias_+2C                    -3.33       36.96               0.0
+PPO        combined                                0.54       52.00               0.0
+           none                                   -0.00        0.83               0.0
+           pcm_dropout                             1.32       75.01               0.0
+           pyranometer_dead                        3.73      498.83               0.0
+           pyranometer_stuck                       3.34      497.52               0.0
+           sensor_noise                           -0.06        2.05               0.0
+           water_temp_bias_+2C                    -0.56        0.21               0.0

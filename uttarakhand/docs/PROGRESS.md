@@ -72,6 +72,27 @@ Each controller x regime x validation year (51 episodes):
   any other policy fingerprint, never creates a lock): demo reproduces M6 exactly, and O2-definition night metrics on the
   test years, **labelled EXPLORATORY** (plan 8.3 step 8). The lock was not deleted or re-created.
   Open-Meteo attribution added to the demo.
+* **2026-11-12** - Re-audit against the plan text closed four more gaps:
+  (a) **config hash in every result file (15.4)**: 17 files lacked it. M3 outputs carry an EARLIER config hash
+  (`444ca3c...`) than M4 onward (`c1e2162...`): the config was edited between M3 and M4 and the old version was never
+  committed. Recomputing normalisation and the B1 choice under today's config gave bit-identical results in all 4
+  regimes, so the edit did not affect M3. The 4 M3 grid files were stamped with the hash they were made under, G2 / M4 /
+  post-lock files with the current one; every script now writes it. `m6_test_summary.json` (locked output) was left
+  untouched; its companion `m6_test_results.csv` carries the hash.
+  (b) **demo panels (15.9)**: bottom temperature, melt fraction, draw and over-limit time added (8 panels).
+  (c) **nowcast in live mode (3.2)**: the policy sees the previous completed hour's GHI / T_amb; the kernel runs the
+  actual hour. Replay keeps the training convention, so replay still reproduces M6 exactly.
+  (d) **raw provider data stored on every fetch (9)**, not only on "save".
+  Plus `scripts/m6c_reset_scenarios_postlock.py` (results per reset scenario on the test years, EXPLORATORY: < 1 kWh/yr
+  effect, ranking unchanged).
+* **2026-11-12** - Items from the final plan PDF's as-built sections 16-19 (Tamil Nadu additions), built for
+  Uttarakhand after the lock, validation years only unless labelled EXPLORATORY: B2 forecast rule (`m9`), deployment
+  metrics and sensor faults (`m10`), O4 hand-off package (`m11`), results dashboard with regime map (`make_plots`),
+  extension study (`m12`: DQN 9 runs, w2 sweep 9 runs, forecast obs + domain randomisation 3 runs, diagnostic w3
+  frontier 9 runs). The O1 point-to-regime file for the map was copied from the O1 tree after checking its SHA-256
+  against the O1 manifest (`data/o1/SOURCE.md`). Sub-hourly control (19.1 item 1) was not built: the unchanged O2 kernel
+  consumes whole-hour weather rows, so it would need an edit to O2's physics, which the plan forbids. SAC (16.3) was not
+  run: with two actions it adds nothing DQN does not test.
 
 ## Caveats to keep in view
 
@@ -81,12 +102,12 @@ Each controller x regime x validation year (51 episodes):
   fingerprint, and the commit that first contains these exact files is recorded below.
 * **Test lock:** `results/o3_test.lock` exists. Any further run on 2006-2010 is exploratory and must be labelled so.
   Deleting the lock must be logged here with the reason.
-* **Deferred by the plan (section 11.1), not gaps:** B2 forecast rule, B3 MPC (its absence is stated in FINDINGS),
-  other algorithms, recurrent policies, flow control, forecasts, sensor noise, O4 hand-off.
+* **Still not built (plan 11.1 deferrals or impossible under the plan):** B3 MPC (its absence is stated in FINDINGS),
+  SAC, recurrent policies, flow control, sub-hourly control, member-point / location hold-out.
 
 ## Commit record
 
-* Branch `uttarakhand-objective3` (not merged to `main`, not pushed).
+* Branch `uttarakhand-objective3`, merged into `main` (merge `be989c9`) and pushed 2026-11-12.
 * `bc2452e` - first commit of `uttarakhand/` (git line-ending normalisation altered some CRLF files: contract JSON,
   weather CSVs; do not check out this commit alone for hash checks).
 * `caa7e8d` - `.gitattributes` `* -text`: files stored byte-exact. Verified 2026-11-11 with a fresh clone made with
