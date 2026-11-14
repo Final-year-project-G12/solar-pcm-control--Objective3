@@ -74,7 +74,12 @@ python scripts/train_one.py --algo dqn --regime 1 --seed 42 --shield-weight 1.7 
 python scripts/train_one.py --algo dqn --regime 1 --seed 42 --shield-weight 1.7 --no-domain-randomize     # ablation: no randomisation
 python scripts/gen2_ablation.py --regime 1 --n-jobs 3                                                      # scores them + robustness
 python scripts/phase5_robustness.py --run results/gen2/<tag> --years 2021 2022 --n-jobs 6                  # robustness of any Gen-2 run
-python scripts/make_gen2_plots.py --algo dqn
+python scripts/make_gen2_plots.py --algo dqn [--regime 0|2]     # regime 1 -> gen2_<algo>.html, others gen2_<algo>_r<regime>.html
+# re-run used in 2026-11-13 (new results root, nothing overwritten; resumable after an interruption):
+python scripts/gen2_study.py --algo dqn --regime 1 --multipliers 0 0.5 1 1.5 2 --seeds 42 0 123 --results-dir results/rerun_2026-11-13 --n-jobs 6
+python scripts/gen2_study.py --algo sac --regime 2 --multipliers 0.5 1 1.5 --results-dir results/rerun_2026-11-13 --n-jobs 3   # ~9 h per 6-run batch
+python scripts/gen2_forecast_study.py --regime 1 --results-dir results/rerun_2026-11-13 --n-jobs 6   # imperfect-forecast study (plan v2 12.2.3)
+python scripts/train_one.py --algo dqn --regime 1 --seed 0 --forecast-mode smart     # perfect | smart | none
 python scripts/phase6_locked_eval.py --run results/gen2/<selected tag> --n-jobs 5    # the one-shot locked test, 2006-2010
 ```
 
@@ -103,6 +108,8 @@ python scripts/phase7_demo.py --mode replay --year 2021 --algo ppo --regime 1 --
 python scripts/phase7_demo.py --mode live --algo ppo --regime 1 --steps 24 --interval 3600   # needs internet
 python scripts/phase8_o4_handoff.py --algo ppo --regime 1
 python scripts/make_plots.py --regime 1 --tag R2
+python scripts/run_all_plots.py                     # every plot: dashboards R2 / R2_r0 / R2_r2, gen2, deck (same layout as tamilnadu/results/plots)
+python scripts/run_all_plots.py --results-dir results/rerun_2026-11-13   # gen2 plots from the re-run (output in <it>/plots/)
 ```
 Every demo screen and log row is labelled "Software-in-the-loop simulation. Not field validation."
 

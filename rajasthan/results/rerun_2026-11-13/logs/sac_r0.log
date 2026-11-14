@@ -4,3 +4,33 @@
 [gen2] sac_r0_w3.9_s0_V3_60min_dr: trained in 406.3 min
 [gen2] sac_r0_w3.9_s42_V3_60min_dr: trained in 407.3 min
 [gen2] sac_r0_w3.9_s123_V3_60min_dr: trained in 413.1 min
+[gen2] sac_r0_w5.85_s0_V3_60min_dr: trained in 571.2 min
+[gen2] sac_r0_w5.85_s42_V3_60min_dr: trained in 571.9 min
+[gen2] sac_r0_w5.85_s123_V3_60min_dr: trained in 566.0 min
+Gen-2 study ['A'] | sac | 9 runs planned, 9 to train | 300,000 steps | n_jobs 3
+training wall time 1393.5 min
+
+run                                              E45    %B0 win%B0 shield h   cut%  switch viol
+sac_r0_w1.95_s0_V3_60min_dr                    936.8   97.5   96.1      149   82.2    2798    0
+sac_r0_w1.95_s123_V3_60min_dr                  932.2   97.0   95.6      131   84.4    2923    0
+sac_r0_w1.95_s42_V3_60min_dr                   936.4   97.4   96.1      144   82.7    3392    0
+sac_r0_w3.9_s0_V3_60min_dr                     942.0   98.0   96.9      145   82.7    3526    0
+sac_r0_w3.9_s123_V3_60min_dr                   944.6   98.3   97.3      227   72.9    3387    0
+sac_r0_w3.9_s42_V3_60min_dr                    915.2   95.2   92.6       48   94.2    3786    0
+sac_r0_w5.85_s0_V3_60min_dr                    918.3   95.6   93.1       46   94.5    2761    0
+sac_r0_w5.85_s123_V3_60min_dr                  915.1   95.2   92.6       30   96.4    3439    0
+sac_r0_w5.85_s42_V3_60min_dr                   929.9   96.8   95.0       83   90.1    3427    0
+sac_r2_w0.85_s0_V3_60min_dr                    940.8   96.4   94.3      321   71.1    3824    0
+sac_r2_w0.85_s123_V3_60min_dr                  943.6   96.6   94.9      335   69.9    2949    0
+sac_r2_w0.85_s42_V3_60min_dr                   948.0   97.1   95.5      350   68.5    3578    0
+sac_r2_w1.7_s0_V3_60min_dr                     927.2   95.0   92.2      136   87.8    3483    0
+sac_r2_w1.7_s123_V3_60min_dr                   927.6   95.0   92.2      140   87.4    3303    0
+sac_r2_w1.7_s42_V3_60min_dr                    927.3   95.0   92.2      138   87.6    3335    0
+
+regime 0, 60-min control: B0 E45 961.0 kWh / shield 837 h | B1 845.1 kWh / 103 h
+  SELECTED sac_r0_w5.85_s123_V3_60min_dr: 95.2 % of B0 delivery, shield cut 96.4 %
+
+regime 2, 60-min control: B0 E45 976.4 kWh / shield 1112 h | B1 870.7 kWh / 95 h
+  SELECTED sac_r2_w0.85_s0_V3_60min_dr: 96.4 % of B0 delivery, shield cut 71.1 %
+
+-> results\rerun_2026-11-13\gen2\gen2_summary_sac.csv

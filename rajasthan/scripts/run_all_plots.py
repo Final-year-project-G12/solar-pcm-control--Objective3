@@ -19,11 +19,12 @@ Run from the rajasthan O3 root:
     python scripts/run_all_plots.py                      # everything
     python scripts/run_all_plots.py --refresh            # also rebuild results/phase4_comparison_r*.csv from the saved models first
     python scripts/run_all_plots.py --only dashboards    # dashboards | gen2 | deck
-    python scripts/run_all_plots.py --results-dir results/rerun_2026-11-13   # gen2 plots from the retrain run
+    python scripts/run_all_plots.py --results-dir results/rerun_2026-11-13   # gen2 + deck plots from the retrain run (dashboards stay on results/)
 
 Reads saved results only; it trains nothing and never touches the locked test.
 """
 import argparse
+import os
 import pathlib
 import subprocess
 import sys
@@ -33,10 +34,13 @@ SCRIPTS = ROOT / "scripts"
 TAGS = {1: "R2", 0: "R2_r0", 2: "R2_r2"}
 
 
-def run(*args):
+def run(*args, results_dir=None):
     cmd = [sys.executable, *map(str, args)]
     print("\n$ " + " ".join(str(a) for a in args), flush=True)
-    r = subprocess.run(cmd, cwd=ROOT)
+    env = dict(os.environ)
+    if results_dir:                                   # scripts without a --results-dir flag read O3_RESULTS_DIR (config_O2)
+        env["O3_RESULTS_DIR"] = str(pathlib.Path(results_dir).resolve())
+    r = subprocess.run(cmd, cwd=ROOT, env=env)
     return r.returncode == 0
 
 
@@ -44,9 +48,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", choices=["dashboards", "gen2", "deck"], default=None)
     ap.add_argument("--refresh", action="store_true", help="rebuild the phase-4 comparison CSVs from the saved models first")
-    ap.add_argument("--results-dir", default=None, help="results root to read (default results/)")
+    ap.add_argument("--results-dir", default=None, help="results root for the gen2 and deck plots (default results/); output goes to <it>/plots/")
     a = ap.parse_args()
-    rd = ["--results-dir", a.results_dir] if a.results_dir else []
+    rd = []                                           # dashboards always read results/ (that is where phase4_comparison_r*.csv lives)
     failed = []
 
     if a.only in (None, "dashboards"):
@@ -58,10 +62,11 @@ def main():
                 failed.append(f"dashboard {tag}")
     if a.only in (None, "gen2"):
         for algo in ("dqn", "sac"):
-            if not run(SCRIPTS / "make_gen2_plots.py", "--algo", algo, *rd):
-                failed.append(f"gen2 {algo}")
+            for regime in (1, 0, 2):                  # regime 1 -> gen2_<algo>.html, others -> gen2_<algo>_r<regime>.html; skipped if no rows
+                if not run(SCRIPTS / "make_gen2_plots.py", "--algo", algo, "--regime", regime, results_dir=a.results_dir):
+                    failed.append(f"gen2 {algo} r{regime}")
     if a.only in (None, "deck"):
-        if not run(SCRIPTS / "make_deck_plots.py"):
+        if not run(SCRIPTS / "make_deck_plots.py", results_dir=a.results_dir):
             failed.append("deck")
 
     print("\n" + ("[OK] all plots built under results/plots/" if not failed else "[FAIL] " + ", ".join(failed)))

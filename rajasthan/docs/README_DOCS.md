@@ -17,6 +17,13 @@
   gate G2 (failed on delivery for rules), PPO 3 seeds (collapses to B0), Gen-2 DQN study (regime 1: a policy at 98.2 % of B0 delivery
   with 57 % fewer shield hours; regimes 0/2 not), deployment metrics, fresh 2006–2010 test weather, Streamlit app. **Locked test spent** on the selected DQN (98.0 % of B0, shield -61 %). Ablation (3 seeds): forecast essential; training randomisation not shown to matter. SAC sweep done (regime 1, 3 seeds): never meets the 95 % rule. **Not complete:** SAC on regimes 0/2 is one seed only.
 
+## Update 2026-11-14
+* Delivery rule is now annual-only (matches Tamil Nadu; post-hoc, after the first locked test; both verdicts reported).
+* Plan v2 12.2 (imperfect forecast) implemented: `forecast_mode` perfect/smart/none; mismatch list in `V2_PLAN_VS_CODE.md`.
+* DQN re-run (45 runs) and reduced SAC grid (18 runs) finished in `results/rerun_2026-11-13/`; tables in `CORRECTIONS.md` (last section).
+  DQN does not reproduce the earlier headline run; SAC passes the annual rule with a real shield cut. SAC on regimes 0/2 is now a sweep (3 weights x 3 seeds), not one seed.
+* `scripts/run_all_plots.py` builds every plot with the same layout as tamilnadu. 138 tests pass. Locked test not re-run; nothing committed.
+
 ## The O1 / O2 / O3 boundary
 O1 picks the PCM shortlist; O2 picks the released design and owns the simulator, shield and limits; O3 only chooses, hour by
 hour, whether the collector loop circulates. O3 never edits O2.

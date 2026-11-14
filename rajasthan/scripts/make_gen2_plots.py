@@ -41,6 +41,9 @@ def main():
     s = pd.read_csv(g / f"gen2_summary_{a.algo}.csv")
     s = s[~s.tag.str.contains("_V2_|_V3_60min$")]
     r = s[(s.regime_id == a.regime) & (s.control_step_min == 60)]
+    if r.empty:
+        print(f"[skip] no {a.algo} rows for regime {a.regime} in {g}")
+        return
     b0 = r.iloc[0]
     figs = []
 
@@ -134,8 +137,9 @@ def main():
             'Software-in-the-loop simulation. Not field validation.</div>']
     for i, fg in enumerate(figs):
         html.append(pio.to_html(fg, include_plotlyjs="cdn" if i == 0 else False, full_html=False))
-    (out / f"gen2_{a.algo}.html").write_text("\n".join(html), encoding="utf-8")
-    print(f"{len(figs)} charts -> {out / f'gen2_{a.algo}.html'}")
+    name = f"gen2_{a.algo}.html" if a.regime == 1 else f"gen2_{a.algo}_r{a.regime}.html"   # regime 1 keeps the original name
+    (out / name).write_text("\n".join(html), encoding="utf-8")
+    print(f"{len(figs)} charts -> {out / name}")
 
 
 if __name__ == "__main__":

@@ -390,7 +390,7 @@ fails), never from the stored year: `PCMEnv.set_weather_override(ghi, tamb, hour
 the demo reproduces the evaluation numbers for a V3 agent (`tests/test_demo.py`). Live mode is a nowcast + provider forecast, so a
 live session is not exactly the perfect-forecast setting the agent was trained and validated in.
 
-**Still not done:** SAC on regimes 0 and 2 is one seed, not a sweep; the locked 2006–2010
+**Still not done (as of 2026-11-12; superseded by the re-run section at the end of this file):** SAC on regimes 0 and 2 is one seed, not a sweep; the locked 2006–2010
 test is spent (see above) (it should be run on the selected DQN run: `phase6_locked_eval.py --run results/gen2/<tag>`); no run trained
 without forecast / randomisation for an ablation; Streamlit portal items of §19.4 are already covered by `app/streamlit_app.py`
 (replay/live, banner) and do not yet list Gen-2 agents.
@@ -480,3 +480,80 @@ Also: Gen-2 training now writes a periodic checkpoint (model + replay buffer) an
 (`o3/agents/gen2.py`, `test_offpolicy_run_resumes_from_its_checkpoint`). A resumed run is not bit-identical to an uninterrupted one.
 `sb3-contrib` 2.6.0 was installed into the project venv (it is in `requirements.txt` but was missing, which made three smoke tests
 fail); 2.9.2 does not import against the venv's stable-baselines3 2.6.0.
+
+## Re-run under the annual-only rule, 2026-11-13 / 14 (results in `results/rerun_2026-11-13/`)
+
+What was run: DQN retrained for all three regimes (5 weights x 3 seeds, 300k steps, V3, domain randomisation, 60-min control); the
+imperfect-forecast study for regime 1; SAC on a REDUCED grid for regimes 0 and 2 (0.5x, 1x, 1.5x the default shield weight x 3
+seeds = 18 runs). SAC regime 1 was NOT retrained: its 15 runs are the originals in `results/gen2`. Nothing was written over earlier
+results (new run tags, new results root). The locked 2006-2010 test was not re-run. All numbers are validation years 2021-2023,
+means over 3 seeds. "New" = annual-only rule (zero violations, annual delivery >= 95 % of B0), "old" = new plus window delivery >= 95 %.
+
+| Algo | Regime | Weight | Annual % of B0 | Window % | Shield cut vs B0 | Pass new | Pass old |
+|---|---|---|---|---|---|---|---|
+| DQN | 0 | 0 / 1.95 | 100.0 | 100.0 | 0 % | 3/3 | 3/3 |
+| DQN | 0 | 3.9 | 95.0 | 92.2 | 30.5 % | 2/3 | 2/3 |
+| DQN | 0 | 5.85 | 89.3 | 83.3 | 47.6 % | 1/3 | 1/3 |
+| DQN | 0 | 7.8 | 78.7 | 67.3 | 80.4 % | 0/3 | 0/3 |
+| DQN | 1 | 0 / 0.85 | 100.0 | 100.0 | 0 % | 3/3 | 3/3 |
+| DQN | 1 | 1.7 | 97.5 | 96.2 | 13.2 % | 2/3 | 2/3 |
+| DQN | 1 | 2.55 | 88.8 | 82.6 | 56.7 % | 1/3 | 1/3 |
+| DQN | 1 | 3.4 | 71.7 | 57.3 | 98.1 % | 0/3 | 0/3 |
+| DQN | 2 | 0 / 0.85 / 1.7 | 100.0 | 100.0 | 0 % | 3/3 | 3/3 |
+| DQN | 2 | 2.55 | 94.7 | 91.8 | 24.6 % | 2/3 | 2/3 |
+| DQN | 2 | 3.4 | 94.6 | 91.6 | 31.2 % | 2/3 | 2/3 |
+| SAC | 0 | 1.95 (0.5x) | 97.3 | 95.9 | 83.1 % | 3/3 | 3/3 |
+| SAC | 0 | 3.9 (1x) | 97.2 | 95.6 | 83.3 % | 3/3 | 2/3 |
+| SAC | 0 | 5.85 (1.5x) | 95.8 | 93.5 | 93.7 % | 3/3 | 0/3 |
+| SAC | 2 | 0.85 (0.5x) | 96.7 | 94.9 | 69.9 % | 3/3 | 1/3 |
+| SAC | 2 | 1.7 (1x) | 95.0 | 92.2 | 87.6 % | 0/3 | 0/3 |
+| SAC | 2 | 2.55 (1.5x) | 93.9 | 90.5 | 91.4 % | 0/3 | 0/3 |
+
+No run in either algorithm had a hard violation or an hour over the limit. Findings:
+
+* **Passing with a real shield cut (> 10 %).** DQN: none, in any regime. Every DQN pass at weight <= 0.85x default is the always-charge
+  policy (identical to B0), which passes any delivery rule trivially. SAC: 12 of the 18 reduced-grid runs pass the new rule with a
+  cut above 10 % (9 on regime 0, 3 on regime 2); only 6 of those pass the old rule (5 on regime 0, 1 on regime 2). SAC regime 2 at
+  weight 1.7 misses by a hair (95.0 % mean, each seed just under). These are validation-year results; the locked test is spent, so
+  no SAC run has held-out confirmation.
+* **Selections.** DQN regime 0 and regime 2 and regime 1 select a B0-equivalent run (`dqn_r1_w0.85_s0`, `dqn_r2_w0.85_s0`, regime 0
+  weight 0), because no DQN run both passes and cuts shield hours. SAC: regime 0 `sac_r0_w5.85_s123` (95.2 %, cut 96.4 %),
+  regime 2 `sac_r2_w0.85_s0` (96.4 %, cut 71.1 %). Selection files: `results/rerun_2026-11-13/gen2/gen2_selected_{dqn,sac}.json`.
+* **DQN did not reproduce.** The originally selected regime 1 run (weight 1.7, seed 42: 98.2 % of B0, shield cut 57.1 %, the one used
+  in the spent locked test) retrained to 100 % / 0 % (always-charge) from the same seed; seed 0 roughly reproduced (92.3 % vs 92.6 %);
+  weight 3.4 seed 123 moved from 85.9 % to 72.9 %. The original model is still on disk with its recorded hash, so the locked result
+  stands, but DQN training here is seed-fragile and a retrain cannot be relied on to recreate a headline run. Cause not established.
+  A sample of the grid is the honest unit, not a single seed. (Caveat: the retrained runs include the forecast-mode code change;
+  the tests show the perfect-forecast observation is unchanged.)
+* **SAC regime 1 (not retrained)** under the new rule: 7 of the 17 original runs pass; under the old rule none did (see the
+  discrepancy section above).
+
+### Imperfect-forecast study (regime 1, DQN, default weight 1.7, validation years, 3 seeds) — plan v2 12.2.3
+
+`results/rerun_2026-11-13/gen2/gen2_forecast_dqn_r1.csv`. Each cell: annual % of B0 / shield cut.
+
+| Case | seed 42 | seed 0 | seed 123 |
+|---|---|---|---|
+| perfect (trained and scored with the stored year) | 100 / 0 % | 92.6 / 39.5 % | 100 / 0 % |
+| imperfect (smart persistence, trained and scored) | 100 / 0 % | 82.7 / 91.2 % | 100 / 0 % |
+| none (look-ahead zeroed) | 100 / 0 % | 100 / 0 % | 99.9 / 19.2 % |
+| optimism (perfect-trained, scored with smart) | 100 / 0 % | 92.8 / 37.1 % | 100 / 0 % |
+
+B2 (forecast rule) gives identical results under perfect and smart forecasts: 80.3 % annual, 70.1 % window, 42 shield hours, cut
+96.0 %. This was checked directly: B2's actions in regime 1 do not depend on the forecast at all, so it is not a wiring bug.
+Reading: with 2 of 3 seeds at B0 in every case, the study cannot say how much a forecast is worth; no case passes the annual rule
+with a real cut. It does show the policy that does learn (seed 0) trades 10 points of delivery for a bigger shield cut when the
+forecast is imperfect, and that a perfect-trained policy scored with an imperfect forecast barely changes (optimism small here).
+Offline forecast error uses the stored NASA clear-sky column (9.9 / 21.0 / 36.1 % rRMSE at +1/+2/+3 h); the live path uses the
+analytic fallback (17.6 / 33.6 / 51.4 %). Next-hour demand stays perfect (limitation).
+
+### Not done / skipped
+* Locked test not re-run; SAC grid reduced (regimes 0/2 at 3 weights, not 5); SAC regime 1 and the 0.5x/1.5x weights there not
+  retrained; QR-DQN, RecurrentPPO, MaskablePPO not trained (DQN and SAC only); Objective 4 wording unchanged.
+* A hidden/detached launch of the queue was refused by the environment, so the queue ran as a session background task and was
+  made resumable (checkpoint + replay buffer); a resumed run is not bit-identical. One DQN regime 2 batch crashed once on a
+  Windows file lock in the checkpoint rename; fixed with retries and a try/except, and the batch was re-run.
+* Plots: `scripts/run_all_plots.py` rebuilds everything (dashboards R2 / R2_r0 / R2_r2 from `results/phase4_comparison_r*.csv`,
+  gen2 plots, deck plots). `scripts/make_deck_plots.py` reads only `results/gen2` (the ORIGINAL runs), not the re-run; the gen2
+  plots for the re-run are in `results/rerun_2026-11-13/plots/gen2/`. The regime 0 and 2 dashboards hold baselines only (no PPO/DQN
+  model saved at the dashboard location for them).

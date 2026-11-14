@@ -75,6 +75,17 @@ delivery rule holds for weights ≤ 1.7 (2 of 3 seeds). 15-minute control did no
 (one seed) do not meet the rule. Deployment metrics, robustness to 7 sensor faults (0 hard-limit violations) and inference
 cost (0.21 ms, 22 kB) are in `CORRECTIONS.md`. Not separated: the contributions of forecast, randomisation and learner.
 
+## 3d. Re-run under the annual-only delivery rule — added 2026-11-14
+
+The delivery rule was changed after the first locked test to match Tamil Nadu: zero violations, then annual delivery >= 95 % of B0,
+then maximum shield-hour reduction; window delivery is reported as information. This is a post-hoc relaxation, so both verdicts are
+shown everywhere. A retrain of DQN (3 regimes x 5 weights x 3 seeds) and a reduced SAC grid (regimes 0 and 2, 3 weights x 3 seeds)
+under that rule gives: no DQN run passes with a real shield cut (every pass is the always-charge policy), and the retrained DQN does
+not reproduce the earlier regime 1 headline run (seed 42, weight 1.7: 98.2 %/57 % before, 100 %/0 % now); SAC passes the annual rule with a
+shield cut of 70-96 % in 12 of 18 reduced-grid runs (regime 0: 9 of 9, regime 2: 3 of 9), 6 of them under the old rule too. SAC passes are
+validation-year only (the locked test is spent). The imperfect-forecast study (regime 1, DQN) is inconclusive: 2 of 3 seeds sit at B0 in every case.
+Tables and caveats: `CORRECTIONS.md`, last section.
+
 ## 4. What has NOT been established (not run)
 
 * Any trained agent's performance. Smoke training (3,000 steps) only proves the plumbing; the smoke PPO collapsed to a near-
