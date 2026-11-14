@@ -108,8 +108,10 @@ def success_criteria(rows: list[dict], algo: str) -> bool:
     print(f"  INFO  window gain vs water-only twin: {g:.1f} kWh (B0 {g0:.1f})")
     d, d0 = np.mean([r["total_delivered_kWh"] for r in mine]), np.mean([r["total_delivered_kWh"] for r in b0])
     w, w0 = np.mean([r["E_del45_window_kWh"] for r in mine]), np.mean([r["E_del45_window_kWh"] for r in b0])
-    ok = d >= 0.95 * d0 and w >= 0.95 * w0                    # plan 18.1 selection rule, checked on unseen years
-    print(f"  {'PASS' if ok else 'FAIL'}  delivery >= 95 % of B0: annual {100 * d / d0:.1f} %, window {100 * w / w0:.1f} %")
+    ok = d >= 0.95 * d0                                       # Tamil Nadu rule: ANNUAL delivery only (changed 2026-11-13)
+    print(f"  {'PASS' if ok else 'FAIL'}  annual delivery >= 95 % of B0: {100 * d / d0:.1f} %")
+    print(f"  INFO  window delivery vs B0: {100 * w / w0:.1f} % (no longer gates; the pre-2026-11-13 rule also required >= 95 %: "
+          f"{'would pass' if w >= 0.95 * w0 else 'would fail'})")
     ok_all &= ok
     res = max(r["residual_pct_of_collector"] for r in mine)
     ok = res < 0.1

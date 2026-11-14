@@ -1,0 +1,71 @@
+[gen2] dqn_r2_w0.85_s42_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0_s42_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0_s123_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0.85_s0_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0_s0_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0.85_s123_V3_60min_dr: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r2_w0_s42_V3_60min_dr: trained in 24.4 min
+[gen2] dqn_r2_w0.85_s42_V3_60min_dr: trained in 24.4 min
+[gen2] dqn_r2_w0_s123_V3_60min_dr: trained in 24.5 min
+[gen2] dqn_r2_w0.85_s123_V3_60min_dr: trained in 24.5 min
+[gen2] dqn_r2_w0.85_s0_V3_60min_dr: trained in 24.7 min
+[gen2] dqn_r2_w0_s0_V3_60min_dr: trained in 24.7 min
+Gen-2 study ['A'] | dqn | 15 runs planned, 15 to train | 300,000 steps | n_jobs 6
+joblib.externals.loky.process_executor._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\externals\loky\process_executor.py", line 490, in _process_worker
+    r = call_item()
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\externals\loky\process_executor.py", line 291, in __call__
+    return self.fn(*self.args, **self.kwargs)
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 607, in __call__
+    return [func(*args, **kwargs) for func, args, kwargs in self.items]
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 607, in <listcomp>
+    return [func(*args, **kwargs) for func, args, kwargs in self.items]
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\o3\utils\parallel.py", line 57, in _call
+    return fn(**kwargs)
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\scripts\gen2_study.py", line 74, in _train
+    return train_run(obs_version="V3", domain_randomize=True, **kw)
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\o3\agents\gen2.py", line 106, in train_run
+    model.learn(total_timesteps=max(steps - done_steps, 1), callback=cb, progress_bar=False, reset_num_timesteps=(done_steps == 0))
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\dqn\dqn.py", line 267, in learn
+    return super().learn(
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 328, in learn
+    rollout = self.collect_rollouts(
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 568, in collect_rollouts
+    if not callback.on_step():
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\common\callbacks.py", line 114, in on_step
+    return self._on_step()
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\common\callbacks.py", line 223, in _on_step
+    continue_training = callback.on_step() and continue_training
+  File "D:\Final Year Project\.venv\lib\site-packages\stable_baselines3\common\callbacks.py", line 114, in on_step
+    return self._on_step()
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\o3\agents\gen2.py", line 135, in _on_step
+    (ckpt_dir / "latest_replay_tmp.pkl").replace(ckpt_dir / "latest_replay.pkl")
+  File "C:\Users\Manvitha Dungi\AppData\Local\Programs\Python\Python310\lib\pathlib.py", line 1247, in replace
+    self._accessor.replace(self, target)
+PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'results\\rerun_2026-11-13\\gen2\\dqn_r2_w1.7_s42_V3_60min_dr\\ckpt\\latest_replay_tmp.pkl' -> 'results\\rerun_2026-11-13\\gen2\\dqn_r2_w1.7_s42_V3_60min_dr\\ckpt\\latest_replay.pkl'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\scripts\gen2_study.py", line 172, in <module>
+    main()
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\scripts\gen2_study.py", line 166, in main
+    run_parallel(_train, [dict(results_dir=a.results_dir, **r) for r in todo], n_jobs=n_jobs)
+  File "D:\Final Year Project\solar-pcm-control--Objective3\rajasthan\o3\utils\parallel.py", line 72, in run_parallel
+    return Parallel(n_jobs=n_jobs, backend="loky", verbose=verbose)(delayed(_call)(fn, j) for j in jobs)
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 2072, in __call__
+    return output if self.return_generator else list(output)
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 1682, in _get_outputs
+    yield from self._retrieve()
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 1784, in _retrieve
+    self._raise_error_fast()
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 1859, in _raise_error_fast
+    error_job.get_result(self.timeout)
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 758, in get_result
+    return self._return_or_raise()
+  File "D:\Final Year Project\.venv\lib\site-packages\joblib\parallel.py", line 773, in _return_or_raise
+    raise self._result
+PermissionError: [WinError None] The process cannot access the file because it is being used by another process: 'results\\rerun_2026-11-13\\gen2\\dqn_r2_w1.7_s42_V3_60min_dr\\ckpt\\latest_replay_tmp.pkl' -> 'results\\rerun_2026-11-13\\gen2\\dqn_r2_w1.7_s42_V3_60min_dr\\ckpt\\latest_replay.pkl'

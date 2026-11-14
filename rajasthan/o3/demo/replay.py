@@ -30,7 +30,7 @@ def available_models(regime_id: int) -> dict:
 
 
 def _gen2_models(regime_id: int) -> dict:
-    """Generation-2 runs (results/gen2/<tag>) at hourly control: {label: (algo, path, obs_version)}. The plan-18.1 selected run
+    """Generation-2 runs (results/gen2/<tag>) at hourly control: {label: (algo, path, obs_version, forecast_mode)}. The plan-18.1 selected run
     of each algorithm is listed as 'selected'; every other finished run is listed by its tag."""
     import json
     from o3.agents.gen2 import gen2_dir, run_model_path
@@ -52,7 +52,7 @@ def _gen2_models(regime_id: int) -> dict:
         if m["regime_id"] != regime_id or m["control_step_min"] != 60:
             continue
         label = f"{m['algo'].upper()} Gen-2 {'SELECTED ' if m['tag'] in selected else ''}[{m['tag']}]"
-        out[label] = (m["algo"], str(run_model_path(d)), m["obs_version"])
+        out[label] = (m["algo"], str(run_model_path(d)), m["obs_version"], m.get("forecast_mode", "perfect"))
     return out
 
 
@@ -66,7 +66,8 @@ def _policy(key: str, model: tuple | None):
 def run_replay(regime_id: int, year: int, key: str, n_hours: int, model: tuple | None = None) -> pd.DataFrame:
     """Hourly log for the first n_hours of `year` (key: twin | b0 | b1 | b2 | 'model' with model=(algo, path))."""
     env = PCMEnv(config_O2.CONTRACT_FILE, regime_id=regime_id, year=year, water_only=(key == "twin"),
-                 obs_version=(model[2] if (model is not None and len(model) > 2) else "V2"))
+                 obs_version=(model[2] if (model is not None and len(model) > 2) else "V2"),
+                 forecast_mode=(model[3] if (model is not None and len(model) > 3) else "perfect"))
     pol = _policy(key, model)
     obs, _ = env.reset(year=year)
     pol.reset()

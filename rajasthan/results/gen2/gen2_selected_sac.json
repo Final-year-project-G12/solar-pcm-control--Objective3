@@ -1,1 +1,29 @@
-{}
+{
+  "r1_60min": {
+    "tag": "sac_r1_w0_s42_V3_60min_dr",
+    "algo": "sac",
+    "regime_id": 1,
+    "seed": 42,
+    "shield_weight": 0.0,
+    "control_step_min": 60,
+    "train_minutes": 548.8686288237571,
+    "E45_kWh": 925.9669070341834,
+    "window_kWh": 598.7659129106461,
+    "gain_window_vs_twin_kWh": 137.73430104549385,
+    "pct_of_B0_delivery": 100.02595515552115,
+    "pct_of_B0_window": 100.0418947814875,
+    "shield_h": 1038.1782407407406,
+    "shield_cut_vs_B0_pct": 0.47952531210198046,
+    "n_shield": 325079.0,
+    "switches": 2554.3333333333335,
+    "violations": 0,
+    "hours_over_limit": 0.0,
+    "B0_E45_kWh": 925.7266332468236,
+    "B0_shield_h": 1043.1805555555557,
+    "B1_E45_kWh": 772.9361722877246,
+    "B1_shield_h": 40.020833333333336,
+    "model": "D:\\Final Year Project\\solar-pcm-control--Objective3\\rajasthan\\results\\gen2\\sac_r1_w0_s42_V3_60min_dr\\best_model\\best_model.zip",
+    "sha256": "570234b7295e734f4bb0974387fd2f8cbe142aa2577ad88a35d6c61eeeca8ab1",
+    "rule": "zero hard violations -> delivery (annual and window) >= 95 % of B0 -> max shield-hour reduction; validation years"
+  }
+}

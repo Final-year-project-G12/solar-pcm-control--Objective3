@@ -79,6 +79,18 @@ ACTUATOR_INTERFACE = [
 ]
 
 
+FORECAST_SENSORS = [   # observation V3 (Gen-2 agents): look-ahead inputs, indices 13-16
+    {"obs_index": 13, "signal": "GHI_forecast_+1h", "unit": "W/m2", "source": "weather forecast service (NOT a sensor)", "range": [0, 1400],
+     "sample_rate_s": 3600, "notes": "needs a forecast feed; the live demo uses Open-Meteo, persistence on failure"},
+    {"obs_index": 14, "signal": "GHI_forecast_+2h", "unit": "W/m2", "source": "weather forecast service", "range": [0, 1400],
+     "sample_rate_s": 3600, "notes": "as above"},
+    {"obs_index": 15, "signal": "GHI_forecast_+3h", "unit": "W/m2", "source": "weather forecast service", "range": [0, 1400],
+     "sample_rate_s": 3600, "notes": "as above"},
+    {"obs_index": 16, "signal": "draw_mass_next_hour", "unit": "kg/h", "source": "demand profile (expected draw, NOT measured)", "range": [0, 100],
+     "sample_rate_s": 3600, "notes": "the O2 demand curve for the next local hour"},
+]
+
+
 def build_failsafe(contract: dict) -> dict:
     """Restate the safety shield as embedded firmware logic (runs regardless of the learned policy)."""
     gl = contract.get("global_limits", {})
@@ -142,6 +154,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--algo", type=str, default="ppo", choices=["ppo", "dqn", "recurrent", "qrdqn", "maskable", "sac"])
     parser.add_argument("--regime", type=int, default=1)
+    parser.add_argument("--run", type=str, default=None, help="a results/gen2/<tag> directory: export that Gen-2 run (V3 observation)")
     add_parallel_args(parser)
     args = parser.parse_args()
 
@@ -151,7 +164,16 @@ def main():
     print("=" * 70)
 
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-    model = find_model(args.algo, args.regime)
+    obs_version, run_tag = "V2", None
+    if args.run:
+        from o3.agents.gen2 import run_model_path
+        rdir = pathlib.Path(args.run)
+        meta = json.loads((rdir / "run_meta.json").read_text())
+        args.algo, args.regime = meta["algo"], int(meta["regime_id"])
+        obs_version, run_tag = meta["obs_version"], rdir.name
+        model = run_model_path(rdir)
+    else:
+        model = find_model(args.algo, args.regime)
     if model is None:
         print(f"[WARN] No trained {args.algo} model for regime {args.regime}; spec will carry a policy-export warning.")
         policy_export = {"algo": args.algo, "regime_id": args.regime, "exported_to": None, "sha256": None,
@@ -171,13 +193,18 @@ def main():
         "status": "SPECIFICATION ONLY — NOT AUTHORISED FOR FIELD DEPLOYMENT",
         "exit_gate": "No embedded deployment until hardware-in-the-loop tests pass (deployment_test_plan step 5).",
         "sampling": {"control_cycle_s": 3600,
-                     "observation_assembly": "assemble the 13-field V2 vector each decision; normalise with the FIXED scale "
+                     "observation_assembly": f"assemble the {17 if obs_version == 'V3' else 13}-field {obs_version} vector each decision; normalise with the FIXED scale "
                                              "constants in o3/environment/obs.py (never live statistics)"},
-        "sensor_list": SENSOR_LIST,
+        "obs_version": obs_version,
+        "run_tag": run_tag,
+        "sensor_list": SENSOR_LIST + (FORECAST_SENSORS if obs_version == "V3" else []),
         "actuator_interface": ACTUATOR_INTERFACE,
         "fail_safe": build_failsafe(contract),
         "policy_export": policy_export,
         "deployment_test_plan": deployment_test_plan(),
+        "objective4_note": "Objective 4 is now software-in-the-loop co-simulation (OpenModelica / Simulink). Steps 1-3 and 6 of the test plan "
+                           "need physical hardware and apply only if hardware is ever built; steps 4-5 map to the co-simulation "
+                           "(controller vs. a separate plant model).",
         "provenance_note": "Thermal state (T_pcm, f_melt, stored and recoverable energy) is estimated, not measured. Simulation "
                            "results do not constitute experimental validation; that is Objective 4's purpose.",
     }

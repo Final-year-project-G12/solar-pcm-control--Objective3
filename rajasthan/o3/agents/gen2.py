@@ -27,9 +27,11 @@ def gen2_dir(results_dir=None) -> pathlib.Path:
     return (pathlib.Path(results_dir) if results_dir else config_O2.RESULTS_DIR) / "gen2"
 
 
-def default_tag(algo, regime_id, seed, shield_weight, obs_version, control_step_min, domain_randomize) -> str:
+def default_tag(algo, regime_id, seed, shield_weight, obs_version, control_step_min, domain_randomize,
+                forecast_mode="perfect") -> str:
+    """The forecast suffix is added only for non-default modes, so every earlier tag is unchanged."""
     return (f"{algo}_r{regime_id}_w{shield_weight:g}_s{seed}_{obs_version}_{control_step_min}min"
-            f"{'_dr' if domain_randomize else ''}")
+            f"{'_dr' if domain_randomize else ''}{'' if forecast_mode == 'perfect' else '_fc' + forecast_mode}")
 
 
 def _model(algo: str, env, seed: int, n_steps_total: int, learning_starts: int):
@@ -67,11 +69,11 @@ def _model(algo: str, env, seed: int, n_steps_total: int, learning_starts: int):
 
 def train_run(algo: str, regime_id: int = 1, steps: int = 300_000, seed: int = 42, shield_weight: float | None = None,
               obs_version: str = "V3", control_step_min: int = 60, domain_randomize: bool = True, tag: str | None = None,
-              results_dir: str | None = None, eval_every_steps: int = 35_040) -> dict:
+              results_dir: str | None = None, eval_every_steps: int = 35_040, forecast_mode: str = "perfect") -> dict:
     """Train one run and save it under results/gen2/<tag>/. Returns the run_meta dict."""
     from stable_baselines3.common.callbacks import EvalCallback
     w = default_w_shield(regime_id) if shield_weight is None else float(shield_weight)
-    tag = tag or default_tag(algo, regime_id, seed, w, obs_version, control_step_min, domain_randomize)
+    tag = tag or default_tag(algo, regime_id, seed, w, obs_version, control_step_min, domain_randomize, forecast_mode)
     out = gen2_dir(results_dir) / tag
     out.mkdir(parents=True, exist_ok=True)
     C.pin_main_threads(1)
@@ -79,8 +81,9 @@ def train_run(algo: str, regime_id: int = 1, steps: int = 300_000, seed: int = 4
     cont = algo == "sac"
     tph = 60 // control_step_min
     train_env = C.make_train_vec(regime_id, 1, "dummy", rw, continuous=cont, obs_version=obs_version,
-                                 control_step_min=control_step_min, domain_randomize=domain_randomize)
-    eval_env = C.make_eval_vec(regime_id, rw, continuous=cont, obs_version=obs_version, control_step_min=control_step_min)
+                                 control_step_min=control_step_min, domain_randomize=domain_randomize, forecast_mode=forecast_mode)
+    eval_env = C.make_eval_vec(regime_id, rw, continuous=cont, obs_version=obs_version, control_step_min=control_step_min,
+                               forecast_mode=forecast_mode)
     if algo == "maskable":
         from sb3_contrib.common.maskable.callbacks import MaskableEvalCallback as CB
     else:
@@ -88,19 +91,80 @@ def train_run(algo: str, regime_id: int = 1, steps: int = 300_000, seed: int = 4
     cb = CB(eval_env, best_model_save_path=str(out / "best_model"), log_path=str(out / "eval_logs"),
             eval_freq=min(eval_every_steps * tph, max(1, steps)), n_eval_episodes=3, deterministic=True, verbose=0)
     model = _model(algo, train_env, seed, 8760 * tph, min(8760 * tph, max(100, steps // 4)))
+    ckpt_dir = out / "ckpt"
+    model, done_steps = _try_resume(model, algo, ckpt_dir, train_env)
+    if done_steps:
+        print(f"[gen2] {tag}: resuming from checkpoint at {done_steps:,} / {steps:,} steps", flush=True)
+        import numpy as np
+        ev = out / "eval_logs" / "evaluations.npz"
+        if ev.exists():                                    # keep the best validation score reached before the interruption
+            cb.best_mean_reward = float(np.max(np.load(ev)["results"].mean(axis=1)))
+    from stable_baselines3.common.callbacks import CallbackList
+    cb = CallbackList([cb, _ckpt_callback(ckpt_dir, eval_every_steps * tph, algo)])
     t0 = time.time()
     try:
-        model.learn(total_timesteps=steps, callback=cb, progress_bar=False)
+        model.learn(total_timesteps=max(steps - done_steps, 1), callback=cb, progress_bar=False, reset_num_timesteps=(done_steps == 0))
     finally:
         train_env.close()
         eval_env.close()
     model.save(str(out / "final_model"))
+    import shutil
+    shutil.rmtree(ckpt_dir, ignore_errors=True)               # a finished run needs no checkpoint
     meta = {"tag": tag, "algo": algo, "regime_id": regime_id, "steps": steps, "seed": seed, "shield_weight": w,
             "obs_version": obs_version, "control_step_min": control_step_min, "domain_randomize": domain_randomize,
-            "train_minutes": (time.time() - t0) / 60.0, "generation": 2}
+            "forecast_mode": forecast_mode, "train_minutes": (time.time() - t0) / 60.0, "generation": 2}
     (out / "run_meta.json").write_text(json.dumps(meta, indent=2))
     print(f"[gen2] {tag}: trained in {meta['train_minutes']:.1f} min", flush=True)
     return meta
+
+
+OFFPOLICY = {"dqn", "sac", "qrdqn"}
+
+
+def _replace(src: pathlib.Path, dst: pathlib.Path, tries: int = 8) -> None:
+    """os.replace with retries: on Windows another process (sync client, antivirus) can briefly hold the file."""
+    import os
+    for i in range(tries):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(0.5 * (i + 1))
+
+
+def _ckpt_callback(ckpt_dir: pathlib.Path, every_steps: int, algo: str):
+    """Periodic crash-safe checkpoint (model + replay buffer) so a killed session resumes instead of restarting - an SAC run is ~9 h."""
+    from stable_baselines3.common.callbacks import BaseCallback
+
+    class _Ckpt(BaseCallback):
+        def _on_step(self) -> bool:
+            if self.num_timesteps % every_steps == 0:
+                try:                                   # a checkpoint problem must never kill a 9-hour run
+                    ckpt_dir.mkdir(parents=True, exist_ok=True)
+                    self.model.save(str(ckpt_dir / "latest_tmp.zip"))
+                    if algo in OFFPOLICY:
+                        self.model.save_replay_buffer(str(ckpt_dir / "latest_replay_tmp.pkl"))
+                        _replace(ckpt_dir / "latest_replay_tmp.pkl", ckpt_dir / "latest_replay.pkl")
+                    _replace(ckpt_dir / "latest_tmp.zip", ckpt_dir / "latest.zip")   # the model file is renamed last: it marks a complete set
+                except Exception as e:      # noqa: BLE001
+                    print(f"[gen2] checkpoint skipped at {self.num_timesteps}: {e}", flush=True)
+            return True
+    return _Ckpt()
+
+
+def _try_resume(model, algo: str, ckpt_dir: pathlib.Path, train_env):
+    """Return (model, steps_already_done). Off-policy runs resume from latest.zip + latest_replay.pkl; others restart.
+    A resumed run is not bit-identical to an uninterrupted one (the RNG state is not saved)."""
+    if algo in OFFPOLICY and (ckpt_dir / "latest.zip").exists() and (ckpt_dir / "latest_replay.pkl").exists():
+        try:
+            m = type(model).load(str(ckpt_dir / "latest.zip"), env=train_env, device="cpu")
+            m.load_replay_buffer(str(ckpt_dir / "latest_replay.pkl"))
+            return m, int(m.num_timesteps)
+        except Exception as e:      # noqa: BLE001
+            print(f"[gen2] checkpoint unreadable ({e}); restarting this run", flush=True)
+    return model, 0
 
 
 def run_model_path(run_dir: pathlib.Path) -> pathlib.Path:
@@ -109,8 +173,10 @@ def run_model_path(run_dir: pathlib.Path) -> pathlib.Path:
 
 
 def evaluate_run(run_dir: str, year: int, initial_pcm_state: str = "solid", lock_run_id: str | None = None,
-                 lock_path: str | None = None, checkpoint: str = "best") -> dict:
-    """Score a saved Gen-2 run on one year, in ITS OWN observation layout and control cadence, nominal weather."""
+                 lock_path: str | None = None, checkpoint: str = "best", forecast_mode: str | None = None) -> dict:
+    """Score a saved Gen-2 run on one year, in ITS OWN observation layout and control cadence, nominal weather.
+    forecast_mode=None scores with the forecast the run was trained with; pass another mode to measure how a policy
+    degrades under a different forecast (the 'optimism check' of plan v2 12.2.3)."""
     if lock_run_id is not None:
         from o3.utils import weather_roles
         weather_roles.assume_test_lock(lock_run_id, lock_path)
@@ -119,21 +185,24 @@ def evaluate_run(run_dir: str, year: int, initial_pcm_state: str = "solid", lock
     run_dir = pathlib.Path(run_dir)
     meta = json.loads((run_dir / "run_meta.json").read_text())
     path = run_model_path(run_dir) if checkpoint == "best" else run_dir / "final_model.zip"
+    fm = forecast_mode or meta.get("forecast_mode", "perfect")
     env = PCMEnv(config_O2.CONTRACT_FILE, regime_id=meta["regime_id"], year=year, obs_version=meta["obs_version"],
-                 control_step_min=meta["control_step_min"], reward_weights={"shield": meta["shield_weight"]})
+                 control_step_min=meta["control_step_min"], reward_weights={"shield": meta["shield_weight"]}, forecast_mode=fm)
     pol = ModelPolicy(load_model(meta["algo"], path), ALGO_KIND[meta["algo"]])
     row = run_policy_episode(env, pol, year, initial_pcm_state, ALGO_LABEL[meta["algo"]])
     row.update({k: meta[k] for k in ("tag", "algo", "seed", "shield_weight", "obs_version", "control_step_min", "domain_randomize")})
+    row["forecast_mode_trained"] = meta.get("forecast_mode", "perfect")
+    row["forecast_mode_eval"] = fm
     return row
 
 
 def evaluate_baseline_as(baseline: str, regime_id: int, year: int, control_step_min: int = 60, shield_weight: float | None = None,
-                         initial_pcm_state: str = "solid", water_only: bool = False) -> dict:
+                         initial_pcm_state: str = "solid", water_only: bool = False, forecast_mode: str = "perfect") -> dict:
     """B0 / B1 / twin at a given control cadence (so a 15-minute agent is compared with a 15-minute baseline)."""
     from o3.evaluation.rollout import make_baseline
     rw = None if shield_weight is None else {"shield": shield_weight}
     env = PCMEnv(config_O2.CONTRACT_FILE, regime_id=regime_id, year=year, control_step_min=control_step_min,
-                 reward_weights=rw, water_only=water_only)
+                 reward_weights=rw, water_only=water_only, forecast_mode=forecast_mode)
     row = run_policy_episode(env, make_baseline(baseline), year, initial_pcm_state,
                              "TWIN_water_only" if water_only else None)
     row["control_step_min"] = control_step_min

@@ -86,6 +86,21 @@ def _stub_frame(step: int) -> WeatherFrame:
                         forecast=tuple(_stub_ghi(step + k) for k in (1, 2, 3)))
 
 
+def smart_persistence_forecast(regime_id: int, now_local: datetime.datetime, ghi_now: float) -> tuple | None:
+    """(GHI +1 h, +2 h, +3 h) by smart persistence on the clear-sky index, with the clear-sky envelope computed analytically
+    from the medoid's position and the clock (plan v2 12.2.2: no dataset column exists in live / embedded mode).
+    Naive times are Asia/Kolkata (UTC+5:30), as everywhere else in this adapter. None if pvlib is unavailable."""
+    try:
+        from o3.environment.forecast import analytic_clear_sky, CLEAR_MIN_WM2, KC_MAX
+        m = MEDOIDS[regime_id]
+        utc0 = now_local - datetime.timedelta(hours=5, minutes=30)
+        clear = analytic_clear_sky(m["lat"], m["lon"], [utc0 + datetime.timedelta(hours=k) for k in range(4)])
+        kc = float(np.clip(ghi_now / clear[0], 0.0, KC_MAX)) if clear[0] > CLEAR_MIN_WM2 else 1.0
+        return tuple(float(max(kc * clear[k], 0.0)) for k in (1, 2, 3))
+    except Exception:       # noqa: BLE001
+        return None
+
+
 def fetch_live_frame(regime_id: int, last: WeatherFrame | None = None) -> WeatherFrame:
     """Current-hour weather from Open-Meteo at the chosen medoid; provider, latency and errors are logged.
     The current hour's shortwave radiation is a nowcast value (plan 3.2: the stored-year GHI is an hourly
@@ -110,7 +125,8 @@ def fetch_live_frame(regime_id: int, last: WeatherFrame | None = None) -> Weathe
         if last is not None and (datetime.datetime.now() - last.timestamp).total_seconds() < STALE_AFTER_S:
             return WeatherFrame(datetime.datetime.now(), last.ghi_wm2, last.t_amb_C, datetime.datetime.now().hour,
                                 "persistence", False, time.time() - t0, f"live fetch failed ({e}); persistence",
-                                forecast=(last.ghi_wm2,) * 3)
+                                forecast=smart_persistence_forecast(regime_id, datetime.datetime.now(), last.ghi_wm2)
+                                or (last.ghi_wm2,) * 3)
         f = _stub_frame(datetime.datetime.now().hour)
         f.quality_ok, f.note = False, f"live fetch failed ({e}); stub fallback"
         return f

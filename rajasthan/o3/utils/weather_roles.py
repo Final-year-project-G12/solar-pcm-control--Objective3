@@ -129,11 +129,14 @@ def _read(regime_id: int, year: int) -> dict:
         "GHI_Wm2": df["GHI_Wm2"].to_numpy(dtype=float),
         "T_amb_C": df["T_amb_C"].to_numpy(dtype=float),
         "local_hour": df["local_hour"].to_numpy(dtype=np.int64),
+        # stored clear-sky GHI from the same NASA POWER radiation scheme as GHI_Wm2; used only by forecast_mode='smart'
+        "GHI_clear_Wm2": (df["GHI_clearsky_Wm2"].to_numpy(dtype=float) if "GHI_clearsky_Wm2" in df
+                          else np.full(len(df), np.nan)),
     }
 
 
 def load_weather(regime_id: int, year: int, purpose: str | None = None) -> dict:
-    """Hourly arrays {GHI_Wm2, T_amb_C, local_hour} for one regime-year (29 Feb removed, 8760 h).
+    """Hourly arrays {GHI_Wm2, T_amb_C, local_hour, GHI_clear_Wm2} for one regime-year (29 Feb removed, 8760 h).
 
     purpose=None infers the purpose from the year's role (so a validation year is simply loadable
     as validation) but the guards still apply: 'used_o2' years are always refused and test years

@@ -35,12 +35,14 @@ def main():
     ap.add_argument("--obs-version", default="V3", choices=["V1", "V2", "V3"])
     ap.add_argument("--control-step-min", type=int, default=60, choices=[60, 30, 20, 15, 10, 5])
     ap.add_argument("--domain-randomize", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--forecast-mode", default="perfect", choices=["perfect", "smart", "none"],
+                    help="look-ahead GHI source: perfect (stored year, default) | smart (smart persistence) | none (zeros)")
     ap.add_argument("--tag", default=None)
     ap.add_argument("--results-dir", default=None)
     add_parallel_args(ap)
     a = ap.parse_args()
     meta = train_run(a.algo, a.regime, a.steps, a.seed, a.shield_weight, a.obs_version, a.control_step_min,
-                     a.domain_randomize, a.tag, a.results_dir)
+                     a.domain_randomize, a.tag, a.results_dir, forecast_mode=a.forecast_mode)
     run_dir = gen2_dir(a.results_dir) / meta["tag"]
     for y in VAL_YEARS:
         r = evaluate_run(str(run_dir), y)

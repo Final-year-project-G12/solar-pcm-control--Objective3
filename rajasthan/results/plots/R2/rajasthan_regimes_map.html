@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_a02db9651e53d681ffe768f8ef154297 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_a02db9651e53d681ffe768f8ef154297" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_a02db9651e53d681ffe768f8ef154297 = L.map(
+                "map_a02db9651e53d681ffe768f8ef154297",
+                {
+                    center: [25.9, 74.8],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 7,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_41989d1832cfd934a4607828fdd47a6e = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_41989d1832cfd934a4607828fdd47a6e.addTo(map_a02db9651e53d681ffe768f8ef154297);
+        
+    
+            var circle_marker_7ab1aa1f06f77e563b582697c893b4a0 = L.circleMarker(
+                [24.375, 74.125],
+                {"bubblingMouseEvents": true, "color": "#2a78d6", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2a78d6", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 3}
+            ).addTo(map_a02db9651e53d681ffe768f8ef154297);
+        
+    
+        var popup_b18fe8aec27c4e9df521c898bed1b514 = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_287ef94e49f7994b400f4785980ac3ad = $(`<div id="html_287ef94e49f7994b400f4785980ac3ad" style="width: 100.0%; height: 100.0%;"><b>Regime 0 — Udaipur (RJP_0132)</b><br>PCM: savE® OM55<br>52 capsules, flow 0.0155 kg/s<br>50 L / 1.5 m2</div>`)[0];
+                popup_b18fe8aec27c4e9df521c898bed1b514.setContent(html_287ef94e49f7994b400f4785980ac3ad);
+            
+        
+
+        circle_marker_7ab1aa1f06f77e563b582697c893b4a0.bindPopup(popup_b18fe8aec27c4e9df521c898bed1b514)
+        ;
+
+        
+    
+    
+            circle_marker_7ab1aa1f06f77e563b582697c893b4a0.bindTooltip(
+                `<div>
+                     Regime 0 Udaipur
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5f3535e5c70a06ff941d5ca29ee0bc7b = L.circleMarker(
+                [26.875, 73.375],
+                {"bubblingMouseEvents": true, "color": "#eb6834", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#eb6834", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 3}
+            ).addTo(map_a02db9651e53d681ffe768f8ef154297);
+        
+    
+        var popup_93de1322c0b13cde769f98deb2a33b80 = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_e481345a893f98f02faa702e1d43fbf8 = $(`<div id="html_e481345a893f98f02faa702e1d43fbf8" style="width: 100.0%; height: 100.0%;"><b>Regime 1 — Nagaur (RJP_0192)</b><br>PCM: PureTemp 60<br>52 capsules, flow 0.0493 kg/s<br>50 L / 1.5 m2</div>`)[0];
+                popup_93de1322c0b13cde769f98deb2a33b80.setContent(html_e481345a893f98f02faa702e1d43fbf8);
+            
+        
+
+        circle_marker_5f3535e5c70a06ff941d5ca29ee0bc7b.bindPopup(popup_93de1322c0b13cde769f98deb2a33b80)
+        ;
+
+        
+    
+    
+            circle_marker_5f3535e5c70a06ff941d5ca29ee0bc7b.bindTooltip(
+                `<div>
+                     Regime 1 Nagaur
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_82c9a3a3103060e244cb5dda0e5a03b4 = L.circleMarker(
+                [26.625, 75.875],
+                {"bubblingMouseEvents": true, "color": "#1baf7a", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#1baf7a", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 3}
+            ).addTo(map_a02db9651e53d681ffe768f8ef154297);
+        
+    
+        var popup_4ba9056e7592bc52fa52d42c2637b12c = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_b7eb0f0f6bc8d1d63d96e41286dcae88 = $(`<div id="html_b7eb0f0f6bc8d1d63d96e41286dcae88" style="width: 100.0%; height: 100.0%;"><b>Regime 2 — Jaipur (RJP_0083)</b><br>PCM: PureTemp 58<br>52 capsules, flow 0.0236 kg/s<br>50 L / 1.5 m2</div>`)[0];
+                popup_4ba9056e7592bc52fa52d42c2637b12c.setContent(html_b7eb0f0f6bc8d1d63d96e41286dcae88);
+            
+        
+
+        circle_marker_82c9a3a3103060e244cb5dda0e5a03b4.bindPopup(popup_4ba9056e7592bc52fa52d42c2637b12c)
+        ;
+
+        
+    
+    
+            circle_marker_82c9a3a3103060e244cb5dda0e5a03b4.bindTooltip(
+                `<div>
+                     Regime 2 Jaipur
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>

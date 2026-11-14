@@ -38,6 +38,7 @@ import config_O2  # noqa: F401
 from o3.utils.contract_loader import assert_contract_valid
 from o3.utils import weather_roles
 from o3.environment import obs as _obs
+from o3.environment import forecast as _fc
 from o3.environment.o2_adapter import build_runtime, OneHourKernel, HR, SC
 
 J_PER_KWH = 3.6e6
@@ -108,6 +109,8 @@ class PCMEnv:
     reward_weights: dict with any of energy, unmet, safety, switching, shield
     water_only    : build the plain-tank twin (same tank, flow, shield, weather, zero capsules)
     demand_mode   : "deterministic" (O2's 300 L/day curve every day) or "stochastic" (plan 3.4)
+    forecast_mode : look-ahead GHI source for obs V3 and the B2 baseline: "perfect" (stored year, default, unchanged),
+                    "smart" (smart persistence on the clear-sky index) or "none" (zeros). See o3/environment/forecast.py.
     """
 
     metadata = {"render_modes": []}
@@ -116,11 +119,13 @@ class PCMEnv:
                  obs_version: str = "V2", reward_weights: dict | None = None, water_only: bool = False,
                  demand_mode: str = "deterministic", demand_volume_multiplier: float = 1.0,
                  demand_timing_shift_h: float = 0.0, reward_mode: str = "R2", control_step_min: int = 60,
-                 domain_randomize: bool = False, domain_rand_ranges: dict | None = None):
+                 domain_randomize: bool = False, domain_rand_ranges: dict | None = None,
+                 forecast_mode: str = "perfect"):
         self.contract = assert_contract_valid(contract_path)
         self.regime_id = regime_id
         self.year = year
         self.obs_version = obs_version
+        self.forecast_mode = _fc.check_mode(forecast_mode)        # plan v2 12.2: perfect | smart | none (look-ahead realism)
         self.water_only = water_only
         self.demand_mode = demand_mode
         if obs_version not in _obs.OBS_DIMS:
@@ -188,6 +193,7 @@ class PCMEnv:
             self._dr = (float(rng.uniform(*r["ghi_mult"])), float(rng.uniform(*r["tamb_bias_C"])), float(rng.uniform(*r["demand_mult"])))
         else:
             self._dr = (1.0, 0.0, 1.0)
+        self._prep_forecast()
         if self.demand_mode == "stochastic":
             self._daily_demand = self._draw_daily_demand(seed, self._n_hours)
         else:
@@ -358,6 +364,7 @@ class PCMEnv:
             "state": "rajasthan", "regime_id": int(self.regime_id), "contract_sha256": contract_sha256(contract_path),
             "obs_version": self.obs_version, "n_actions": N_ACTIONS, "water_only": bool(self.water_only), "reward": reward,
             "control_step_min": self.control_step_min, "domain_randomize": self.domain_randomize,
+            "forecast_mode": self.forecast_mode,
             "domain_rand_ranges": {k: list(v) for k, v in self._dr_ranges.items()} if self.domain_randomize else None,
             "demand": {"mode": self.demand_mode, "volume_multiplier": vol_mult, "timing_shift_h": shift_h,
                        "stochastic_volume_sd": STOCH_VOLUME_SD, "stochastic_shift_sd_h": STOCH_SHIFT_SD_H},
@@ -366,9 +373,24 @@ class PCMEnv:
                            "test": weather_roles.TEST_YEARS, "used_o2": weather_roles.USED_O2_YEARS},
         }
 
+    def _prep_forecast(self) -> None:
+        """Per-episode clear-sky index for forecast_mode='smart'. Kc[t] is computed from GHI up to hour t only (causal) and
+        from the GHI the sensor would read, i.e. including this episode's domain-randomisation multiplier."""
+        self._kc = None
+        if self.forecast_mode == "smart":
+            if not np.all(np.isfinite(self._clear)):
+                raise ValueError("forecast_mode='smart' needs the GHI_clearsky_Wm2 column in the weather file")
+            self._kc = _fc.clear_sky_index(self._ghi * self._dr[0], self._clear)
+
     def forecast_ghi(self, k: int) -> float:
-        """GHI of the hour k steps ahead of the current one (perfect-forecast baselines; 0 past the end)."""
-        j = self._state["hour_idx"] // self._tph + k
+        """GHI forecast for the hour k steps ahead of the current one (0 past the end), by forecast_mode.
+        perfect: the stored year (default; the original behaviour, bit-for-bit). smart: Kc(now) x clear-sky(t+k). none: 0."""
+        hi = self._state["hour_idx"] // self._tph
+        if self.forecast_mode == "none":
+            return 0.0
+        if self.forecast_mode == "smart":
+            return _fc.smart_forecast(self._kc, self._clear, min(hi, self._n_hours - 1), k)
+        j = hi + k
         return float(self._ghi[j]) * self._dr[0] if j < self._n_hours else 0.0
 
     def _energy_J(self, T, h) -> float:
@@ -413,6 +435,7 @@ class PCMEnv:
     def _load_weather(self) -> None:
         w = weather_roles.load_weather(self.regime_id, self.year)
         self._ghi, self._tamb, self._hod = w["GHI_Wm2"], w["T_amb_C"], w["local_hour"]
+        self._clear = w["GHI_clear_Wm2"]
         self._n_hours = len(self._ghi)
 
     def _draw_daily_demand(self, seed: int | None, n_hours: int) -> np.ndarray:

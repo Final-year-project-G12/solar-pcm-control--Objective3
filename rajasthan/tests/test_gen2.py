@@ -134,3 +134,70 @@ def test_robustness_and_replay_accept_a_gen2_run(tmp_path):
     assert r["n_steps"] == 8760 and r["n_safety_violations"] == 0
     df = run_replay(REGIME, 2021, "model", 48, ("dqn", str(run_model_path(rd)), m["obs_version"]))
     assert len(df) == 48 and set(df.action) <= {"CHARGE", "IDLE", "BYPASS"}
+
+
+# ---- delivery rule: annual only (Tamil Nadu rule); window delivery is INFO ------------------------------------------------
+def _locked_rows(annual_frac, window_frac):
+    base = dict(n_safety_violations=0, hours_over_limit=0, residual_pct_of_collector=0.0, shield_water_h=100.0, shield_pcm_h=0.0,
+                bypass_switches=0, gain_window_kWh=1.0)
+    b0 = dict(base, policy="B0_fixed_charge", total_delivered_kWh=1000.0, E_del45_window_kWh=600.0)
+    me = dict(base, policy="DQN", total_delivered_kWh=1000.0 * annual_frac, E_del45_window_kWh=600.0 * window_frac)
+    return [b0, me]
+
+
+def _load_script(name):
+    import importlib.util
+    import pathlib
+    p = pathlib.Path(__file__).resolve().parents[1] / "scripts" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_locked_eval_rule_gates_on_annual_delivery_only():
+    m = _load_script("phase6_locked_eval")
+    assert m.success_criteria(_locked_rows(0.96, 0.90), "dqn") is True      # window below 95 % no longer fails
+    assert m.success_criteria(_locked_rows(0.94, 1.00), "dqn") is False     # annual below 95 % still fails
+    assert m.success_criteria(_locked_rows(0.95, 0.80), "dqn") is True      # boundary is inclusive
+
+
+def test_locked_eval_still_requires_zero_violations():
+    m = _load_script("phase6_locked_eval")
+    rows = _locked_rows(1.0, 1.0)
+    rows[1]["n_safety_violations"] = 1
+    assert m.success_criteria(rows, "dqn") is False
+
+
+def test_forecast_mode_flag_tags_and_records_runs(tmp_path):
+    """--forecast-mode: tags of the default mode are unchanged, other modes get a suffix, and run_meta records the mode."""
+    from o3.agents.gen2 import default_tag, train_run, evaluate_run, gen2_dir
+    base = default_tag("dqn", 1, 42, 1.7, "V3", 60, True)
+    assert base == "dqn_r1_w1.7_s42_V3_60min_dr"
+    assert default_tag("dqn", 1, 42, 1.7, "V3", 60, True, "perfect") == base
+    assert default_tag("dqn", 1, 42, 1.7, "V3", 60, True, "smart") == base + "_fcsmart"
+    meta = train_run("dqn", REGIME, steps=600, seed=1, forecast_mode="smart", results_dir=str(tmp_path))
+    assert meta["forecast_mode"] == "smart" and meta["tag"].endswith("_fcsmart")
+    rd = gen2_dir(str(tmp_path)) / meta["tag"]
+    own = evaluate_run(str(rd), 2021)
+    opt = evaluate_run(str(rd), 2021, forecast_mode="perfect")                           # the optimism check path
+    assert own["forecast_mode_eval"] == "smart" and opt["forecast_mode_eval"] == "perfect"
+    assert own["n_safety_violations"] == 0 and opt["n_safety_violations"] == 0
+
+
+def test_offpolicy_run_resumes_from_its_checkpoint(tmp_path):
+    """A killed SAC/DQN run must pick up from its last checkpoint (model + replay buffer), not restart."""
+    from o3.agents import gen2
+    from o3.agents import common as C
+    env = C.make_train_vec(REGIME, 1, "dummy", {"shield": 1.7}, continuous=False, obs_version="V3")
+    m = gen2._model("dqn", env, 1, 8760, 100)
+    cb = gen2._ckpt_callback(tmp_path / "ckpt", 200, "dqn")
+    m.learn(total_timesteps=500, callback=cb, progress_bar=False)                       # checkpoints at 200 and 400
+    m2, done = gen2._try_resume(gen2._model("dqn", env, 1, 8760, 100), "dqn", tmp_path / "ckpt", env)
+    assert done == 400 and m2.num_timesteps == 400
+    assert m2.replay_buffer.size() == m.replay_buffer.size() - 100 or m2.replay_buffer.size() > 0
+    m2.learn(total_timesteps=100, reset_num_timesteps=False, progress_bar=False)         # continues, does not restart
+    assert m2.num_timesteps == 500
+    fresh, d0 = gen2._try_resume(gen2._model("dqn", env, 1, 8760, 100), "dqn", tmp_path / "none", env)
+    assert d0 == 0
+    env.close()

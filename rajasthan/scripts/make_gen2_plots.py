@@ -65,7 +65,7 @@ def main():
     for i, (col, k) in enumerate((("pct_of_B0_delivery", 1), ("shield_cut_vs_B0_pct", 2))):
         f.add_box(x=r.shield_weight.astype(str), y=r[col], boxpoints="all", marker_color=COL[0], showlegend=False, row=1, col=k)
     f.add_hline(y=95, line_dash="dot", line_color="#e34948", row=1, col=1)
-    f.update_layout(title="13 · Seed robustness across shield weights (3 seeds each); 95 % line = plan 18.1 delivery rule", height=440)
+    f.update_layout(title="13 · Seed robustness across shield weights (3 seeds each); 95 % line = annual-delivery rule (window delivery is INFO only)", height=440)
     figs.append(f)
 
     c = s[(s.regime_id == a.regime) & (s.shield_weight == s[s.regime_id == a.regime].shield_weight.iloc[0]) & False]
@@ -102,7 +102,7 @@ def main():
             f.add_box(y=d.shield_h, name=algo, boxpoints="all", marker_color=COL[i], row=1, col=2, showlegend=False)
         f.add_hline(y=95, line_dash="dot", line_color="#e34948", row=1, col=1)
         f.add_hline(y=b0.B0_shield_h, line_dash="dot", line_color="#52514e", row=1, col=2)
-        f.update_layout(title=f"13b · Seed robustness at the default weight w = {w0:g}, SAC vs DQN (3 seeds each; dotted: 95 % rule / B0 shield hours)", height=440)
+        f.update_layout(title=f"13b · Seed robustness at the default weight w = {w0:g}, SAC vs DQN (3 seeds each; dotted: 95 % annual-delivery rule / B0 shield hours)", height=440)
         figs.append(f)
 
     # ablation: what forecast and training-time randomisation are worth (one seed per variant)

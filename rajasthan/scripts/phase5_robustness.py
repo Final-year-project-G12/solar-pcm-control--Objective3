@@ -62,7 +62,8 @@ def main():
         rd = pathlib.Path(args.run)
         meta = json.loads((rd / "run_meta.json").read_text())
         args.regime, args.algo = meta["regime_id"], meta["algo"]
-        env_kw = dict(obs_version=meta["obs_version"], control_step_min=meta["control_step_min"])
+        env_kw = dict(obs_version=meta["obs_version"], control_step_min=meta["control_step_min"],
+                      forecast_mode=meta.get("forecast_mode", "perfect"))
         spec, name = ("model", meta["algo"], str(run_model_path(rd)), env_kw), ALGO_LABEL[meta["algo"]] + "[" + meta["tag"] + "]"
         out_name = f"phase5_robustness_{meta['tag']}.csv"
     elif args.algo in ("b0", "b1", "b2"):

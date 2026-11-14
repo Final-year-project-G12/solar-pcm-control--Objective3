@@ -1,0 +1,33 @@
+[gen2] dqn_r1_w1.7_s42_V3_60min_dr: trained in 32.2 min
+[gen2] dqn_r1_w2.55_s42_V3_60min_dr: trained in 32.3 min
+[gen2] dqn_r1_w2.55_s123_V3_60min_dr: trained in 32.4 min
+[gen2] dqn_r1_w2.55_s0_V3_60min_dr: trained in 32.9 min
+[gen2] dqn_r1_w1.7_s0_V3_60min_dr: trained in 33.0 min
+[gen2] dqn_r1_w1.7_s123_V3_60min_dr: trained in 33.0 min
+[gen2] dqn_r1_w3.4_s42_V3_60min_dr: trained in 18.2 min
+[gen2] dqn_r1_w3.4_s123_V3_60min_dr: trained in 18.1 min
+[gen2] dqn_r1_w3.4_s0_V3_60min_dr: trained in 18.4 min
+Gen-2 study ['A'] | dqn | 15 runs planned, 9 to train | 300,000 steps | n_jobs 6
+training wall time 53.1 min
+
+run                                              E45    %B0 win%B0 shield h   cut%  switch viol
+dqn_r1_w0.85_s0_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0.85_s123_V3_60min_dr                  925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0.85_s42_V3_60min_dr                   925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s0_V3_60min_dr                       925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s123_V3_60min_dr                     925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s42_V3_60min_dr                      925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w1.7_s0_V3_60min_dr                     856.8   92.6   88.5      631   39.5     705    0
+dqn_r1_w1.7_s123_V3_60min_dr                   925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w1.7_s42_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w2.55_s0_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w2.55_s123_V3_60min_dr                  785.7   84.9   76.6      275   73.6     745    0
+dqn_r1_w2.55_s42_V3_60min_dr                   753.8   81.4   71.3       36   96.5     713    0
+dqn_r1_w3.4_s0_V3_60min_dr                     613.3   66.3   50.3        0  100.0    1002    0
+dqn_r1_w3.4_s123_V3_60min_dr                   674.9   72.9   58.8       27   97.4    1464    0
+dqn_r1_w3.4_s42_V3_60min_dr                    703.2   76.0   63.0       34   96.7    1073    0
+
+regime 1, 60-min control: B0 E45 925.7 kWh / shield 1043 h | B1 772.9 kWh / 40 h
+  SELECTED dqn_r1_w0.85_s0_V3_60min_dr: 100.0 % of B0 delivery, shield cut 0.0 %
+
+-> results\rerun_2026-11-13\gen2\gen2_summary_dqn.csv

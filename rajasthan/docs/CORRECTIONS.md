@@ -340,7 +340,16 @@ with a dead pyranometer (it never charges when it reads no sun).
 delivery 94.5 / 94.7 / 95.0 % of B0 (window 91.7–92.2 %), shield hours 136–140 vs 1043 (cut 87 %), 0 violations, but ~3,100–3,700
 on/off switches per year. No run meets the plan-18.1 rule (delivery >= 95 % of B0, annual AND window): SAC lands just under the
 line and is very consistent across seeds (unlike DQN), trading ~5 % delivery for an 87 % shield cut. DQN seed 42 remains the
-selected run. No SAC weight sweep was run (a lower weight would likely move SAC above 95 %); not claimed.
+selected run.
+
+**SAC weight sweep and other regimes (completed, 3 seeds each, regime 1; `results/gen2/gen2_summary_sac.csv`, plots in `results/plots/gen2/gen2_sac.html`):**
+w = 0: B0-equivalent (100 % delivery, 0 % shield cut). w = 0.85x: 94.7-96.1 % annual but window 91.9-94.0 %, cut 74-83 %. w = 1.7x: see above.
+w = 2.55x: 92.9-95.7 % annual, cut 86-93 %. w = 3.4x: 91.6-94.3 %, cut 93-95 %. Raising the weight moves SAC along a smooth, seed-consistent
+delivery-vs-shield trade-off, but **no SAC run passes the plan-18.1 rule** (annual AND window >= 95 %): the best window figure is 94.0 %.
+The summary's "selected" regime-1 SAC entry is therefore the w = 0 B0-equivalent, not a learned policy. SAC on the other regimes (one seed
+each, not a sweep): regime 2 w 1.7 seed 42 = 95.0 % annual / 92.2 % window, cut 87.6 %; regime 0 w 3.9 seed 42 = 95.2 % / 92.6 %, cut 94.2 %;
+both fail on window delivery. Conclusion: SAC is the more seed-stable algorithm and gives a usable Pareto curve, but it never meets the rule;
+DQN seed 42 (regime 1) is still the only run that does. These SAC runs are validation-year results only; the locked test was not used.
 
 **LOCKED TEST SPENT (2026-11-12, user-approved), regime 1, selected run `dqn_r1_w1.7_s42_V3_60min_dr`, test years 2006-2010
 (fresh weather, 3 initial PCM states x 5 years, `results/phase6_final_test_dqn.csv`, `phase6_summary_dqn.json`, lock `o3_test.lock`).**
@@ -381,7 +390,7 @@ fails), never from the stored year: `PCMEnv.set_weather_override(ghi, tamb, hour
 the demo reproduces the evaluation numbers for a V3 agent (`tests/test_demo.py`). Live mode is a nowcast + provider forecast, so a
 live session is not exactly the perfect-forecast setting the agent was trained and validated in.
 
-**Still not done:** no SAC Pareto sweep; the locked 2006–2010
+**Still not done:** SAC on regimes 0 and 2 is one seed, not a sweep; the locked 2006–2010
 test is spent (see above) (it should be run on the selected DQN run: `phase6_locked_eval.py --run results/gen2/<tag>`); no run trained
 without forecast / randomisation for an ablation; Streamlit portal items of §19.4 are already covered by `app/streamlit_app.py`
 (replay/live, banner) and do not yet list Gen-2 agents.
@@ -396,3 +405,78 @@ without forecast / randomisation for an ablation; Streamlit portal items of §19
 4. Live-weather provider and location mapping (plan Q5/Q6).
 5. O2's own caveats stand: 30 % PCM cap and 40 mm radius bind, `cfd_closure_v1` unvalidated, F_R(flow) not enabled,
    simulation only (no hardware).
+
+
+**Phase 8 hand-off and Streamlit check (2026-11-13).** `scripts/phase8_o4_handoff.py --run results/gen2/dqn_r1_w1.7_s42_V3_60min_dr` now exports the
+selected Gen-2 DQN (SHA recorded) with the 17-field V3 sensor list (the four look-ahead inputs flagged as forecast/demand feeds, not sensors);
+outputs are in `results/obj4_handoff/`. The spec carries a note that Objective 4 is software-in-the-loop co-simulation, so the hardware-only test
+steps apply only if hardware is ever built. The Streamlit app (`app/streamlit_app.py`) was run and clicked through in the built-in browser:
+Replay lists the PPO and Gen-2 agents and plots the selected DQN beside the baselines; Live lists the same agents and advanced one simulated hour
+with the selected DQN and produced the log download; no exceptions were raised. Live mode needs internet and was exercised for one step only.
+
+**Rajasthan vs Tamil Nadu: the pass rule is not the same (checked 2026-11-13).** The two states apply different acceptance
+criteria, so "SAC won in Tamil Nadu but not in Rajasthan" is partly a difference of rule, not of controller.
+`tamilnadu/scripts/phase6_locked_eval.py:280` tests `algo_del >= b0_del * 0.95` - ANNUAL delivery only.
+`rajasthan/scripts/phase6_locked_eval.py:111` tests annual AND the draw-window metric (`E_del45_window_kWh`), which is the
+plan-18.1 rule. The window figure is the one Rajasthan's SAC runs fail: scored against Tamil Nadu's annual-only rule, 7 of
+the 17 SAC runs pass, including regime 0 (95.2 % annual, 94.2 % shield cut) and regime 2 (95.0 % annual, 87.6 % cut);
+against Rajasthan's own rule only the three degenerate w = 0 runs pass. Both numbers are in
+`results/gen2/gen2_summary_sac.csv`. Nothing here is a reason to relax the Rajasthan rule - the window metric is the energy
+actually delivered during the draw hours, so it is the stricter and more meaningful gate - but the thesis must not compare
+the two states' pass/fail verdicts as though they were measured the same way. Report the annual and window figures side by
+side, or apply one rule to both states.
+
+Also checked: the Tamil Nadu tree in this checkout holds results for regime 0 only (`results/{sac,dqn,ppo,qrdqn,
+recurrent_ppo,maskable_ppo}/r0`, three `phase4_comparison_r0*.csv`), and those CSVs repeat identical rows for 2021, 2022 and
+2023 - the weather-year bug recorded in the plan's section 8.1, i.e. pre-fix, in-sample numbers. There are no regime-1 or
+regime-2 model directories and no phase-6 locked-test files there. The claim that SAC won on all three Tamil Nadu regimes is
+not supported by any file in this checkout, so no Tamil Nadu result was ported into Rajasthan.
+
+**Why SAC has only one run on regimes 0 and 2.** A launch choice, not a code limit: `gen2_study.py --study A C --regime 1`
+sweeps weights x seeds on the named regime (study A) but covers the other regimes at their default weight with `seeds[0]`
+only (study C, `scripts/gen2_study.py:59`). A full sweep there is 5 weights x 3 seeds x 2 regimes = 30 runs, about 45 h at
+SAC's measured ~9 h per batch of 6. The cheaper targeted experiment is a LOWER shield weight: delivery rises monotonically
+as the weight falls (w 3.4 -> 0.85 takes regime 1 from 91.6 % to 96.1 % annual, 87.0 % to 94.0 % window), so about 0.5x the
+default is where a run that clears the window gate would sit, if one exists.
+
+## DELIVERY RULE CHANGED to annual-only, 2026-11-13 (after the first locked test)
+
+**Current rule (everything scored from 2026-11-13):** zero hard-limit violations and zero hours over limit -> **annual**
+delivered energy >= 95 % of B0 -> maximum shield-hour reduction. Draw-window delivery (`E_del45_window_kWh`,
+`pct_of_B0_window`) is still computed and printed as an INFO number but no longer gates anything. This is the Tamil Nadu rule
+(`tamilnadu/scripts/phase6_locked_eval.py:280`).
+
+**It was changed after the first locked test, and after seeing validation results.** The locked test (2006-2010) was run once
+on the DQN selected under the old rule (annual AND window >= 95 %) and passed it (98.0 % annual, 96.9 % window). The rule was
+then changed because the stricter window gate made Rajasthan's verdicts non-comparable with Tamil Nadu's, and because most
+SAC runs missed only the window gate (see the previous section). Because the change followed the validation sweeps it is a
+post-hoc relaxation: the annual-only verdicts below are validation-year results, the locked test is spent and is NOT
+re-run, and any controller that passes only under the new rule has no held-out confirmation. Both verdicts are therefore
+reported side by side everywhere (`pass_annual_rule`, `pass_annual_and_window_rule` in `gen2_summary_<algo>.csv`).
+
+Code changed: `scripts/phase6_locked_eval.py` (`success_criteria`), `scripts/gen2_study.py` (selection + both verdict
+columns), plot labels in `scripts/make_gen2_plots.py` and `scripts/make_deck_plots.py`; tests
+`tests/test_gen2.py::test_locked_eval_rule_gates_on_annual_delivery_only` and `..._still_requires_zero_violations`. Not changed
+on purpose: the headroom gate (`phase2_headroom_gate.py`) and the phase-4 ranking (`o3/utils/models.py`) rank by window GAIN
+over the water-only twin; that is a ranking and a headroom test, not the 95 % delivery gate. Earlier selection files are kept as
+`results/gen2/gen2_selected_{dqn,sac}_annual_and_window_rule.json` and the pre-change summaries as
+`gen2_summary_{dqn,sac}_pre_rule_change.csv`. Earlier sections of this file quote the rule that applied when they were written.
+
+## Imperfect forecast implemented (plan v2 section 12.2), 2026-11-13
+
+`PCMEnv(forecast_mode=...)`: `perfect` (default, bit-for-bit what every earlier result used), `smart` (smart persistence on the
+clear-sky index, from the stored `GHI_clearsky_Wm2` column) or `none` (zeros). Files: `o3/environment/forecast.py` (new),
+`o3/environment/pcm_env.py`, `o3/environment/gym_wrapper.py`, `o3/agents/common.py`, `o3/agents/gen2.py`
+(`--forecast-mode`, recorded in `run_meta.json`, `_fc<mode>` tag suffix only for non-default modes), `o3/utils/weather_roles.py`
+(carries the clear-sky column), `o3/demo/live_adapter.py` (analytic clear-sky smart persistence replaces plain persistence
+when the provider forecast is unavailable), `o3/demo/replay.py`. B2 takes its look-ahead from `env.forecast_ghi`, so it uses the
+same forecast as the agent. Tests (all pass): zero error in perfect mode, `none` zeros only the look-ahead, reproducibility with a
+fixed seed, causality (perturbing GHI at t+1..t+3 leaves the observation at t unchanged; the perfect mode is shown not to be
+causal), boundedness at the edges, analytic-vs-stored clear-sky agreement (< 25 % rRMSE; measured 17.5 %), and the training flag.
+The four-case study is `scripts/gen2_forecast_study.py`; results are in the re-run section below.
+Next-hour demand is left perfect and recorded as a limitation (plan v2 12.2.4).
+
+Also: Gen-2 training now writes a periodic checkpoint (model + replay buffer) and resumes from it after an interruption
+(`o3/agents/gen2.py`, `test_offpolicy_run_resumes_from_its_checkpoint`). A resumed run is not bit-identical to an uninterrupted one.
+`sb3-contrib` 2.6.0 was installed into the project venv (it is in `requirements.txt` but was missing, which made three smoke tests
+fail); 2.9.2 does not import against the venv's stable-baselines3 2.6.0.

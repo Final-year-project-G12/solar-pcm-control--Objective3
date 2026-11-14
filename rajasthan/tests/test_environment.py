@@ -314,3 +314,102 @@ def test_water_only_twin_has_no_pcm_and_pcm_helps_at_night():
     assert np.isnan(st["t_pcm_max_C"])
     assert st["shield_pcm_h"] == 0.0
     assert sp["E_del45_window_kWh"] > st["E_del45_window_kWh"], "O2's released design must beat its water-only twin in the 18-09 window"
+
+
+# ---- plan v2 section 12.2: imperfect forecast (forecast_mode perfect | smart | none) -----------------------------------------
+def _fenv(mode, **kw):
+    from o3.environment.pcm_env import PCMEnv
+    return PCMEnv(CONTRACT_PATH, regime_id=REGIME, year=2021, obs_version="V3", forecast_mode=mode, **kw)
+
+
+def _walk(e, n, seed=0, year=2021):
+    """n random-action steps from reset; returns the stacked observations."""
+    obs, _ = e.reset(year=year, seed=seed) if year is not None else e.reset(seed=seed)   # year=None keeps edited weather arrays
+    rng = np.random.default_rng(seed)
+    out = [obs]
+    for _ in range(n):
+        obs, _r, done, _t, _i = e.step(int(rng.integers(0, 3)))
+        out.append(obs)
+        if done:
+            break
+    return np.array(out)
+
+
+def test_forecast_perfect_is_default_and_has_zero_error():
+    """forecast_mode='perfect' is the default and reproduces the stored year exactly: assert zero error, not approximate."""
+    from o3.environment.pcm_env import PCMEnv
+    a = PCMEnv(CONTRACT_PATH, regime_id=REGIME, year=2021, obs_version="V3")
+    b = _fenv("perfect")
+    assert a.forecast_mode == "perfect"
+    oa, ob = _walk(a, 24 * 40), _walk(b, 24 * 40)
+    assert np.array_equal(oa, ob)
+    s = b._state
+    for k in (1, 2, 3):
+        assert b.forecast_ghi(k) == float(b._ghi[s["hour_idx"] + k]) * b._dr[0]          # no tolerance
+
+
+def test_forecast_none_zeroes_the_lookahead_fields_only():
+    p, n = _walk(_fenv("perfect"), 24 * 10), _walk(_fenv("none"), 24 * 10)
+    assert np.all(n[:, 13:16] == 0.0)
+    assert np.array_equal(n[:, :13], p[:, :13]) and np.array_equal(n[:, 16], p[:, 16])   # nothing else changes (draw_p1 kept perfect)
+
+
+def test_forecast_smart_is_reproducible_with_a_fixed_seed():
+    kw = dict(domain_randomize=True, demand_mode="stochastic")
+    a, b = _fenv("smart", **kw), _fenv("smart", **kw)
+    oa, ob = _walk(a, 24 * 30, seed=5), _walk(b, 24 * 30, seed=5)
+    assert np.array_equal(oa, ob)
+    assert a.episode_summary() == b.episode_summary()
+    assert not np.array_equal(oa, _walk(_fenv("smart", **kw), 24 * 30, seed=6))           # a different seed really differs
+
+
+def test_forecast_smart_never_reads_hours_it_should_not_know():
+    """Perturbing GHI at t+1..t+3 must leave the observation at t unchanged; perturbing GHI at t must change it."""
+    probe = _fenv("smart")
+    hod = probe._hod
+    t = next(i for i in range(24 * 40, 24 * 60) if hod[i] == 9)                          # mid-morning: sun up, forecast non-zero
+
+    def obs_at_t(mode, edit):
+        e = _fenv(mode)
+        e._ghi = e._ghi.copy()
+        edit(e._ghi)
+        _walk(e, t, year=None)                                                            # year=None: keep the edited array
+        return e._get_obs().copy()
+
+    ref = obs_at_t("smart", lambda g: None)
+    assert ref[13] > 0.0, "probe hour must have daylight, otherwise the test proves nothing"
+    assert np.array_equal(obs_at_t("smart", lambda g: g.__setitem__(slice(t + 1, t + 4), g[t + 1:t + 4] + 400.0)), ref)   # future invisible
+    assert not np.array_equal(obs_at_t("smart", lambda g: g.__setitem__(t, g[t] * 0.5)), ref)                           # now is visible
+    # ...and the perfect mode is NOT causal, which is exactly why smart mode exists
+    pref = obs_at_t("perfect", lambda g: None)
+    assert not np.array_equal(obs_at_t("perfect", lambda g: g.__setitem__(t + 1, g[t + 1] + 400.0)), pref)
+
+
+def test_forecast_smart_is_finite_nonnegative_and_bounded_at_the_edges():
+    from o3.environment import forecast as F
+    e = _fenv("smart")
+    e.reset(year=2021)
+    assert np.all(np.isfinite(e._kc)) and e._kc.min() >= 0.0 and e._kc.max() <= F.KC_MAX
+    for hi in list(range(0, 30)) + list(range(e._n_hours - 6, e._n_hours)):               # start, sunrise region and past the end
+        e._state["hour_idx"] = hi
+        for k in (1, 2, 3):
+            v = e.forecast_ghi(k)
+            assert np.isfinite(v) and v >= 0.0
+    e._state["hour_idx"] = e._n_hours - 1
+    assert e.forecast_ghi(1) == 0.0 and e.forecast_ghi(3) == 0.0                          # runs off the end -> 0
+
+
+def test_forecast_analytic_clear_sky_agrees_with_the_stored_column():
+    """The live path computes GHI_clear from position and time; it must stay within the tolerance recorded in plan v2 12.2.1
+    (measured 17.5 % rRMSE on the validation years). A wrong latitude, longitude or timezone breaks this."""
+    from o3.environment.forecast import analytic_clear_sky
+    from o3.demo.live_adapter import MEDOIDS
+    import pandas as pd
+    from o3.utils import weather_roles
+    p = weather_roles.weather_path(REGIME, 2021)
+    df = pd.read_csv(p, parse_dates=["timestamp_utc"])
+    mine = analytic_clear_sky(MEDOIDS[REGIME]["lat"], MEDOIDS[REGIME]["lon"], df["timestamp_utc"])
+    ref = df["GHI_clearsky_Wm2"].to_numpy(float)
+    m = ref > 20
+    rrmse = np.sqrt(np.mean((mine[m] - ref[m]) ** 2)) / ref[m].mean()
+    assert rrmse < 0.25, f"analytic clear-sky rRMSE {100 * rrmse:.1f} % vs the stored column"

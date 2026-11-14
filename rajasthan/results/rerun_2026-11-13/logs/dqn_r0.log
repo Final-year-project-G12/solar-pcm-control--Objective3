@@ -1,0 +1,75 @@
+[gen2] dqn_r0_w1.95_s42_V3_60min_dr: trained in 20.6 min
+[gen2] dqn_r0_w1.95_s123_V3_60min_dr: trained in 20.9 min
+[gen2] dqn_r0_w0_s42_V3_60min_dr: trained in 20.9 min
+[gen2] dqn_r0_w0_s123_V3_60min_dr: trained in 20.9 min
+[gen2] dqn_r0_w1.95_s0_V3_60min_dr: trained in 21.0 min
+[gen2] dqn_r0_w0_s0_V3_60min_dr: trained in 21.0 min
+[gen2] dqn_r0_w3.9_s42_V3_60min_dr: trained in 25.2 min
+[gen2] dqn_r0_w5.85_s42_V3_60min_dr: trained in 25.0 min
+[gen2] dqn_r0_w5.85_s123_V3_60min_dr: trained in 25.1 min
+[gen2] dqn_r0_w3.9_s123_V3_60min_dr: trained in 25.3 min
+[gen2] dqn_r0_w3.9_s0_V3_60min_dr: trained in 25.4 min
+[gen2] dqn_r0_w5.85_s0_V3_60min_dr: trained in 25.3 min
+[gen2] dqn_r0_w7.8_s42_V3_60min_dr: trained in 14.9 min
+[gen2] dqn_r0_w7.8_s0_V3_60min_dr: trained in 15.1 min
+[gen2] dqn_r0_w7.8_s123_V3_60min_dr: trained in 15.0 min
+Gen-2 study ['A'] | dqn | 15 runs planned, 15 to train | 300,000 steps | n_jobs 6
+training wall time 61.8 min
+
+run                                              E45    %B0 win%B0 shield h   cut%  switch viol
+dqn_r0_w0_s0_V3_60min_dr                       961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w0_s123_V3_60min_dr                     961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w0_s42_V3_60min_dr                      961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w1.95_s0_V3_60min_dr                    961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w1.95_s123_V3_60min_dr                  961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w1.95_s42_V3_60min_dr                   961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w3.9_s0_V3_60min_dr                     961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w3.9_s123_V3_60min_dr                   817.7   85.1   76.7       71   91.6     703    0
+dqn_r0_w3.9_s42_V3_60min_dr                    961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w5.85_s0_V3_60min_dr                    775.6   80.7   69.9       97   88.4     979    0
+dqn_r0_w5.85_s123_V3_60min_dr                  837.0   87.1   79.9      382   54.3     807    0
+dqn_r0_w5.85_s42_V3_60min_dr                   961.0  100.0  100.0      837   -0.0       0    0
+dqn_r0_w7.8_s0_V3_60min_dr                     752.6   78.3   66.5      104   87.6    1575    0
+dqn_r0_w7.8_s123_V3_60min_dr                   836.7   87.1   79.8      367   56.2     773    0
+dqn_r0_w7.8_s42_V3_60min_dr                    679.4   70.7   55.5       21   97.4    2241    0
+dqn_r1_w0.85_s0_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0.85_s123_V3_60min_dr                  925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0.85_s42_V3_60min_dr                   925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s0_V3_60min_dr                       925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s123_V3_60min_dr                     925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w0_s42_V3_60min_dr                      925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w1.7_s0_V3_60min_dr                     856.8   92.6   88.5      631   39.5     705    0
+dqn_r1_w1.7_s123_V3_60min_dr                   925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w1.7_s42_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w2.55_s0_V3_60min_dr                    925.7  100.0  100.0     1043    0.0       0    0
+dqn_r1_w2.55_s123_V3_60min_dr                  785.7   84.9   76.6      275   73.6     745    0
+dqn_r1_w2.55_s42_V3_60min_dr                   753.8   81.4   71.3       36   96.5     713    0
+dqn_r1_w3.4_s0_V3_60min_dr                     613.3   66.3   50.3        0  100.0    1002    0
+dqn_r1_w3.4_s123_V3_60min_dr                   674.9   72.9   58.8       27   97.4    1464    0
+dqn_r1_w3.4_s42_V3_60min_dr                    703.2   76.0   63.0       34   96.7    1073    0
+dqn_r2_w0.85_s0_V3_60min_dr                    976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w0.85_s123_V3_60min_dr                  976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w0.85_s42_V3_60min_dr                   976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w0_s0_V3_60min_dr                       976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w0_s123_V3_60min_dr                     976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w0_s42_V3_60min_dr                      976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w1.7_s0_V3_60min_dr                     976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w1.7_s123_V3_60min_dr                   976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w1.7_s42_V3_60min_dr                    976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w2.55_s0_V3_60min_dr                    976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w2.55_s123_V3_60min_dr                  976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w2.55_s42_V3_60min_dr                   821.0   84.1   75.3      291   73.8    1055    0
+dqn_r2_w3.4_s0_V3_60min_dr                     976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w3.4_s123_V3_60min_dr                   976.4  100.0  100.0     1112    0.0       0    0
+dqn_r2_w3.4_s42_V3_60min_dr                    818.2   83.8   74.7       73   93.5     671    0
+
+regime 0, 60-min control: B0 E45 961.0 kWh / shield 837 h | B1 845.1 kWh / 103 h
+  SELECTED dqn_r0_w0_s0_V3_60min_dr: 100.0 % of B0 delivery, shield cut -0.0 %
+
+regime 1, 60-min control: B0 E45 925.7 kWh / shield 1043 h | B1 772.9 kWh / 40 h
+  SELECTED dqn_r1_w0.85_s0_V3_60min_dr: 100.0 % of B0 delivery, shield cut 0.0 %
+
+regime 2, 60-min control: B0 E45 976.4 kWh / shield 1112 h | B1 870.7 kWh / 95 h
+  SELECTED dqn_r2_w0.85_s0_V3_60min_dr: 100.0 % of B0 delivery, shield cut 0.0 %
+
+-> results\rerun_2026-11-13\gen2\gen2_summary_dqn.csv

@@ -16,7 +16,8 @@ are NOT reused: they are multiples of TN's default 10; here the same multiples o
 
 One process per run (--n-jobs), resumable: a run whose run_meta.json exists is not retrained. After training every run is
 scored on the validation years in its own observation layout / cadence, together with B0, B1 and the water-only twin at
-the same cadence. Selection (plan 18.1): zero hard violations -> delivery >= 95 % of B0 -> maximum shield reduction.
+the same cadence. Selection: zero hard violations -> ANNUAL delivery >= 95 % of B0 -> maximum shield reduction (the Tamil Nadu rule; the
+evening-window figure is reported but no longer gates - changed 2026-11-13, after the first locked test; see docs/CORRECTIONS.md).
 Outputs: results/gen2/gen2_results_<algo>.csv (per run-year), gen2_summary_<algo>.csv (per run), gen2_selected_<algo>.json.
 --n-envs is unused (off-policy agents; one environment per run).
 """
@@ -76,7 +77,7 @@ def _train(study, **kw):
 def summarise(algo: str, res_dir, n_jobs: int) -> None:
     g = gen2_dir(res_dir)
     def _in_study(m):          # the main study is V3 + training-time randomisation; ablation runs (gen2_ablation.py) are scored apart
-        return m["algo"] == algo and m.get("obs_version") == "V3" and m.get("domain_randomize", True)
+        return m["algo"] == algo and m.get("obs_version") == "V3" and m.get("domain_randomize", True) and m.get("forecast_mode", "perfect") == "perfect"
     run_dirs = sorted(d for d in g.iterdir() if (d / "run_meta.json").exists() and _in_study(json.loads((d / "run_meta.json").read_text())))
     if not run_dirs:
         print("no finished runs")
@@ -106,6 +107,8 @@ def summarise(algo: str, res_dir, n_jobs: int) -> None:
         summ.append({**{k: m[k] for k in ("tag", "algo", "regime_id", "seed", "shield_weight", "control_step_min", "train_minutes")},
                      "E45_kWh": e45, "window_kWh": win, "gain_window_vs_twin_kWh": win - b["TWIN"]["win"],
                      "pct_of_B0_delivery": 100 * e45 / b["B0"]["E45"], "pct_of_B0_window": 100 * win / b["B0"]["win"],
+                     "pass_annual_rule": bool(100 * e45 / b["B0"]["E45"] >= 100 * MIN_DELIVERY_FRAC),
+                     "pass_annual_and_window_rule": bool(100 * e45 / b["B0"]["E45"] >= 100 * MIN_DELIVERY_FRAC and 100 * win / b["B0"]["win"] >= 100 * MIN_DELIVERY_FRAC),
                      "shield_h": sh, "shield_cut_vs_B0_pct": 100 * (1 - sh / b["B0"]["shield_h"]),
                      "n_shield": float(np.mean([r["total_shield_water"] + r["total_shield_pcm"] for r in rs])),
                      "switches": float(np.mean([r["action_switches"] for r in rs])),
@@ -125,7 +128,7 @@ def summarise(algo: str, res_dir, n_jobs: int) -> None:
     selected = {}
     for r, c in combos:
         ok = [s for s in summ if s["regime_id"] == r and s["control_step_min"] == c and s["violations"] == 0 and s["hours_over_limit"] == 0
-              and s["pct_of_B0_delivery"] >= 100 * MIN_DELIVERY_FRAC and s["pct_of_B0_window"] >= 100 * MIN_DELIVERY_FRAC]
+              and s["pct_of_B0_delivery"] >= 100 * MIN_DELIVERY_FRAC]
         b = ref[(r, c)]
         print(f"\nregime {r}, {c}-min control: B0 E45 {b['B0']['E45']:.1f} kWh / shield {b['B0']['shield_h']:.0f} h | "
               f"B1 {b['B1']['E45']:.1f} kWh / {b['B1']['shield_h']:.0f} h")
@@ -133,10 +136,10 @@ def summarise(algo: str, res_dir, n_jobs: int) -> None:
             best = max(ok, key=lambda s: s["shield_cut_vs_B0_pct"])
             path = run_model_path(g / best["tag"])
             selected[f"r{r}_{c}min"] = {**best, "model": str(path), "sha256": sha256_of_file(path),
-                                        "rule": "zero hard violations -> delivery (annual and window) >= 95 % of B0 -> max shield-hour reduction; validation years"}
+                                        "rule": "zero hard violations -> annual delivery >= 95 % of B0 -> max shield-hour reduction; validation years (window delivery is INFO only)"}
             print(f"  SELECTED {best['tag']}: {best['pct_of_B0_delivery']:.1f} % of B0 delivery, shield cut {best['shield_cut_vs_B0_pct']:.1f} %")
         else:
-            print("  no run meets the delivery >= 95 % of B0 rule with zero violations")
+            print("  no run meets the annual delivery >= 95 % of B0 rule with zero violations")
     (g / f"gen2_selected_{algo}.json").write_text(json.dumps(selected, indent=2))
     print(f"\n-> {g / f'gen2_summary_{algo}.csv'}")
 

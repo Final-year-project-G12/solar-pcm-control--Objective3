@@ -1,0 +1,14 @@
+{
+  "tag": "sac_r2_w1.7_s0_V3_60min_dr",
+  "algo": "sac",
+  "regime_id": 2,
+  "steps": 300000,
+  "seed": 0,
+  "shield_weight": 1.7,
+  "obs_version": "V3",
+  "control_step_min": 60,
+  "domain_randomize": true,
+  "forecast_mode": "perfect",
+  "train_minutes": 406.8304307818413,
+  "generation": 2
+}

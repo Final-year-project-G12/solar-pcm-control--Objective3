@@ -111,7 +111,7 @@ def live_view() -> None:
     if choice.startswith(("b0", "b1", "b2")) and choice in POLICY_LABELS:
         algo, kw = choice, {}
     else:                                                   # a trained agent; Gen-2 (V3) agents get the provider's next-3-hour forecast
-        algo, path, ov = models[choice]
+        algo, path, ov = models[choice][:3]
         kw = dict(model_path=path, obs_version=ov)
     if "live" not in st.session_state or st.session_state.get("live_key") != (choice, st.session_state.regime):
         r = LiveDemoRunner(algo=algo, regime_id=st.session_state.regime, mode=DemoMode.LIVE, log_dir=ROOT / "results" / "demo_logs", **kw)

@@ -15,7 +15,7 @@
   `src/handoff/build_obj3_contract_rajasthan_v3.py`; no O2 value changed).
 * Objective 3: implemented (phases 0–9, plan §19 Generation-2), tests passing. Run: baselines (all regimes), B1 tuning, headroom
   gate G2 (failed on delivery for rules), PPO 3 seeds (collapses to B0), Gen-2 DQN study (regime 1: a policy at 98.2 % of B0 delivery
-  with 57 % fewer shield hours; regimes 0/2 not), deployment metrics, fresh 2006–2010 test weather, Streamlit app. **Locked test spent** on the selected DQN (98.0 % of B0, shield -61 %). Ablation (3 seeds): forecast essential; training randomisation not shown to matter. **Not complete:** SAC weight sweep / regimes 0 and 2 for SAC (running), multi-seed ablations.
+  with 57 % fewer shield hours; regimes 0/2 not), deployment metrics, fresh 2006–2010 test weather, Streamlit app. **Locked test spent** on the selected DQN (98.0 % of B0, shield -61 %). Ablation (3 seeds): forecast essential; training randomisation not shown to matter. SAC sweep done (regime 1, 3 seeds): never meets the 95 % rule. **Not complete:** SAC on regimes 0/2 is one seed only.
 
 ## The O1 / O2 / O3 boundary
 O1 picks the PCM shortlist; O2 picks the released design and owns the simulator, shield and limits; O3 only chooses, hour by

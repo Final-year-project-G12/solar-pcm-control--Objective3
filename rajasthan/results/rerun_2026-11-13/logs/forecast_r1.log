@@ -1,0 +1,30 @@
+forecast study | regime 1 | 6 runs to train | n_jobs 6
+[gen2] dqn_r1_w1.7_s42_V3_60min_dr_fcnone: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s123_V3_60min_dr_fcsmart: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s0_V3_60min_dr_fcsmart: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s42_V3_60min_dr_fcsmart: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s0_V3_60min_dr_fcnone: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s123_V3_60min_dr_fcnone: resuming from checkpoint at 35,040 / 300,000 steps
+[gen2] dqn_r1_w1.7_s42_V3_60min_dr_fcnone: trained in 26.2 min
+[gen2] dqn_r1_w1.7_s42_V3_60min_dr_fcsmart: trained in 26.9 min
+[gen2] dqn_r1_w1.7_s123_V3_60min_dr_fcsmart: trained in 27.2 min
+[gen2] dqn_r1_w1.7_s0_V3_60min_dr_fcsmart: trained in 27.2 min
+[gen2] dqn_r1_w1.7_s123_V3_60min_dr_fcnone: trained in 27.3 min
+[gen2] dqn_r1_w1.7_s0_V3_60min_dr_fcnone: trained in 27.5 min
+B0: 925.7 kWh, shield 1043 h (validation years [2021, 2022, 2023])
+case                    seed    %B0   win% shield h   cut%  viol annual-rule
+perfect                   42  100.0  100.0     1043    0.0     0 PASS
+perfect                    0   92.6   88.5      631   39.5     0 fail
+perfect                  123  100.0  100.0     1043    0.0     0 PASS
+imperfect                 42  100.0  100.0     1043    0.0     0 PASS
+imperfect                  0   82.7   73.2       92   91.2     0 fail
+imperfect                123  100.0  100.0     1043    0.0     0 PASS
+none                      42  100.0  100.0     1043    0.0     0 PASS
+none                       0  100.0  100.0     1043    0.0     0 PASS
+none                     123   99.9   99.8      843   19.2     0 PASS
+optimism                  42  100.0  100.0     1043    0.0     0 PASS
+optimism                   0   92.8   88.9      656   37.1     0 fail
+optimism                 123  100.0  100.0     1043    0.0     0 PASS
+B2_perfect_forecast        -   80.3   70.1       42   96.0     0 fail
+B2_smart_forecast          -   80.3   70.1       42   96.0     0 fail
+-> results\rerun_2026-11-13\gen2\gen2_forecast_dqn_r1.csv
