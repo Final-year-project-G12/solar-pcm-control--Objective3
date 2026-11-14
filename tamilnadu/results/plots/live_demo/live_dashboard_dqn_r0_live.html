@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O3 Live Controller Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+  :root{--bg:#f6f7f5;--surface:#ffffff;--ink:#0b0b0b;--muted:#5c5b57;
+        --line:rgba(11,11,11,.12);--charge:#2a78d6;--idle:#1baf7a;--bypass:#eb6834;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px;}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .sil{display:inline-block;background:#fff3e0;color:#8a4b00;border:1px solid #f0c38a;
+       border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600;margin-bottom:12px}
+  .wrap{max-width:1040px;margin:0 auto}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+        padding:14px;margin:12px 0;}
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  button{font:inherit;font-weight:600;border:none;border-radius:8px;padding:9px 18px;
+         background:var(--charge);color:#fff;cursor:pointer}
+  button.sec{background:#e9e9e6;color:var(--ink)}
+  input[type=range]{flex:1;min-width:180px;accent-color:var(--charge)}
+  .clock{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;color:var(--muted)}
+  .badge{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .lamp{font-size:22px;font-weight:800;letter-spacing:.3px;color:#fff;border-radius:10px;
+        padding:12px 22px;min-width:230px;text-align:center;transition:background .15s}
+  .flag{font-size:12px;font-weight:700;color:#8a4b00;background:#fff3e0;
+        border:1px solid #f0c38a;border-radius:6px;padding:6px 10px;display:none}
+  .flag.on{display:inline-block}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .tile .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .tile .val{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px}
+  .tile .u{font-size:12px;color:var(--muted);font-weight:500}
+  .ribbonwrap{margin-top:6px}
+  .ribbon{display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line);cursor:pointer}
+  .cell{flex:1 0 0;position:relative}
+  .cursor{height:34px;width:2px;background:#0b0b0b;position:relative;margin-top:-30px;
+          transition:left .12s linear;pointer-events:none}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  @media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+     --bg:#15161a;--surface:#1e2026;--ink:#f2f2ef;--muted:#a3a39d;--line:rgba(242,242,239,.14);}}
+</style></head>
+<body><div class="wrap">
+  <h1>Objective 3 — Live Controller Dashboard</h1>
+  <p class="sub" id="subtitle"></p>
+  <span class="sil">SOFTWARE-IN-THE-LOOP — thermal state from the frozen simulator, not field sensors</span>
+
+  <div class="card">
+    <div class="controls">
+      <button id="play">▶ Play</button>
+      <button id="reset" class="sec">⟲ Reset</button>
+      <label class="clock">speed
+        <select id="speed">
+          <option value="240">0.5×</option>
+          <option value="120" selected>1×</option>
+          <option value="60">2×</option>
+          <option value="24">5×</option>
+        </select>
+      </label>
+      <input type="range" id="scrub" min="0" value="0">
+      <span class="clock" id="clock">—</span>
+    </div>
+    <div class="badge" style="margin-top:14px">
+      <div class="lamp" id="lamp">—</div>
+      <div class="flag" id="flag">⚠ SHIELD OVERRODE POLICY</div>
+      <div class="clock" id="intent"></div>
+    </div>
+  </div>
+
+  <div class="card tiles" id="tiles"></div>
+
+  <div class="card"><div id="tempChart" style="height:300px"></div>
+    <div class="ribbonwrap">
+      <div class="ribbon" id="ribbon"></div>
+      <div class="cursor" id="cursor"></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--charge)"></span>CHARGE — loop on, heating PCM</span>
+        <span><span class="sw" style="background:var(--idle)"></span>IDLE/SERVE — pump off, serving demand</span>
+        <span><span class="sw" style="background:var(--bypass)"></span>BYPASS — collector isolated</span>
+        <span>▦ hatched = shield overrode the policy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><div id="ghiChart" style="height:210px"></div></div>
+
+<script>
+const DATA = [{"k":0,"hour_idx":0,"day":0,"hod":0,"ts":"09 00:00","ghi":0.0,"tamb":25.6,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":33.74,"tpcm":34.74,"melt":0.0,"e_step":0.0,"cum_del":0.0,"cum_unmet":0.0,"cum_shield":0,"cum_safety":0},{"k":1,"hour_idx":1,"day":0,"hod":1,"ts":"09 01:00","ghi":0.0,"tamb":25.3,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":33.83,"tpcm":33.9,"melt":0.0,"e_step":0.0,"cum_del":0.0,"cum_unmet":0.0,"cum_shield":0,"cum_safety":0},{"k":2,"hour_idx":2,"day":0,"hod":2,"ts":"09 02:00","ghi":0.0,"tamb":25.0,"demand_L":0.03,"req":0,"exe":0,"overridden":false,"tw":33.74,"tpcm":33.78,"melt":0.0,"e_step":0.0,"cum_del":0.0,"cum_unmet":0.0,"cum_shield":0,"cum_safety":0},{"k":3,"hour_idx":3,"day":0,"hod":3,"ts":"09 03:00","ghi":0.0,"tamb":24.5,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":33.63,"tpcm":33.67,"melt":0.0,"e_step":0.002,"cum_del":0.0,"cum_unmet":0.0,"cum_shield":0,"cum_safety":0},{"k":4,"hour_idx":4,"day":0,"hod":4,"ts":"09 04:00","ghi":0.0,"tamb":24.2,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":33.42,"tpcm":33.5,"melt":0.0,"e_step":0.011,"cum_del":0.0,"cum_unmet":0.0,"cum_shield":0,"cum_safety":0},{"k":5,"hour_idx":5,"day":0,"hod":5,"ts":"09 05:00","ghi":0.0,"tamb":24.4,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":32.94,"tpcm":33.1,"melt":0.0,"e_step":0.038,"cum_del":0.1,"cum_unmet":0.1,"cum_shield":0,"cum_safety":0},{"k":6,"hour_idx":6,"day":0,"hod":6,"ts":"09 06:00","ghi":3.0,"tamb":24.5,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":32.05,"tpcm":32.35,"melt":0.0,"e_step":0.079,"cum_del":0.1,"cum_unmet":0.4,"cum_shield":0,"cum_safety":0},{"k":7,"hour_idx":7,"day":0,"hod":7,"ts":"09 07:00","ghi":81.0,"tamb":25.7,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":31.78,"tpcm":31.89,"melt":0.0,"e_step":0.106,"cum_del":0.2,"cum_unmet":0.8,"cum_shield":0,"cum_safety":0},{"k":8,"hour_idx":8,"day":0,"hod":8,"ts":"09 08:00","ghi":228.0,"tamb":27.0,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":34.04,"tpcm":33.37,"melt":0.0,"e_step":0.142,"cum_del":0.4,"cum_unmet":1.1,"cum_shield":0,"cum_safety":0},{"k":9,"hour_idx":9,"day":0,"hod":9,"ts":"09 09:00","ghi":380.0,"tamb":28.0,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":38.65,"tpcm":37.17,"melt":0.0,"e_step":0.16,"cum_del":0.5,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":10,"hour_idx":10,"day":0,"hod":10,"ts":"09 10:00","ghi":535.0,"tamb":28.9,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":46.02,"tpcm":43.55,"melt":0.0,"e_step":0.115,"cum_del":0.7,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":11,"hour_idx":11,"day":0,"hod":11,"ts":"09 11:00","ghi":620.0,"tamb":30.1,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":54.74,"tpcm":51.71,"melt":0.0,"e_step":0.047,"cum_del":0.7,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":12,"hour_idx":12,"day":0,"hod":12,"ts":"09 12:00","ghi":688.0,"tamb":30.0,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":63.66,"tpcm":57.12,"melt":5.8,"e_step":0.011,"cum_del":0.7,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":13,"hour_idx":13,"day":0,"hod":13,"ts":"09 13:00","ghi":643.0,"tamb":30.6,"demand_L":0.05,"req":0,"exe":0,"overridden":false,"tw":68.22,"tpcm":57.62,"melt":31.2,"e_step":0.002,"cum_del":0.7,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":14,"hour_idx":14,"day":0,"hod":14,"ts":"09 14:00","ghi":611.0,"tamb":30.7,"demand_L":0.2,"req":0,"exe":0,"overridden":false,"tw":68.64,"tpcm":58.44,"melt":72.0,"e_step":0.01,"cum_del":0.7,"cum_unmet":1.3,"cum_shield":0,"cum_safety":0},{"k":15,"hour_idx":15,"day":0,"hod":15,"ts":"09 15:00","ghi":363.0,"tamb":27.4,"demand_L":1.48,"req":0,"exe":0,"overridden":true,"tw":64.35,"tpcm":62.12,"melt":100.0,"e_step":0.064,"cum_del":0.8,"cum_unmet":1.3,"cum_shield":1,"cum_safety":0},{"k":16,"hour_idx":16,"day":0,"hod":16,"ts":"09 16:00","ghi":267.0,"tamb":27.8,"demand_L":7.03,"req":0,"exe":0,"overridden":true,"tw":61.79,"tpcm":62.01,"melt":100.0,"e_step":0.282,"cum_del":1.1,"cum_unmet":1.3,"cum_shield":22,"cum_safety":0},{"k":17,"hour_idx":17,"day":0,"hod":17,"ts":"09 17:00","ghi":103.0,"tamb":28.4,"demand_L":21.35,"req":0,"exe":0,"overridden":false,"tw":54.66,"tpcm":58.86,"melt":92.8,"e_step":0.726,"cum_del":1.8,"cum_unmet":1.3,"cum_shield":22,"cum_safety":0},{"k":18,"hour_idx":18,"day":0,"hod":18,"ts":"09 18:00","ghi":5.0,"tamb":26.8,"demand_L":41.57,"req":0,"exe":0,"overridden":false,"tw":48.46,"tpcm":58.09,"melt":54.3,"e_step":1.081,"cum_del":2.9,"cum_unmet":1.3,"cum_shield":22,"cum_safety":0},{"k":19,"hour_idx":19,"day":0,"hod":19,"ts":"09 19:00","ghi":0.0,"tamb":26.3,"demand_L":51.92,"req":1,"exe":1,"overridden":false,"tw":42.96,"tpcm":57.33,"melt":16.7,"e_step":1.015,"cum_del":3.9,"cum_unmet":1.4,"cum_shield":22,"cum_safety":0},{"k":20,"hour_idx":20,"day":0,"hod":20,"ts":"09 20:00","ghi":0.0,"tamb":26.5,"demand_L":41.57,"req":1,"exe":1,"overridden":false,"tw":40.56,"tpcm":44.81,"melt":0.0,"e_step":0.662,"cum_del":4.6,"cum_unmet":1.5,"cum_shield":22,"cum_safety":0},{"k":21,"hour_idx":21,"day":0,"hod":21,"ts":"09 21:00","ghi":0.0,"tamb":26.3,"demand_L":21.35,"req":1,"exe":1,"overridden":false,"tw":38.27,"tpcm":39.41,"melt":0.0,"e_step":0.272,"cum_del":4.8,"cum_unmet":1.6,"cum_shield":22,"cum_safety":0},{"k":22,"hour_idx":22,"day":0,"hod":22,"ts":"09 22:00","ghi":0.0,"tamb":25.8,"demand_L":7.03,"req":1,"exe":1,"overridden":false,"tw":37.52,"tpcm":37.88,"melt":0.0,"e_step":0.077,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":23,"hour_idx":23,"day":0,"hod":23,"ts":"09 23:00","ghi":0.0,"tamb":27.1,"demand_L":1.48,"req":0,"exe":0,"overridden":false,"tw":37.31,"tpcm":37.42,"melt":0.0,"e_step":0.015,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":24,"hour_idx":24,"day":1,"hod":0,"ts":"10 00:00","ghi":0.0,"tamb":26.7,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":37.22,"tpcm":37.26,"melt":0.0,"e_step":0.0,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":25,"hour_idx":25,"day":1,"hod":1,"ts":"10 01:00","ghi":0.0,"tamb":25.4,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":37.1,"tpcm":37.14,"melt":0.0,"e_step":0.0,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":26,"hour_idx":26,"day":1,"hod":2,"ts":"10 02:00","ghi":0.0,"tamb":24.3,"demand_L":0.03,"req":0,"exe":0,"overridden":false,"tw":36.97,"tpcm":37.01,"melt":0.0,"e_step":0.0,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":27,"hour_idx":27,"day":1,"hod":3,"ts":"10 03:00","ghi":0.0,"tamb":24.4,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":36.81,"tpcm":36.87,"melt":0.0,"e_step":0.003,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":28,"hour_idx":28,"day":1,"hod":4,"ts":"10 04:00","ghi":0.0,"tamb":24.5,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":36.5,"tpcm":36.61,"melt":0.0,"e_step":0.017,"cum_del":4.9,"cum_unmet":1.7,"cum_shield":22,"cum_safety":0},{"k":29,"hour_idx":29,"day":1,"hod":5,"ts":"10 05:00","ghi":0.0,"tamb":25.5,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":35.75,"tpcm":36.01,"melt":0.0,"e_step":0.062,"cum_del":5.0,"cum_unmet":1.8,"cum_shield":22,"cum_safety":0},{"k":30,"hour_idx":30,"day":1,"hod":6,"ts":"10 06:00","ghi":3.0,"tamb":25.3,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":34.33,"tpcm":34.81,"melt":0.0,"e_step":0.128,"cum_del":5.1,"cum_unmet":2.0,"cum_shield":22,"cum_safety":0},{"k":31,"hour_idx":31,"day":1,"hod":7,"ts":"10 07:00","ghi":109.0,"tamb":26.4,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":33.78,"tpcm":33.99,"melt":0.0,"e_step":0.171,"cum_del":5.3,"cum_unmet":2.3,"cum_shield":22,"cum_safety":0},{"k":32,"hour_idx":32,"day":1,"hod":8,"ts":"10 08:00","ghi":318.0,"tamb":28.1,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":36.85,"tpcm":35.96,"melt":0.0,"e_step":0.218,"cum_del":5.5,"cum_unmet":2.6,"cum_shield":22,"cum_safety":0},{"k":33,"hour_idx":33,"day":1,"hod":9,"ts":"10 09:00","ghi":548.0,"tamb":29.6,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":43.61,"tpcm":41.45,"melt":0.0,"e_step":0.24,"cum_del":5.8,"cum_unmet":2.7,"cum_shield":22,"cum_safety":0},{"k":34,"hour_idx":34,"day":1,"hod":10,"ts":"10 10:00","ghi":720.0,"tamb":30.7,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":53.41,"tpcm":50.11,"melt":0.0,"e_step":0.166,"cum_del":5.9,"cum_unmet":2.7,"cum_shield":22,"cum_safety":0},{"k":35,"hour_idx":35,"day":1,"hod":11,"ts":"10 11:00","ghi":827.0,"tamb":31.4,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":64.69,"tpcm":57.12,"melt":5.9,"e_step":0.066,"cum_del":6.0,"cum_unmet":2.7,"cum_shield":22,"cum_safety":0},{"k":36,"hour_idx":36,"day":1,"hod":12,"ts":"10 12:00","ghi":863.0,"tamb":31.9,"demand_L":0.31,"req":0,"exe":2,"overridden":true,"tw":72.03,"tpcm":57.78,"melt":39.1,"e_step":0.015,"cum_del":6.0,"cum_unmet":2.7,"cum_shield":26,"cum_safety":0},{"k":37,"hour_idx":37,"day":1,"hod":13,"ts":"10 13:00","ghi":827.0,"tamb":32.1,"demand_L":0.05,"req":1,"exe":2,"overridden":true,"tw":64.01,"tpcm":58.58,"melt":79.0,"e_step":0.002,"cum_del":6.0,"cum_unmet":2.7,"cum_shield":27,"cum_safety":0},{"k":38,"hour_idx":38,"day":1,"hod":14,"ts":"10 14:00","ghi":721.0,"tamb":32.2,"demand_L":0.2,"req":0,"exe":0,"overridden":true,"tw":70.37,"tpcm":62.62,"melt":100.0,"e_step":0.009,"cum_del":6.0,"cum_unmet":2.7,"cum_shield":33,"cum_safety":0},{"k":39,"hour_idx":39,"day":1,"hod":15,"ts":"10 15:00","ghi":500.0,"tamb":30.5,"demand_L":1.48,"req":0,"exe":2,"overridden":true,"tw":72.09,"tpcm":62.62,"melt":100.0,"e_step":0.075,"cum_del":6.1,"cum_unmet":2.7,"cum_shield":68,"cum_safety":0},{"k":40,"hour_idx":40,"day":1,"hod":16,"ts":"10 16:00","ghi":313.0,"tamb":29.9,"demand_L":7.03,"req":0,"exe":2,"overridden":true,"tw":68.96,"tpcm":62.62,"melt":100.0,"e_step":0.342,"cum_del":6.4,"cum_unmet":2.7,"cum_shield":93,"cum_safety":0},{"k":41,"hour_idx":41,"day":1,"hod":17,"ts":"10 17:00","ghi":118.0,"tamb":29.6,"demand_L":21.35,"req":0,"exe":0,"overridden":true,"tw":58.62,"tpcm":60.25,"melt":100.0,"e_step":0.861,"cum_del":7.3,"cum_unmet":2.7,"cum_shield":107,"cum_safety":0},{"k":42,"hour_idx":42,"day":1,"hod":18,"ts":"10 18:00","ghi":5.0,"tamb":28.8,"demand_L":41.57,"req":0,"exe":0,"overridden":false,"tw":49.48,"tpcm":58.44,"melt":71.9,"e_step":1.185,"cum_del":8.5,"cum_unmet":2.7,"cum_shield":107,"cum_safety":0},{"k":43,"hour_idx":43,"day":1,"hod":19,"ts":"10 19:00","ghi":0.0,"tamb":28.0,"demand_L":51.92,"req":0,"exe":0,"overridden":false,"tw":43.89,"tpcm":57.6,"melt":29.8,"e_step":1.094,"cum_del":9.6,"cum_unmet":2.7,"cum_shield":107,"cum_safety":0},{"k":44,"hour_idx":44,"day":1,"hod":20,"ts":"10 20:00","ghi":0.0,"tamb":27.3,"demand_L":41.57,"req":1,"exe":1,"overridden":false,"tw":42.23,"tpcm":50.03,"melt":0.0,"e_step":0.709,"cum_del":10.3,"cum_unmet":2.8,"cum_shield":107,"cum_safety":0},{"k":45,"hour_idx":45,"day":1,"hod":21,"ts":"10 21:00","ghi":0.0,"tamb":26.9,"demand_L":21.35,"req":1,"exe":1,"overridden":false,"tw":40.06,"tpcm":41.51,"melt":0.0,"e_step":0.319,"cum_del":10.6,"cum_unmet":2.9,"cum_shield":107,"cum_safety":0},{"k":46,"hour_idx":46,"day":1,"hod":22,"ts":"10 22:00","ghi":0.0,"tamb":26.5,"demand_L":7.03,"req":0,"exe":0,"overridden":false,"tw":39.2,"tpcm":39.62,"melt":0.0,"e_step":0.091,"cum_del":10.7,"cum_unmet":2.9,"cum_shield":107,"cum_safety":0},{"k":47,"hour_idx":47,"day":1,"hod":23,"ts":"10 23:00","ghi":0.0,"tamb":26.6,"demand_L":1.48,"req":0,"exe":0,"overridden":false,"tw":38.94,"tpcm":39.07,"melt":0.0,"e_step":0.018,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":48,"hour_idx":48,"day":2,"hod":0,"ts":"11 00:00","ghi":0.0,"tamb":25.9,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.83,"tpcm":38.88,"melt":0.0,"e_step":0.0,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":49,"hour_idx":49,"day":2,"hod":1,"ts":"11 01:00","ghi":0.0,"tamb":25.5,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.7,"tpcm":38.74,"melt":0.0,"e_step":0.0,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":50,"hour_idx":50,"day":2,"hod":2,"ts":"11 02:00","ghi":0.0,"tamb":25.0,"demand_L":0.03,"req":0,"exe":0,"overridden":false,"tw":38.55,"tpcm":38.61,"melt":0.0,"e_step":0.0,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":51,"hour_idx":51,"day":2,"hod":3,"ts":"11 03:00","ghi":0.0,"tamb":24.6,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":38.38,"tpcm":38.44,"melt":0.0,"e_step":0.004,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":52,"hour_idx":52,"day":2,"hod":4,"ts":"11 04:00","ghi":0.0,"tamb":24.3,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":38.02,"tpcm":38.14,"melt":0.0,"e_step":0.021,"cum_del":10.7,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":53,"hour_idx":53,"day":2,"hod":5,"ts":"11 05:00","ghi":0.0,"tamb":25.1,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":37.13,"tpcm":37.43,"melt":0.0,"e_step":0.074,"cum_del":10.8,"cum_unmet":3.0,"cum_shield":107,"cum_safety":0},{"k":54,"hour_idx":54,"day":2,"hod":6,"ts":"11 06:00","ghi":4.0,"tamb":24.8,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":35.44,"tpcm":36.0,"melt":0.0,"e_step":0.153,"cum_del":11.0,"cum_unmet":3.2,"cum_shield":107,"cum_safety":0},{"k":55,"hour_idx":55,"day":2,"hod":7,"ts":"11 07:00","ghi":111.0,"tamb":25.9,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":34.48,"tpcm":34.82,"melt":0.0,"e_step":0.198,"cum_del":11.2,"cum_unmet":3.5,"cum_shield":107,"cum_safety":0},{"k":56,"hour_idx":56,"day":2,"hod":8,"ts":"11 08:00","ghi":308.0,"tamb":27.6,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":37.11,"tpcm":36.36,"melt":0.0,"e_step":0.232,"cum_del":11.4,"cum_unmet":3.8,"cum_shield":107,"cum_safety":0},{"k":57,"hour_idx":57,"day":2,"hod":9,"ts":"11 09:00","ghi":519.0,"tamb":29.6,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":43.33,"tpcm":41.35,"melt":0.0,"e_step":0.239,"cum_del":11.6,"cum_unmet":3.9,"cum_shield":107,"cum_safety":0},{"k":58,"hour_idx":58,"day":2,"hod":10,"ts":"11 10:00","ghi":706.0,"tamb":30.9,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":52.99,"tpcm":49.75,"melt":0.0,"e_step":0.163,"cum_del":11.8,"cum_unmet":3.9,"cum_shield":107,"cum_safety":0},{"k":59,"hour_idx":59,"day":2,"hod":11,"ts":"11 11:00","ghi":833.0,"tamb":31.8,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":64.53,"tpcm":57.11,"melt":5.4,"e_step":0.066,"cum_del":11.9,"cum_unmet":3.9,"cum_shield":107,"cum_safety":0},{"k":60,"hour_idx":60,"day":2,"hod":12,"ts":"11 12:00","ghi":872.0,"tamb":32.3,"demand_L":0.31,"req":0,"exe":2,"overridden":true,"tw":72.04,"tpcm":57.77,"melt":38.6,"e_step":0.015,"cum_del":11.9,"cum_unmet":3.9,"cum_shield":112,"cum_safety":0},{"k":61,"hour_idx":61,"day":2,"hod":13,"ts":"11 13:00","ghi":835.0,"tamb":32.6,"demand_L":0.05,"req":1,"exe":2,"overridden":true,"tw":64.04,"tpcm":58.57,"melt":78.3,"e_step":0.002,"cum_del":11.9,"cum_unmet":3.9,"cum_shield":113,"cum_safety":0},{"k":62,"hour_idx":62,"day":2,"hod":14,"ts":"11 14:00","ghi":720.0,"tamb":32.5,"demand_L":0.2,"req":0,"exe":0,"overridden":true,"tw":70.35,"tpcm":62.37,"melt":100.0,"e_step":0.009,"cum_del":11.9,"cum_unmet":3.9,"cum_shield":119,"cum_safety":0},{"k":63,"hour_idx":63,"day":2,"hod":15,"ts":"11 15:00","ghi":561.0,"tamb":32.0,"demand_L":1.48,"req":0,"exe":2,"overridden":true,"tw":72.04,"tpcm":62.37,"melt":100.0,"e_step":0.075,"cum_del":12.0,"cum_unmet":3.9,"cum_shield":157,"cum_safety":0},{"k":64,"hour_idx":64,"day":2,"hod":16,"ts":"11 16:00","ghi":335.0,"tamb":31.0,"demand_L":7.03,"req":0,"exe":2,"overridden":true,"tw":69.49,"tpcm":62.37,"melt":100.0,"e_step":0.344,"cum_del":12.3,"cum_unmet":3.9,"cum_shield":182,"cum_safety":0},{"k":65,"hour_idx":65,"day":2,"hod":17,"ts":"11 17:00","ghi":123.0,"tamb":29.7,"demand_L":21.35,"req":0,"exe":0,"overridden":true,"tw":58.9,"tpcm":60.47,"melt":100.0,"e_step":0.871,"cum_del":13.2,"cum_unmet":3.9,"cum_shield":197,"cum_safety":0},{"k":66,"hour_idx":66,"day":2,"hod":18,"ts":"11 18:00","ghi":5.0,"tamb":28.6,"demand_L":41.57,"req":0,"exe":0,"overridden":false,"tw":49.56,"tpcm":58.46,"melt":72.8,"e_step":1.192,"cum_del":14.4,"cum_unmet":3.9,"cum_shield":197,"cum_safety":0},{"k":67,"hour_idx":67,"day":2,"hod":19,"ts":"11 19:00","ghi":0.0,"tamb":27.3,"demand_L":51.92,"req":0,"exe":0,"overridden":false,"tw":43.95,"tpcm":57.61,"melt":30.3,"e_step":1.098,"cum_del":15.5,"cum_unmet":3.9,"cum_shield":197,"cum_safety":0},{"k":68,"hour_idx":68,"day":2,"hod":20,"ts":"11 20:00","ghi":0.0,"tamb":26.6,"demand_L":41.57,"req":1,"exe":1,"overridden":false,"tw":42.3,"tpcm":50.35,"melt":0.0,"e_step":0.711,"cum_del":16.2,"cum_unmet":4.0,"cum_shield":197,"cum_safety":0},{"k":69,"hour_idx":69,"day":2,"hod":21,"ts":"11 21:00","ghi":0.0,"tamb":26.3,"demand_L":21.35,"req":1,"exe":1,"overridden":false,"tw":40.13,"tpcm":41.61,"melt":0.0,"e_step":0.321,"cum_del":16.5,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":70,"hour_idx":70,"day":2,"hod":22,"ts":"11 22:00","ghi":0.0,"tamb":26.0,"demand_L":7.03,"req":0,"exe":0,"overridden":false,"tw":39.27,"tpcm":39.7,"melt":0.0,"e_step":0.092,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":71,"hour_idx":71,"day":2,"hod":23,"ts":"11 23:00","ghi":0.0,"tamb":25.5,"demand_L":1.48,"req":0,"exe":0,"overridden":false,"tw":39.0,"tpcm":39.13,"melt":0.0,"e_step":0.018,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":72,"hour_idx":72,"day":3,"hod":0,"ts":"12 00:00","ghi":0.0,"tamb":25.2,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.88,"tpcm":38.93,"melt":0.0,"e_step":0.0,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":73,"hour_idx":73,"day":3,"hod":1,"ts":"12 01:00","ghi":0.0,"tamb":24.9,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.74,"tpcm":38.79,"melt":0.0,"e_step":0.0,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":74,"hour_idx":74,"day":3,"hod":2,"ts":"12 02:00","ghi":0.0,"tamb":24.6,"demand_L":0.03,"req":0,"exe":0,"overridden":false,"tw":38.59,"tpcm":38.65,"melt":0.0,"e_step":0.0,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":75,"hour_idx":75,"day":3,"hod":3,"ts":"12 03:00","ghi":0.0,"tamb":24.5,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":38.42,"tpcm":38.48,"melt":0.0,"e_step":0.004,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":76,"hour_idx":76,"day":3,"hod":4,"ts":"12 04:00","ghi":0.0,"tamb":24.5,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":38.06,"tpcm":38.18,"melt":0.0,"e_step":0.021,"cum_del":16.6,"cum_unmet":4.1,"cum_shield":197,"cum_safety":0},{"k":77,"hour_idx":77,"day":3,"hod":5,"ts":"12 05:00","ghi":0.0,"tamb":24.1,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":37.15,"tpcm":37.46,"melt":0.0,"e_step":0.074,"cum_del":16.7,"cum_unmet":4.2,"cum_shield":197,"cum_safety":0},{"k":78,"hour_idx":78,"day":3,"hod":6,"ts":"12 06:00","ghi":3.0,"tamb":24.2,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":35.46,"tpcm":36.02,"melt":0.0,"e_step":0.153,"cum_del":16.9,"cum_unmet":4.4,"cum_shield":197,"cum_safety":0},{"k":79,"hour_idx":79,"day":3,"hod":7,"ts":"12 07:00","ghi":96.0,"tamb":25.5,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":34.21,"tpcm":34.64,"melt":0.0,"e_step":0.194,"cum_del":17.1,"cum_unmet":4.7,"cum_shield":197,"cum_safety":0},{"k":80,"hour_idx":80,"day":3,"hod":8,"ts":"12 08:00","ghi":265.0,"tamb":27.0,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":36.21,"tpcm":35.66,"melt":0.0,"e_step":0.212,"cum_del":17.3,"cum_unmet":5.0,"cum_shield":197,"cum_safety":0},{"k":81,"hour_idx":81,"day":3,"hod":9,"ts":"12 09:00","ghi":483.0,"tamb":28.7,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":42.01,"tpcm":40.18,"melt":0.0,"e_step":0.217,"cum_del":17.5,"cum_unmet":5.1,"cum_shield":197,"cum_safety":0},{"k":82,"hour_idx":82,"day":3,"hod":10,"ts":"12 10:00","ghi":641.0,"tamb":30.4,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":50.74,"tpcm":47.81,"melt":0.0,"e_step":0.148,"cum_del":17.6,"cum_unmet":5.1,"cum_shield":197,"cum_safety":0},{"k":83,"hour_idx":83,"day":3,"hod":11,"ts":"12 11:00","ghi":798.0,"tamb":31.4,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":62.17,"tpcm":57.03,"melt":1.4,"e_step":0.061,"cum_del":17.7,"cum_unmet":5.1,"cum_shield":197,"cum_safety":0},{"k":84,"hour_idx":84,"day":3,"hod":12,"ts":"12 12:00","ghi":855.0,"tamb":32.0,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":70.98,"tpcm":57.59,"melt":29.5,"e_step":0.014,"cum_del":17.7,"cum_unmet":5.1,"cum_shield":197,"cum_safety":0},{"k":85,"hour_idx":85,"day":3,"hod":13,"ts":"12 13:00","ghi":788.0,"tamb":32.3,"demand_L":0.05,"req":0,"exe":2,"overridden":true,"tw":71.65,"tpcm":58.66,"melt":82.9,"e_step":0.003,"cum_del":17.7,"cum_unmet":5.1,"cum_shield":212,"cum_safety":0},{"k":86,"hour_idx":86,"day":3,"hod":14,"ts":"12 14:00","ghi":684.0,"tamb":32.3,"demand_L":0.2,"req":1,"exe":1,"overridden":true,"tw":66.93,"tpcm":62.84,"melt":100.0,"e_step":0.009,"cum_del":17.7,"cum_unmet":5.1,"cum_shield":225,"cum_safety":0},{"k":87,"hour_idx":87,"day":3,"hod":15,"ts":"12 15:00","ghi":528.0,"tamb":31.7,"demand_L":1.48,"req":0,"exe":2,"overridden":true,"tw":72.16,"tpcm":62.84,"melt":100.0,"e_step":0.071,"cum_del":17.8,"cum_unmet":5.1,"cum_shield":250,"cum_safety":0},{"k":88,"hour_idx":88,"day":3,"hod":16,"ts":"12 16:00","ghi":299.0,"tamb":30.8,"demand_L":7.03,"req":0,"exe":2,"overridden":true,"tw":68.86,"tpcm":62.84,"melt":100.0,"e_step":0.342,"cum_del":18.1,"cum_unmet":5.1,"cum_shield":275,"cum_safety":0},{"k":89,"hour_idx":89,"day":3,"hod":17,"ts":"12 17:00","ghi":119.0,"tamb":29.7,"demand_L":21.35,"req":0,"exe":0,"overridden":true,"tw":58.59,"tpcm":60.24,"melt":100.0,"e_step":0.859,"cum_del":19.0,"cum_unmet":5.1,"cum_shield":288,"cum_safety":0},{"k":90,"hour_idx":90,"day":3,"hod":18,"ts":"12 18:00","ghi":5.0,"tamb":28.7,"demand_L":41.57,"req":0,"exe":0,"overridden":false,"tw":49.48,"tpcm":58.44,"melt":71.8,"e_step":1.184,"cum_del":20.2,"cum_unmet":5.1,"cum_shield":288,"cum_safety":0},{"k":91,"hour_idx":91,"day":3,"hod":19,"ts":"12 19:00","ghi":0.0,"tamb":28.0,"demand_L":51.92,"req":0,"exe":0,"overridden":false,"tw":43.89,"tpcm":57.59,"melt":29.7,"e_step":1.094,"cum_del":21.3,"cum_unmet":5.1,"cum_shield":288,"cum_safety":0},{"k":92,"hour_idx":92,"day":3,"hod":20,"ts":"12 20:00","ghi":0.0,"tamb":27.3,"demand_L":41.57,"req":1,"exe":1,"overridden":false,"tw":42.22,"tpcm":50.0,"melt":0.0,"e_step":0.709,"cum_del":22.0,"cum_unmet":5.2,"cum_shield":288,"cum_safety":0},{"k":93,"hour_idx":93,"day":3,"hod":21,"ts":"12 21:00","ghi":0.0,"tamb":26.8,"demand_L":21.35,"req":1,"exe":1,"overridden":false,"tw":40.05,"tpcm":41.5,"melt":0.0,"e_step":0.318,"cum_del":22.3,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":94,"hour_idx":94,"day":3,"hod":22,"ts":"12 22:00","ghi":0.0,"tamb":26.3,"demand_L":7.03,"req":0,"exe":0,"overridden":false,"tw":39.19,"tpcm":39.61,"melt":0.0,"e_step":0.091,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":95,"hour_idx":95,"day":3,"hod":23,"ts":"12 23:00","ghi":0.0,"tamb":25.9,"demand_L":1.48,"req":0,"exe":0,"overridden":false,"tw":38.93,"tpcm":39.05,"melt":0.0,"e_step":0.018,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":96,"hour_idx":96,"day":4,"hod":0,"ts":"13 00:00","ghi":0.0,"tamb":25.5,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.81,"tpcm":38.86,"melt":0.0,"e_step":0.0,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":97,"hour_idx":97,"day":4,"hod":1,"ts":"13 01:00","ghi":0.0,"tamb":25.2,"demand_L":0.0,"req":0,"exe":0,"overridden":false,"tw":38.67,"tpcm":38.72,"melt":0.0,"e_step":0.0,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":98,"hour_idx":98,"day":4,"hod":2,"ts":"13 02:00","ghi":0.0,"tamb":24.8,"demand_L":0.03,"req":0,"exe":0,"overridden":false,"tw":38.53,"tpcm":38.58,"melt":0.0,"e_step":0.0,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":99,"hour_idx":99,"day":4,"hod":3,"ts":"13 03:00","ghi":0.0,"tamb":24.5,"demand_L":0.31,"req":0,"exe":0,"overridden":false,"tw":38.35,"tpcm":38.41,"melt":0.0,"e_step":0.004,"cum_del":22.4,"cum_unmet":5.3,"cum_shield":288,"cum_safety":0},{"k":100,"hour_idx":100,"day":4,"hod":4,"ts":"13 04:00","ghi":0.0,"tamb":24.3,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":37.99,"tpcm":38.12,"melt":0.0,"e_step":0.021,"cum_del":22.4,"cum_unmet":5.4,"cum_shield":288,"cum_safety":0},{"k":101,"hour_idx":101,"day":4,"hod":5,"ts":"13 05:00","ghi":0.0,"tamb":23.8,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":37.09,"tpcm":37.4,"melt":0.0,"e_step":0.073,"cum_del":22.5,"cum_unmet":5.4,"cum_shield":288,"cum_safety":0},{"k":102,"hour_idx":102,"day":4,"hod":6,"ts":"13 06:00","ghi":3.0,"tamb":23.1,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":35.4,"tpcm":35.96,"melt":0.0,"e_step":0.152,"cum_del":22.7,"cum_unmet":5.6,"cum_shield":288,"cum_safety":0},{"k":103,"hour_idx":103,"day":4,"hod":7,"ts":"13 07:00","ghi":116.0,"tamb":24.8,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":34.42,"tpcm":34.77,"melt":0.0,"e_step":0.196,"cum_del":22.8,"cum_unmet":5.9,"cum_shield":288,"cum_safety":0},{"k":104,"hour_idx":104,"day":4,"hod":8,"ts":"13 08:00","ghi":337.0,"tamb":27.0,"demand_L":26.42,"req":0,"exe":0,"overridden":false,"tw":37.46,"tpcm":36.59,"melt":0.0,"e_step":0.237,"cum_del":23.1,"cum_unmet":6.2,"cum_shield":288,"cum_safety":0},{"k":105,"hour_idx":105,"day":4,"hod":9,"ts":"13 09:00","ghi":560.0,"tamb":29.0,"demand_L":16.94,"req":0,"exe":0,"overridden":false,"tw":44.18,"tpcm":42.03,"melt":0.0,"e_step":0.251,"cum_del":23.3,"cum_unmet":6.2,"cum_shield":288,"cum_safety":0},{"k":106,"hour_idx":106,"day":4,"hod":10,"ts":"13 10:00","ghi":737.0,"tamb":30.7,"demand_L":6.96,"req":0,"exe":0,"overridden":false,"tw":54.18,"tpcm":50.82,"melt":0.0,"e_step":0.171,"cum_del":23.5,"cum_unmet":6.2,"cum_shield":288,"cum_safety":0},{"k":107,"hour_idx":107,"day":4,"hod":11,"ts":"13 11:00","ghi":832.0,"tamb":31.9,"demand_L":1.84,"req":0,"exe":0,"overridden":false,"tw":65.36,"tpcm":57.15,"melt":7.5,"e_step":0.068,"cum_del":23.6,"cum_unmet":6.2,"cum_shield":288,"cum_safety":0},{"k":108,"hour_idx":108,"day":4,"hod":12,"ts":"13 12:00","ghi":817.0,"tamb":32.6,"demand_L":0.31,"req":0,"exe":2,"overridden":true,"tw":72.0,"tpcm":57.82,"melt":41.0,"e_step":0.015,"cum_del":23.6,"cum_unmet":6.2,"cum_shield":289,"cum_safety":0},{"k":109,"hour_idx":109,"day":4,"hod":13,"ts":"13 13:00","ghi":734.0,"tamb":32.7,"demand_L":0.05,"req":0,"exe":2,"overridden":true,"tw":71.02,"tpcm":59.0,"melt":99.8,"e_step":0.003,"cum_del":23.6,"cum_unmet":6.2,"cum_shield":299,"cum_safety":0},{"k":110,"hour_idx":110,"day":4,"hod":14,"ts":"13 14:00","ghi":600.0,"tamb":32.6,"demand_L":0.2,"req":1,"exe":1,"overridden":true,"tw":69.65,"tpcm":62.13,"melt":100.0,"e_step":0.01,"cum_del":23.6,"cum_unmet":6.2,"cum_shield":321,"cum_safety":0},{"k":111,"hour_idx":111,"day":4,"hod":15,"ts":"13 15:00","ghi":468.0,"tamb":32.4,"demand_L":1.48,"req":0,"exe":2,"overridden":true,"tw":72.08,"tpcm":62.13,"melt":100.0,"e_step":0.074,"cum_del":23.7,"cum_unmet":6.2,"cum_shield":352,"cum_safety":0},{"k":112,"hour_idx":112,"day":4,"hod":16,"ts":"13 16:00","ghi":337.0,"tamb":31.8,"demand_L":7.03,"req":0,"exe":2,"overridden":true,"tw":69.67,"tpcm":62.13,"melt":100.0,"e_step":0.345,"cum_del":24.0,"cum_unmet":6.2,"cum_shield":377,"cum_safety":0},{"k":113,"hour_idx":113,"day":4,"hod":17,"ts":"13 17:00","ghi":126.0,"tamb":30.2,"demand_L":21.35,"req":0,"exe":0,"overridden":true,"tw":58.97,"tpcm":60.5,"melt":100.0,"e_step":0.874,"cum_del":24.9,"cum_unmet":6.2,"cum_shield":393,"cum_safety":0},{"k":114,"hour_idx":114,"day":4,"hod":18,"ts":"13 18:00","ghi":5.0,"tamb":29.3,"demand_L":41.57,"req":0,"exe":0,"overridden":false,"tw":49.58,"tpcm":58.46,"melt":73.0,"e_step":1.195,"cum_del":26.1,"cum_unmet":6.2,"cum_shield":393,"cum_safety":0},{"k":115,"hour_idx":115,"day":4,"hod":19,"ts":"13 19:00","ghi":0.0,"tamb":28.5,"demand_L":51.92,"req":0,"exe":0,"overridden":false,"tw":43.97,"tpcm":57.61,"melt":30.6,"e_step":1.099,"cum_del":27.2,"cum_unmet":6.3,"cum_shield":393,"cum_safety":0},{"k":116,"hour_idx":116,"day":4,"hod":20,"ts":"13 20:00","ghi":0.0,"tamb":27.8,"demand_L":41.57,"req":1,"exe":1,"overridden":false,"tw":42.33,"tpcm":50.49,"melt":0.0,"e_step":0.712,"cum_del":27.9,"cum_unmet":6.3,"cum_shield":393,"cum_safety":0},{"k":117,"hour_idx":117,"day":4,"hod":21,"ts":"13 21:00","ghi":0.0,"tamb":27.2,"demand_L":21.35,"req":1,"exe":1,"overridden":false,"tw":40.19,"tpcm":41.67,"melt":0.0,"e_step":0.322,"cum_del":28.2,"cum_unmet":6.4,"cum_shield":393,"cum_safety":0},{"k":118,"hour_idx":118,"day":4,"hod":22,"ts":"13 22:00","ghi":0.0,"tamb":26.4,"demand_L":7.03,"req":0,"exe":0,"overridden":false,"tw":39.32,"tpcm":39.75,"melt":0.0,"e_step":0.092,"cum_del":28.3,"cum_unmet":6.5,"cum_shield":393,"cum_safety":0},{"k":119,"hour_idx":119,"day":4,"hod":23,"ts":"13 23:00","ghi":0.0,"tamb":25.8,"demand_L":1.48,"req":0,"exe":0,"overridden":false,"tw":39.06,"tpcm":39.19,"melt":0.0,"e_step":0.019,"cum_del":28.3,"cum_unmet":6.5,"cum_shield":393,"cum_safety":0}];
+const META = {"algo":"dqn","algo_name":"DQN","regime":0,"mode":"live","location":"Madurai area (regime-0 medoid)","fetched":"2026-11-11T12:36:39+00:00","year":"live","days":5.0,"pcm":"PCM","n":120};
+const AC = {0:"#2a78d6",1:"#1baf7a",2:"#eb6834"};
+const ANAME = {0:"CHARGING",1:"SERVING (idle)",2:"BYPASS"};
+const ASHORT = {0:"CHARGE",1:"IDLE",2:"BYPASS"};
+const N = DATA.length;
+const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme:dark)").matches;
+const INK = isDark? "#f2f2ef":"#0b0b0b", MUT = isDark? "#a3a39d":"#5c5b57",
+      GRID = isDark? "rgba(242,242,239,.10)":"rgba(11,11,11,.08)",
+      PAPER = "rgba(0,0,0,0)";
+
+if(META.mode==="live"){
+  document.getElementById("subtitle").innerHTML =
+    "<b>LIVE</b> — "+META.algo_name+" policy · regime "+META.regime+" · "+
+    META.location+" · present weather from Open-Meteo (fetched "+META.fetched+
+    ") · "+N+" hours · "+META.pcm;
+}else{
+  document.getElementById("subtitle").textContent =
+    "REPLAY — "+META.algo_name+" policy · regime "+META.regime+" · historical year "+
+    META.year+" · "+N+" hours ("+META.days+" days) · "+META.pcm;
+}
+
+// ---- time label (prefers real timestamp; falls back to day/hour)
+function clockLabel(d){
+  if(d.ts) return d.ts;
+  return "day "+d.day+"  "+String(d.hod).padStart(2,"0")+":00"; }
+
+const xs = DATA.map(d=>d.k);
+const tw = DATA.map(d=>d.tw), tp = DATA.map(d=>d.tpcm), ghi = DATA.map(d=>d.ghi);
+
+// ---- temperature chart with guard/limit reference lines
+const hl = (y,txt,col,dash)=>({type:"line",x0:0,x1:N-1,y0:y,y1:y,xref:"x",yref:"y",
+  line:{color:col,width:1,dash:dash}});
+const ann = (y,txt,col)=>({x:N-1,y:y,xref:"x",yref:"y",text:txt,showarrow:false,
+  xanchor:"right",yanchor:"bottom",font:{size:10,color:col}});
+let nowLine = {type:"line",x0:0,x1:0,y0:0,y1:1,xref:"x",yref:"paper",
+  line:{color:INK,width:2}};
+
+Plotly.newPlot("tempChart",[
+  {x:xs,y:tw,name:"water T",mode:"lines",line:{color:"#2a78d6",width:2}},
+  {x:xs,y:tp,name:"PCM T",mode:"lines",line:{color:"#eb6834",width:2}},
+],{
+  margin:{l:48,r:12,t:28,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
+  title:{text:"Tank water & PCM temperature (°C)",font:{size:13,color:INK},x:0},
+  font:{color:MUT,size:11},showlegend:true,
+  legend:{orientation:"h",y:1.14,x:0,font:{color:MUT}},
+  xaxis:{showgrid:false,color:MUT,title:{text:"hour in window",font:{size:10}}},
+  yaxis:{gridcolor:GRID,color:MUT,zeroline:false},
+  shapes:[hl(45,"","#1baf7a","dot"),hl(72,"","#eb6834","dash"),hl(75,"","#b01d0f","solid"),
+          hl(62,"","#eb6834","dash"),hl(65,"","#b01d0f","solid"),nowLine],
+  annotations:[ann(45,"deliver 45°",MUT),ann(75,"water hard 75°","#b01d0f"),
+               ann(72,"water shield 72°","#eb6834"),ann(65,"PCM hard 65°","#b01d0f"),
+               ann(62,"PCM shield 62°","#eb6834")],
+},{displayModeBar:false,responsive:true});
+
+Plotly.newPlot("ghiChart",[
+  {x:xs,y:ghi,name:"GHI",mode:"lines",fill:"tozeroy",
+   line:{color:"#e0a21a",width:1.5},fillcolor:"rgba(224,162,26,.18)"},
+],{
+  margin:{l:48,r:12,t:28,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
+  title:{text:"Solar irradiance GHI (W/m²)",font:{size:13,color:INK},x:0},
+  font:{color:MUT,size:11},showlegend:false,
+  xaxis:{showgrid:false,color:MUT,title:{text:"hour in window",font:{size:10}}},
+  yaxis:{gridcolor:GRID,color:MUT,zeroline:false,rangemode:"tozero"},
+  shapes:[Object.assign({},nowLine)],
+},{displayModeBar:false,responsive:true});
+
+// ---- action ribbon (one cell per hour; hatch if overridden)
+const ribbon = document.getElementById("ribbon");
+DATA.forEach(d=>{
+  const c=document.createElement("div"); c.className="cell";
+  c.style.background=AC[d.exe];
+  if(d.overridden){
+    c.style.backgroundImage="repeating-linear-gradient(45deg,"+
+      "rgba(255,255,255,.55) 0 3px,transparent 3px 6px)";
+  }
+  c.title="day "+d.day+" "+String(d.hod).padStart(2,"0")+":00 — "+ANAME[d.exe];
+  ribbon.appendChild(c);
+});
+
+// ---- KPI tiles
+const TILES=[
+  ["ghi","GHI","W/m²"],["tamb","Ambient","°C"],["tw","Water","°C"],
+  ["tpcm","PCM","°C"],["melt","Melt","%"],["demand_L","Draw now","L"],
+  ["cum_del","Delivered","kWh"],["cum_shield","Shield fires",""],
+];
+const tilesEl=document.getElementById("tiles");
+TILES.forEach(([k,lab,u])=>{
+  const t=document.createElement("div");t.className="tile";
+  t.innerHTML='<div class="lab">'+lab+'</div><div class="val">'+
+              '<span class="num" id="t_'+k+'">—</span>'+
+              (u?' <span class="u">'+u+'</span>':'')+'</div>';
+  tilesEl.appendChild(t);
+});
+
+// ---- playback state
+let k=0, timer=null, stepMs=120;
+const lamp=document.getElementById("lamp"), flag=document.getElementById("flag"),
+      intent=document.getElementById("intent"), clock=document.getElementById("clock"),
+      scrub=document.getElementById("scrub"), cursor=document.getElementById("cursor"),
+      ribbonBox=ribbon.getBoundingClientRect;
+scrub.max=N-1;
+
+function render(i){
+  const d=DATA[i];
+  lamp.textContent=ANAME[d.exe]; lamp.style.background=AC[d.exe];
+  flag.classList.toggle("on", d.overridden);
+  intent.textContent = d.overridden ? ("policy asked: "+ASHORT[d.req]) : "";
+  clock.textContent=clockLabel(d);
+  scrub.value=i;
+  for(const [key] of TILES){
+    document.getElementById("t_"+key).textContent = d[key];
+  }
+  // move now-line on both charts
+  const nl={ "shapes[5].x0":i,"shapes[5].x1":i };
+  Plotly.relayout("tempChart",nl);
+  Plotly.relayout("ghiChart",{ "shapes[0].x0":i,"shapes[0].x1":i });
+  // move ribbon cursor
+  const frac=(i+0.5)/N;
+  cursor.style.left=(frac*ribbon.clientWidth)+"px";
+}
+
+function play(){ if(timer) return;
+  document.getElementById("play").textContent="❚❚ Pause";
+  timer=setInterval(()=>{ k++; if(k>=N){k=N-1;stop();return;} render(k); }, stepMs); }
+function stop(){ clearInterval(timer); timer=null;
+  document.getElementById("play").textContent="▶ Play"; }
+
+document.getElementById("play").onclick=()=>{ timer?stop():play(); };
+document.getElementById("reset").onclick=()=>{ stop(); k=0; render(0); };
+document.getElementById("speed").onchange=(e)=>{ stepMs=+e.target.value;
+  if(timer){stop();play();} };
+scrub.oninput=(e)=>{ stop(); k=+e.target.value; render(k); };
+ribbon.onclick=(e)=>{ stop(); const r=ribbon.getBoundingClientRect();
+  k=Math.min(N-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*N))); render(k); };
+
+render(0);
+</script>
+</div></body></html>

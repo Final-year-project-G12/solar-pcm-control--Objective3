@@ -54,10 +54,16 @@ _ALGO_DIR = {
 }
 
 
-def load_model(algo: str, regime_id: int):
-    """Load the best trained model for a given algorithm and regime."""
+def load_model(algo: str, regime_id: int, tag: str | None = None):
+    """Load the best trained model for a given algorithm and regime.
+
+    tag: if set, looks under results/<algo>/r<regime>_<tag>/ instead of the
+    canonical results/<algo>/r<regime>/ — used to evaluate a side-by-side
+    variant (e.g. "smartfc") without overwriting the canonical result.
+    """
     subdir = _ALGO_DIR.get(algo, algo)
-    base = RESULTS_DIR / subdir / f"r{regime_id}"
+    rdir = f"r{regime_id}_{tag}" if tag else f"r{regime_id}"
+    base = RESULTS_DIR / subdir / rdir
     best = base / "best_model" / "best_model"
     final = base / f"{subdir}_final"
     # prefer best_model checkpoint, fall back to final
@@ -136,9 +142,11 @@ def eval_episode_recurrent(model, regime_id: int, year: int,
 
 
 def eval_episode_sac(model, regime_id: int, year: int,
-                     pcm_init: str = "solid") -> dict:
+                     pcm_init: str = "solid", obs_version: str = "V1",
+                     forecast_mode: str = "perfect") -> dict:
     from o3.environment.gym_wrapper import PCMContinuousGymEnv
-    env = PCMContinuousGymEnv(CONTRACT_PATH, regime_id=regime_id, fixed_year=year)
+    env = PCMContinuousGymEnv(CONTRACT_PATH, regime_id=regime_id, fixed_year=year,
+                              obs_version=obs_version, forecast_mode=forecast_mode)
     env.inner.reset(year=year, initial_pcm_state=pcm_init)
     obs, _ = env.reset()
     done = False
@@ -192,8 +200,9 @@ def eval_episode_maskable(model, env_gym: PCMGymEnv, year: int,
     }
 
 
-def run_locked_eval(algo: str, regime_id: int) -> list[dict]:
-    model_path = load_model(algo, regime_id)
+def run_locked_eval(algo: str, regime_id: int, obs_version: str = "V1",
+                    forecast_mode: str = "perfect", tag: str | None = None) -> list[dict]:
+    model_path = load_model(algo, regime_id, tag=tag)
     model_hash = sha256_of_file(model_path.with_suffix(".zip"))
     print(f"  Model: {model_path}  SHA: {model_hash[:12]}...")
 
@@ -219,7 +228,8 @@ def run_locked_eval(algo: str, regime_id: int) -> list[dict]:
     else:
         raise ValueError(f"Unknown algo: {algo}")
 
-    env_pcm = PCMEnv(CONTRACT_PATH, regime_id=regime_id)
+    env_pcm = PCMEnv(CONTRACT_PATH, regime_id=regime_id,
+                     obs_version=obs_version, forecast_mode=forecast_mode)
     env_gym = PCMGymEnv(CONTRACT_PATH, regime_id=regime_id, fixed_year=TEST_YEARS[0])
 
     rows = []
@@ -230,7 +240,8 @@ def run_locked_eval(algo: str, regime_id: int) -> list[dict]:
             elif algo == "maskable":
                 ep = eval_episode_maskable(model, env_gym, year, pcm_init)
             elif algo == "sac":
-                ep = eval_episode_sac(model, regime_id, year, pcm_init)
+                ep = eval_episode_sac(model, regime_id, year, pcm_init,
+                                      obs_version=obs_version, forecast_mode=forecast_mode)
             else:
                 ep = eval_episode_standard(model, env_pcm, year, pcm_init)
 
@@ -299,6 +310,12 @@ def main():
     parser.add_argument("--algo",   type=str, default="recurrent",
                         choices=["ppo", "dqn", "recurrent", "qrdqn", "maskable", "sac"])
     parser.add_argument("--regime", type=int, nargs="+", default=[0])
+    parser.add_argument("--obs-version", default="V1", choices=["V1", "V2", "V3"])
+    parser.add_argument("--forecast-mode", default="perfect",
+                        choices=["perfect", "smart", "none"])
+    parser.add_argument("--tag", default=None,
+                        help="evaluate results/<algo>/r<regime>_<tag>/ instead of "
+                             "the canonical r<regime>/ dir")
     args = parser.parse_args()
 
     print("=" * 70)
@@ -312,10 +329,15 @@ def main():
     for regime_id in args.regime:
         print(f"\n=== Regime {regime_id} ===")
         all_rows += run_baselines_locked(regime_id)
-        all_rows += run_locked_eval(args.algo, regime_id)
+        all_rows += run_locked_eval(args.algo, regime_id,
+                                    obs_version=args.obs_version,
+                                    forecast_mode=args.forecast_mode,
+                                    tag=args.tag)
 
     # save CSV
-    out_csv = RESULTS_DIR / f"phase6_final_test_{args.algo}.csv"
+    suffix = f"_{args.tag}" if args.tag else ""
+    regime_tag = "_r" + "-".join(str(r) for r in args.regime)
+    out_csv = RESULTS_DIR / f"phase6_final_test_{args.algo}{suffix}{regime_tag}.csv"
     if all_rows:
         keys = list(dict.fromkeys(k for r in all_rows for k in r))
         with open(out_csv, "w", newline="") as f:
@@ -339,7 +361,7 @@ def main():
                                                   for r in p_rows])),
             "safety_violations":  int(sum(r["n_safety_violations"] for r in p_rows)),
         }
-    summary_path = RESULTS_DIR / f"phase6_summary_{args.algo}.json"
+    summary_path = RESULTS_DIR / f"phase6_summary_{args.algo}{suffix}{regime_tag}.json"
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"[INFO] Summary JSON -> {summary_path}")

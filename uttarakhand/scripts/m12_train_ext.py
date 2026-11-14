@@ -1,7 +1,8 @@
 """
 scripts/m12_train_ext.py -- POST-LOCK research extensions (Tamil Nadu plan sections 16.3 / 19.1), Uttarakhand.
-One training run: algorithm (PPO or DQN), regime, reward weights (w2, w4; w3 by the dominance rule, unchanged),
-seed, observation version (V1 / V2 forecast) and training-time domain randomisation. Same budget, gamma, network,
+One training run: algorithm (PPO, DQN or SAC), regime, reward weights (w2, w4; w3 by the dominance rule, unchanged),
+seed, observation version (V1 / V2 forecast), forecast mode (perfect / smart persistence / none) and training-time
+domain randomisation. SAC uses the 1-D continuous action view binned to bypass / enable. Same budget, gamma, network,
 validation scoring (every 87,600 steps on 2021-2023, fully_solid, nominal) and lexicographic checkpoint rule as M4.
 Writes ONLY to results/ext/<study>/r{k}/<tag>/seed{s}/ so it can never enter the frozen M4 selection; no test year
 is loaded. Hyper-parameters: SB3 defaults except gamma (config) and, for DQN, none changed.
@@ -25,14 +26,15 @@ from stable_baselines3.common.monitor import Monitor                        # no
 from o3 import config as o3c                                                # noqa: E402
 from o3.controllers import SB3Policy                                        # noqa: E402
 from o3.env import reward_weights                                           # noqa: E402
-from o3.env_ext import UKPCMEnvExt                                          # noqa: E402
+from o3.env_ext import ContinuousActionWrapper, UKPCMEnvExt                  # noqa: E402
 from o3.evaluate import evaluate, lexicographic_best, summarise              # noqa: E402
 
-ALGOS = {"ppo": sb3.PPO, "dqn": sb3.DQN}
+ALGOS = {"ppo": sb3.PPO, "dqn": sb3.DQN, "sac": sb3.SAC}
 
 
-def run_dir(study, regime, algo, w2, w4, obs, dr, seed, w3=None) -> Path:
-    tag = f"{algo}_w2_{w2:g}_w4_{w4:g}_{obs}" + ("_DR" if dr else "") + ("" if w3 is None else f"_w3_{w3:g}_DIAGNOSTIC")
+def run_dir(study, regime, algo, w2, w4, obs, dr, seed, w3=None, fc="perfect") -> Path:
+    tag = (f"{algo}_w2_{w2:g}_w4_{w4:g}_{obs}" + ("" if fc == "perfect" else f"_fc_{fc}") + ("_DR" if dr else "")
+           + ("" if w3 is None else f"_w3_{w3:g}_DIAGNOSTIC"))
     return o3c.RESULTS / "ext" / study / f"r{regime}" / tag / f"seed{seed}"
 
 
@@ -69,21 +71,27 @@ def main():
     ap.add_argument("--seed", type=int, required=True)
     ap.add_argument("--obs-version", default="V1", choices=["V1", "V2"])
     ap.add_argument("--domain-randomize", action="store_true")
+    ap.add_argument("--forecast-mode", default="perfect", choices=["perfect", "smart", "none"],
+                    help="V2 look-ahead: perfect (stored future GHI), smart (smart persistence), none (zeros)")
     ap.add_argument("--steps", type=int, default=None)
     ap.add_argument("--w3", type=float, default=None,
                     help="DIAGNOSTIC: override the dominance-rule w3 (Q2 forbids tuning it; never eligible for selection)")
     a = ap.parse_args()
+    if a.forecast_mode != "perfect" and a.obs_version != "V2":
+        ap.error("--forecast-mode needs --obs-version V2")
     torch.set_num_threads(1)
     cfg = o3c.load()
     pc = cfg["ppo"]
-    out = run_dir(a.study, a.regime, a.algo, a.w2, a.w4, a.obs_version, a.domain_randomize, a.seed, a.w3)
+    out = run_dir(a.study, a.regime, a.algo, a.w2, a.w4, a.obs_version, a.domain_randomize, a.seed, a.w3, a.forecast_mode)
     out.mkdir(parents=True, exist_ok=True)
     weights = reward_weights(a.regime, a.w2, a.w4)
     if a.w3 is not None:
         weights["w3"] = a.w3
     ekw = {"obs_version": a.obs_version}
-    env = Monitor(UKPCMEnvExt(regime=a.regime, purpose="train", weights=weights, domain_randomize=a.domain_randomize,
-                              **ekw))
+    if a.obs_version == "V2":
+        ekw["forecast_mode"] = a.forecast_mode
+    base = UKPCMEnvExt(regime=a.regime, purpose="train", weights=weights, domain_randomize=a.domain_randomize, **ekw)
+    env = Monitor(ContinuousActionWrapper(base) if a.algo == "sac" else base)
     kw = dict(gamma=pc["gamma"], policy_kwargs=dict(pc["policy_kwargs"]), seed=a.seed, device="cpu", verbose=0)
     model = ALGOS[a.algo]("MlpPolicy", env, **kw)
     cb = Val(out, a, weights, ekw, pc["eval_every_steps"], cfg["years"]["validate"])
@@ -94,7 +102,7 @@ def main():
     shutil.copy(out / best["ckpt"], out / "best_model.zip")
     (out / "best.json").write_text(json.dumps({
         "study": a.study, "algo": a.algo, "regime": a.regime, "w2": a.w2, "w4": a.w4, "seed": a.seed,
-        "obs_version": a.obs_version, "domain_randomize": a.domain_randomize, "weights": weights, "best": best,
+        "obs_version": a.obs_version, "forecast_mode": a.forecast_mode, "domain_randomize": a.domain_randomize, "weights": weights, "best": best,
         "diagnostic_w3_override": a.w3,
         "total_timesteps": model.num_timesteps, "label": "POST-LOCK EXTENSION (validation only)",
         "o3_config_sha256": o3c.config_hash()}, indent=1, default=float))

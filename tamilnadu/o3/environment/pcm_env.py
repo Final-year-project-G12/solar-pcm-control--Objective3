@@ -22,6 +22,30 @@ Observation vector V1 (11 dims, all normalised):
      demand_volume_L, T_mains, hour/24, day/365, prev_action/2,
      temp_margin_water]
 
+Observation vector V2 (15 dims — V1 + a forecast tail, APPENDED so every V1
+index is unchanged and the B1/B2/B4 baselines and action-masking code, which
+all index obs[0..7] positionally, keep working unmodified):
+    V1[0..10] + [GHI_fwd_h+1, GHI_fwd_h+2, GHI_fwd_h+3, demand_fwd_h+1]
+This gives the policy the same 2-3h-ahead look-ahead the B2 rule baseline uses,
+so anticipation no longer has to be learned purely from the current state.
+
+Control step: the decision period is configurable (`control_step_min`,
+default 60 = unchanged, hourly). The shield already runs every ~150s physics
+sub-step; an hourly ACTION cannot react to overshoot discovered mid-hour. At
+control_step_min=15 the policy gets 4 decisions per weather-hour (weather/
+demand are still hourly-resolution and held constant across the sub-periods;
+only the control cadence changes), so it can switch to BYPASS/IDLE before a
+full hour of unchecked charging accumulates.
+
+Domain randomisation (`domain_randomize=True`, training only): at each
+reset(), sample a GHI multiplier, an ambient-temperature bias, and a demand
+multiplier, held fixed for the whole episode, and apply them to the physics
+inputs (not just the observation) so the dynamics themselves vary run to run.
+Evaluation/locked-test/robustness envs keep this off (nominal physics); the
+existing phase-5 robustness suite already stress-tests *trained* policies with
+perturbations — this instead perturbs *training* so the policy has seen
+variability before evaluation ever does.
+
 Reward R1:
     r = w_E * E_delivered_Wh - w_U * E_unmet_Wh - w_S * safety_penalty
 """
@@ -39,8 +63,9 @@ if str(_O2_ROOT) not in sys.path:
 
 from src.io_utils import (
     load_system_config, load_design_bounds, get_regime, get_pcm_properties,
-    load_hourly_weather, load_demand_profile,
+    load_demand_profile, drop_leap_day,
 )
+from config import BASE_DIR
 from src.simulation.capsule_enthalpy import (
     PCMThermalProps, pcm_props_from_record,
     enthalpy_of_temperature, temperature_and_liquid_fraction_of_enthalpy,
@@ -107,12 +132,18 @@ class PCMEnv:
         regime_id: int = 0,
         year: int = 2016,
         obs_version: str = "V1",
+        forecast_mode: str = "perfect",
         reward_weights: dict | None = None,
+        control_step_min: int = 60,
+        domain_randomize: bool = False,
+        domain_rand_ranges: dict | None = None,
     ):
         self.contract = assert_contract_valid(contract_path)
         self.regime_id = regime_id
         self.year = year
         self.obs_version = obs_version
+        assert forecast_mode in ("perfect", "smart", "none"), forecast_mode
+        self.forecast_mode = forecast_mode
 
         rw = reward_weights or {}
         self.w_energy    = rw.get("energy",    W_ENERGY)
@@ -121,11 +152,30 @@ class PCMEnv:
         self.w_switching = rw.get("switching", W_SWITCHING)
         self.w_shield    = rw.get("shield",    W_SHIELD)
 
+        # sub-hourly control: N ticks per weather-hour (60 % control_step_min
+        # must be 0; default 60 -> N=1, bit-for-bit the original hourly env)
+        assert 60 % control_step_min == 0, "control_step_min must divide 60"
+        self.control_step_min = control_step_min
+        self._ticks_per_hour   = 60 // control_step_min
+
+        # domain randomisation (training-time only; see module docstring)
+        self.domain_randomize = domain_randomize
+        dr = domain_rand_ranges or {}
+        self._dr_ranges = {
+            "ghi_mult":    dr.get("ghi_mult",    (0.90, 1.10)),
+            "amb_bias_C":  dr.get("amb_bias_C",  (-2.0, 2.0)),
+            "demand_mult": dr.get("demand_mult", (0.85, 1.15)),
+        }
+        self._dr_rng = np.random.default_rng()
+        self._dr = {"ghi_mult": 1.0, "amb_bias_C": 0.0, "demand_mult": 1.0}
+
         self._setup_from_contract()
         self._load_weather()
 
-        # observation / action space sizes
-        self.obs_dim    = 11   # V1
+        # observation / action space sizes (V2 and V3 share the same 15-dim
+        # shape: V1 + 3h GHI forecast + next-hour demand; V3 is V2 driven by
+        # forecast_mode="smart" instead of "perfect" — see forecast_ghi())
+        self.obs_dim    = 15 if obs_version in ("V2", "V3") else 11
         self.n_actions  = N_ACTIONS
 
         # normalisation stats (training-set statistics — placeholders, computed
@@ -160,7 +210,18 @@ class PCMEnv:
         h_pcm = enthalpy_of_temperature(T_pcm_init, self.pcm_props)
         T_pcm, f_melt = temperature_and_liquid_fraction_of_enthalpy(h_pcm, self.pcm_props)
 
+        if self.domain_randomize:
+            if seed is not None:
+                self._dr_rng = np.random.default_rng(seed)
+            lo, hi = self._dr_ranges["ghi_mult"];    ghi_m = self._dr_rng.uniform(lo, hi)
+            lo, hi = self._dr_ranges["amb_bias_C"];  amb_b = self._dr_rng.uniform(lo, hi)
+            lo, hi = self._dr_ranges["demand_mult"]; dem_m = self._dr_rng.uniform(lo, hi)
+            self._dr = {"ghi_mult": ghi_m, "amb_bias_C": amb_b, "demand_mult": dem_m}
+        else:
+            self._dr = {"ghi_mult": 1.0, "amb_bias_C": 0.0, "demand_mult": 1.0}
+
         self._state = {
+            "tick_idx": 0,
             "hour_idx": 0,
             "T_w":     T_w,
             "T_pcm":   T_pcm,
@@ -177,8 +238,11 @@ class PCMEnv:
         obs = self._get_obs()
         return obs, {"year": self.year, "regime_id": self.regime_id}
 
+    def _n_ticks(self) -> int:
+        return len(self._weather) * self._ticks_per_hour
+
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
-        """Run one hour of the simulator with the given action.
+        """Run one control period (default = one hour; see control_step_min).
 
         Returns
         -------
@@ -188,21 +252,24 @@ class PCMEnv:
         assert action in (CHARGE, IDLE, BYPASS), f"Invalid action {action}"
 
         s = self._state
-        i = s["hour_idx"]
+        t = s["tick_idx"]
+        i = t // self._ticks_per_hour              # hour index into weather
 
         if i >= len(self._weather):
             raise RuntimeError("Episode already ended. Call reset().")
 
         row       = self._weather.iloc[i]
-        I_t       = float(row["GHI_Wm2"])
-        T_amb     = float(row["T_amb_C"])
+        I_t       = float(row["GHI_Wm2"])  * self._dr["ghi_mult"]
+        T_amb     = float(row["T_amb_C"])  + self._dr["amb_bias_C"]
         hour_of_day = int(row.get("local_hour", i % 24))
 
-        draw_mass_kg = self._demand_model.draw_mass_kg_for_hour(hour_of_day)
+        draw_mass_kg_hr = (self._demand_model.draw_mass_kg_for_hour(hour_of_day)
+                          * self._dr["demand_mult"])
+        draw_mass_kg = draw_mass_kg_hr / self._ticks_per_hour
+        period_s = 3600.0 / self._ticks_per_hour
 
-        # run one hour of physics (sub-steps inside)
-        result = self._run_one_hour(
-            I_t, T_amb, draw_mass_kg,
+        result = self._run_period(
+            I_t, T_amb, draw_mass_kg, period_s,
             s["T_w"], s["T_pcm"], s["h_pcm"], s["f_melt"],
             action,
         )
@@ -214,7 +281,8 @@ class PCMEnv:
         s["h_pcm"]   = result["h_pcm"]
         s["f_melt"]  = result["f_melt"]
         s["prev_action"] = action
-        s["hour_idx"]    = i + 1
+        s["tick_idx"]    = t + 1
+        s["hour_idx"]    = (t + 1) // self._ticks_per_hour
         s["cumulative_delivered_Wh"] += result["E_delivered_Wh"]
         s["cumulative_unmet_Wh"]     += result["E_unmet_Wh"]
         s["n_shield_water"] += result["n_shield_water"]
@@ -232,12 +300,13 @@ class PCMEnv:
             - self.w_shield  *  n_shield
         )
 
-        terminated = (i + 1) >= len(self._weather)
+        terminated = (t + 1) >= self._n_ticks()
         truncated  = False
 
         obs  = self._get_obs()
         info = {
             "hour_idx":          i,
+            "tick_idx":          t,
             "hour_of_day":       hour_of_day,
             "T_w_C":             result["T_w"],
             "T_pcm_C":           result["T_pcm"],
@@ -260,13 +329,16 @@ class PCMEnv:
     # Physics: one-hour stepper (extracted from run_year inner loop)
     # ------------------------------------------------------------------
 
-    def _run_one_hour(
+    def _run_period(
         self,
-        I_t: float, T_amb: float, draw_mass_kg: float,
+        I_t: float, T_amb: float, draw_mass_kg: float, period_s: float,
         T_w: float, T_pcm: float, h_pcm: float, f_melt: float,
         action: int,
     ) -> dict:
-        """Run one hour's worth of sub-steps.  Preserves the O2 physics exactly."""
+        """Run one control period's worth of sub-steps (default period = one
+        hour, i.e. control_step_min=60). Preserves the O2 physics exactly —
+        only the OUTER period length changes; the inner ~150s/37.5s physics
+        sub-stepping logic below is untouched."""
         cfg     = self.system_config
         solver  = cfg["solver"]
         cp_w    = cfg["water"]["cp_J_kgK"]
@@ -283,7 +355,7 @@ class PCMEnv:
         bypass_pC      = shield_cfg.get("bypass_pcm_C",  max_pC - 3.0)
 
         dt_total_s         = solver["timestep_s"]
-        n_substeps_per_hr  = int(round(3600 / dt_total_s))
+        n_substeps_per_hr  = max(1, int(round(period_s / dt_total_s)))
         n_sub_in_band      = solver["substeps_in_melt_band"]
         band_margin        = solver["melt_band_margin_K"]
         STIFFNESS_FACTOR   = 0.5
@@ -404,24 +476,26 @@ class PCMEnv:
 
     def _get_obs(self) -> np.ndarray:
         s   = self._state
-        i   = s["hour_idx"]
+        t   = s["tick_idx"]
+        i   = t // self._ticks_per_hour
         cfg = self.system_config
 
         if i < len(self._weather):
             row   = self._weather.iloc[i]
-            I_t   = float(row["GHI_Wm2"])
-            T_amb = float(row["T_amb_C"])
+            I_t   = float(row["GHI_Wm2"]) * self._dr["ghi_mult"]
+            T_amb = float(row["T_amb_C"]) + self._dr["amb_bias_C"]
             hod   = int(row.get("local_hour", i % 24))
         else:
             I_t = T_amb = 0.0
             hod = 0
 
-        demand_L = self._demand_model.draw_mass_kg_for_hour(hod)   # kg (≈ L)
+        demand_L = (self._demand_model.draw_mass_kg_for_hour(hod)
+                   * self._dr["demand_mult"])                       # kg (≈ L)
         mains    = self.mains_temp_C
         max_wC   = cfg["safety"]["max_water_temp_C"]
         margin   = max_wC - s["T_w"]
 
-        raw = np.array([
+        v1 = [
             I_t / 1000.0,                    # normalised GHI (0-1 for typical 1000 W/m2)
             (T_amb - 15.0) / 25.0,           # ambient temp centred ~25°C
             (s["T_w"]   - 30.0) / 40.0,     # water temp
@@ -433,9 +507,78 @@ class PCMEnv:
             (i % 8760) / 8760.0,             # day of year proxy
             s["prev_action"] / (N_ACTIONS - 1.0),  # previous action
             margin / 10.0,                   # water temp safety margin
-        ], dtype=np.float32)
+        ]
+        if self.obs_version in ("V2", "V3"):
+            # Forecast tail — next 1/2/3 hours of GHI + next hour's demand.
+            # Driven by self.forecast_mode via forecast_ghi(k):
+            #   "perfect" (default, V2's original behaviour) — true future
+            #     value, zero error. Kept only as a baseline/ablation point —
+            #     a real controller never has this.
+            #   "smart"   — smart persistence on the clear-sky index (the
+            #     realistic forecast; see forecast_ghi() docstring).
+            #   "none"    — zeros, equivalent to dropping the fields.
+            # obs_version "V2" and "V3" are the SAME 15-dim shape; "V3" is
+            # just a naming convention for "V2 + forecast_mode='smart'" runs.
+            ghi_fwd = [self.forecast_ghi(dh) / 1000.0 for dh in (1, 2, 3)]
+            # next-hour demand forecast stays perfect by design (O2's fixed
+            # draw-off schedule is known in advance even by a real
+            # installation; see plan §12.2.4 — a modelling limitation, not a
+            # bug, and domain_randomize's demand_mult already means the
+            # realised draw is not perfectly predictable during training)
+            hod_next = int(self._weather.iloc[min(i + 1, len(self._weather) - 1)]
+                          .get("local_hour", (i + 1) % 24))
+            demand_fwd = (self._demand_model.draw_mass_kg_for_hour(hod_next)
+                         * self._dr["demand_mult"] / 20.0)
+            return np.array(v1 + ghi_fwd + [demand_fwd], dtype=np.float32)
 
-        return raw
+        return np.array(v1, dtype=np.float32)
+
+    def forecast_ghi(self, k: int) -> float:
+        """Forecast GHI (W/m2) for k hours ahead of the current tick.
+
+        forecast_mode="perfect": the stored year's true future value (what a
+        controller is NOT able to know in reality — an upper-bound ablation
+        point, not a deployable forecast).
+
+        forecast_mode="smart": smart persistence on the clear-sky index —
+        GHI_hat(t+k) = Kc(t) * GHI_clear(t+k), where Kc(t) = GHI(t)/GHI_clear(t)
+        is today's current cloud-attenuation ratio, clipped to [0, 1.2] and
+        held at its last daytime value when GHI_clear(t) <= 20 W/m2 (so the
+        forecast stays defined overnight). This keeps the deterministic,
+        genuinely-known-in-advance diurnal/seasonal curve (GHI_clear) and
+        treats only cloud variability as the forecast error — measured at
+        9.9%/21.0%/36.1% rRMSE for h=1/2/3 on this project's own weather data.
+        No training, no assumed noise parameter.
+
+        forecast_mode="none": zero (equivalent to dropping the forecast
+        fields — an ablation floor).
+        """
+        s = self._state
+        i = s["tick_idx"] // self._ticks_per_hour
+        j = i + k
+        if j >= len(self._weather):
+            return 0.0
+
+        if self.forecast_mode == "none":
+            return 0.0
+
+        if self.forecast_mode == "perfect":
+            return float(self._weather.iloc[j]["GHI_Wm2"]) * self._dr["ghi_mult"]
+
+        # "smart" — clear-sky-index persistence
+        ghi_now    = float(self._weather.iloc[i]["GHI_Wm2"]) * self._dr["ghi_mult"] \
+                     if i < len(self._weather) else 0.0
+        clear_now  = float(self._weather.iloc[i]["GHI_clearsky_Wm2"]) \
+                     if i < len(self._weather) else 0.0
+        clear_fwd  = float(self._weather.iloc[j]["GHI_clearsky_Wm2"])
+
+        if clear_now > 20.0:
+            kc = max(0.0, min(1.2, ghi_now / clear_now))
+            s["_last_daytime_kc"] = kc
+        else:
+            kc = s.get("_last_daytime_kc", 1.0)
+
+        return kc * clear_fwd
 
     # ------------------------------------------------------------------
     # Setup helpers
@@ -495,14 +638,36 @@ class PCMEnv:
         ) if geom["tank_cross_section_area_m2"] > 0 else 0.0
 
     def _load_weather(self) -> None:
-        from src.io_utils import load_hourly_weather, load_demand_profile, drop_leap_day
-        weather_all = load_hourly_weather("tamilnadu", self.regime_id)
-        # filter to the requested year if the frame has a year column
-        if "year" in weather_all.columns:
-            subset = weather_all[weather_all["year"] == self.year]
-            self._weather = drop_leap_day(subset).reset_index(drop=True) if len(subset) else drop_leap_day(weather_all)
-        else:
-            self._weather = drop_leap_day(weather_all)
+        # FIXED 2026-11-13: the previous implementation called
+        # load_hourly_weather(), which always returns ONE fixed file
+        # (weather_regime_tamilnadu_cluster{id}_hourly.csv, 2016 only, no
+        # year parameter). When the requested self.year had no matching
+        # rows in that file, the old code silently fell back to using the
+        # whole (2016) file regardless of what year was asked for -- so
+        # every "different year" (train 2016-2020, validate 2021-2023,
+        # locked test 2011-2015) was actually identical 2016 data. This
+        # loads the correct, year-specific, UTC-timestamp-verified file
+        # directly, and raises loudly instead of silently substituting
+        # wrong data if a requested year is missing.
+        import pandas as pd
+
+        regime = get_regime("tamilnadu", self.regime_id)
+        default_path = BASE_DIR / regime["weather_hourly"]
+        year_path = default_path.with_name(
+            default_path.stem + f"_{self.year}" + default_path.suffix)
+        if not year_path.exists():
+            raise FileNotFoundError(
+                f"No per-year weather file for regime {self.regime_id}, "
+                f"year {self.year}: expected {year_path}. Refusing to "
+                f"silently substitute a different year's data."
+            )
+        weather_year = pd.read_csv(year_path, parse_dates=["timestamp_utc"])
+        if "year" in weather_year.columns:
+            bad = weather_year.loc[weather_year["year"] != self.year, "year"]
+            assert bad.empty, (
+                f"{year_path} contains rows for year(s) {bad.unique().tolist()} "
+                f"but is supposed to be {self.year}-only.")
+        self._weather = drop_leap_day(weather_year).reset_index(drop=True)
 
         demand_df = load_demand_profile("tamilnadu")
         self._demand_model = load_demand_model(demand_df, volume_multiplier=1.0, timing_shift_hours=0.0)

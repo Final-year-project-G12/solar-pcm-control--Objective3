@@ -1,0 +1,25 @@
+# Objective 4 work-in-progress (separate objective; not reviewed, not part
+# of this Objective 3 repo unless explicitly decided otherwise)
+objective4_software_in_loop/
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+tb_logs/
+*.log
+.DS_Store
+Thumbs.db
+
+# New runs: keep intermediate checkpoints out of git (final/best models are kept)
+results/**/checkpoints/
+
+# Large/unneeded files (>50MB), kept out of git going forward. Historically these
+# were the actual repo-bloat offenders (replay buffers up to 13MB each, dozens per
+# run; stray misplaced archives) — removed from the working tree on 2026-11-14 and
+# listed here so they are never re-added by accident.
+*.pkl
+objective4_software_in_loop.zip
+results/archive_2016only_buggy/
+*_CLEAN/

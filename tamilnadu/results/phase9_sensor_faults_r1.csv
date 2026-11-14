@@ -1,0 +1,15 @@
+algo,fault,delivered_kWh,unmet_kWh,shields,safety_violations
+DQN,nominal,2012.1,920.1,20401,0
+DQN,ghi_dropout,1942.5,978.6,20346,0
+DQN,ghi_stuck,1942.5,978.6,20346,0
+DQN,tw_bias_+2C,2012.2,920.1,20530,0
+DQN,tw_noise,2012.1,920.1,20206,0
+DQN,tpcm_dropout,2012.2,920.1,20861,0
+DQN,combined_fault,2012.1,920.1,20552,0
+SAC,nominal,1990.2,929.9,12397,0
+SAC,ghi_dropout,9.6,2676.0,0,0
+SAC,ghi_stuck,9.6,2676.0,0,0
+SAC,tw_bias_+2C,1993.5,928.3,12729,0
+SAC,tw_noise,1989.6,930.2,12354,0
+SAC,tpcm_dropout,1978.7,934.7,11280,0
+SAC,combined_fault,1989.5,930.8,12677,0

@@ -33,13 +33,14 @@ ASSIGN = Path(__file__).resolve().parents[1] / "data" / "o1" / "cluster_assignme
 ASSIGN_SHA = "7722f6bdf471e19aaf300572d243fd2b015b516ef06f3e3423a2f431de31b811"
 # validated reference palette (dataviz references/palette.md), slots 1-5 in fixed order; light -> dark steps
 LIGHT = {"B0": "#2a78d6", "B1": "#eb6834", "B2": "#1baf7a", "PPO": "#eda100", "water_only_twin": "#e87ba4",
-         "DQN": "#008300", "PPO_V2DR": "#6250d6"}
+         "DQN": "#008300", "PPO_V2DR": "#6250d6", "SAC": "#e87ba4", "PPO_smart": "#6250d6"}
 DARK = {"#2a78d6": "#3987e5", "#eb6834": "#d95926", "#1baf7a": "#199e70", "#eda100": "#c98500", "#e87ba4": "#d55181",
         "#008300": "#008300", "#6250d6": "#9085e9"}
 REGIME_COL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 CONTEXT = "#b9b8b0"
 LABEL = {"B0": "B0 always-on", "B1": "B1 rule", "B2": "B2 forecast rule", "PPO": "PPO", "water_only_twin": "Water-only twin",
-         "DQN": "DQN", "PPO_V2DR": "PPO forecast obs + DR"}
+         "DQN": "DQN", "PPO_V2DR": "PPO forecast obs + DR", "SAC": "SAC", "PPO_smart": "PPO + smart forecast",
+         "PPO_frozen": "PPO frozen (M6)"}
 PCM = [0, 1, 2]
 
 
@@ -302,6 +303,72 @@ def chart_frontier():
     return fig, table(pd.DataFrame(rows), "regime 1 frontier points, one per seed")
 
 
+def chart_agents():
+    """Regime 1: PPO / DQN / SAC under perfect, smart-persistence and no forecast (m13 study), one dot per seed."""
+    p = R / "m13_forecast_algo_r1.csv"
+    if not p.exists():
+        return None, ""
+    d = pd.read_csv(p)
+    d = d[~((d.source == "fcalgo") & (d.forecast == "none"))]          # the single leftover seed; V1 runs stand for 'none'
+    fc_lab = {"smart": "smart forecast", "perfect": "perfect forecast", "none (V1)": "no forecast",
+              "trained perfect, scored smart": "trained perfect, scored smart", "-": ""}
+    sym = {"smart": "diamond", "perfect": "square", "none (V1)": "circle-open",
+           "trained perfect, scored smart": "square-open", "-": "circle"}
+    order = [("B0", "-"), ("B1", "-"), ("PPO", "none (V1)"), ("PPO", "perfect"), ("PPO", "trained perfect, scored smart"),
+             ("PPO", "smart"), ("DQN", "none (V1)"), ("DQN", "smart"), ("SAC", "smart")]
+    fig = go.Figure()
+    rows = []
+    for algo, fc in order:
+        s = d[(d.algo == algo) & (d.forecast == fc)]
+        if s.empty:
+            continue
+        cat = f"{algo}<br>{fc_lab[fc]}" if fc != "-" else LABEL[algo]
+        fig.add_trace(go.Scatter(
+            x=[cat] * len(s), y=s.E_del_window_kWh, mode="markers", name=f"{LABEL[algo]} {fc_lab[fc]}".strip(),
+            legendgroup=algo, showlegend=False,
+            marker=dict(size=12, color=LIGHT[algo], symbol=sym[fc], line=dict(width=2, color="#fcfcfb")),
+            customdata=s[["seed", "overheat_h", "bypass_switches"]],
+            hovertemplate=f"{html.escape(LABEL[algo])} {html.escape(fc_lab[fc])}<br>seed %{{customdata[0]}}"
+                          "<br>window %{y:.1f} kWh/yr<br>overheat %{customdata[1]:.1f} h/yr"
+                          "<br>switches %{customdata[2]:.0f}/yr<extra></extra>"))
+        rows.append({"agent": LABEL[algo], "forecast": fc_lab[fc] or "-", "n_seeds": len(s),
+                     "window_kWh_mean": s.E_del_window_kWh.mean(), "window_kWh_sd": s.E_del_window_kWh.std(),
+                     "overheat_h_mean": s.overheat_h.mean(), "switches_mean": s.bypass_switches.mean(),
+                     "hours_over_limit_max": s.hours_over_limit.max()})
+    best = d[(d.algo == "PPO") & (d.forecast == "smart")].E_del_window_kWh.mean()
+    fig.add_hline(y=best, line=dict(width=1, dash="dot", color=LIGHT["PPO"]),
+                  annotation_text=f"PPO + smart forecast, mean {best:.1f}", annotation_position="bottom left")
+    fig.update_yaxes(title_text="Validation window delivery (kWh/yr)")
+    base_layout(fig, 450)
+    return fig, table(pd.DataFrame(rows), "regime 1 agent and forecast comparison (validation 2021-23)")
+
+
+def chart_recommended():
+    """Recommended agent (PPO + smart forecast) vs B0 and the frozen PPO on the test years, EXPLORATORY."""
+    p = R / "m13b_postlock_test_summary_EXPLORATORY.csv"
+    if not p.exists():
+        return None, ""
+    s = pd.read_csv(p)
+    s = s[s.controller.isin(["B0", "PPO_frozen", "PPO_smart"])]
+    fig = go.Figure()
+    for g, col in (("B0", LIGHT["B0"]), ("PPO_frozen", LIGHT["PPO"]), ("PPO_smart", LIGHT["PPO_smart"])):
+        a = s[s.controller == g]
+        fig.add_trace(go.Bar(x=[f"Regime {k}" for k in a.regime], y=a.E_del_window_kWh_mean, name=LABEL[g],
+                             marker_color=col, marker_line=dict(width=2, color="#fcfcfb"),
+                             error_y=dict(type="data", array=a.E_del_window_kWh_sd.fillna(0), visible=g != "B0",
+                                          thickness=1.5),
+                             customdata=a[["delivery_pct_of_B0", "overheat_h_mean", "bypass_switches_mean"]],
+                             hovertemplate=f"{LABEL[g]}<br>%{{x}}: %{{y:.1f}} kWh/yr (%{{customdata[0]:.1f}} % of B0)"
+                                           "<br>overheat %{customdata[1]:.1f} h/yr<br>switches %{customdata[2]:.0f}/yr"
+                                           "<extra></extra>"))
+    fig.update_layout(barmode="group", bargap=0.25, bargroupgap=0.06)
+    fig.update_yaxes(title_text="Window delivery to 50 C (kWh/yr)", rangemode="tozero")
+    base_layout(fig, 420)
+    t = s[["regime", "controller", "source", "E_del_window_kWh_mean", "E_del_window_kWh_sd", "delivery_pct_of_B0",
+           "overheat_h_mean", "bypass_switches_mean", "hours_over_limit_max"]]
+    return fig, table(t.assign(controller=t.controller.map(LABEL)), "test years 2006-10, mean of 5 years (exploratory)")
+
+
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>O3 Uttarakhand results</title>
 <style>
@@ -370,7 +437,16 @@ def main():
          "Sweeping the overheat weight w2 changes little: the safety-guard weight w3 (dominance rule) already removes "
          "shield time. Lowering w3 (diagnostic, never selectable) moves PPO along the trade-off toward B0.",
          chart_frontier),
-        ("8. Regimes and simulated points",
+        ("8. Which agent, with a forecast a real controller can make? (regime 1, validation 2021-23)",
+         "PPO, DQN and SAC trained with the same reward and budget, 3 seeds each; one dot per seed. Diamond = smart-"
+         "persistence forecast (clear-sky index), square = perfect forecast, open circle = no forecast. PPO with the "
+         "smart forecast is highest and most consistent; SAC bypasses far more and loses heat. The forecast is worth "
+         "only a few kWh/yr here.", chart_agents),
+        ("9. Recommended agent on the test years, 2006-2010 (EXPLORATORY)",
+         "PPO with the smart forecast against B0 and the frozen PPO from the locked test. Exploratory: the agent was "
+         "chosen after the one-shot test had been run, so section 2 stays the official result. Error bars = seed SD. "
+         "No run spent an hour over a hard limit.", chart_recommended),
+        ("10. Regimes and simulated points",
          "O1's 45 Uttarakhand grid points by regime; stars = the medoids O2 and O3 simulate.", chart_map),
     ]
     body = []

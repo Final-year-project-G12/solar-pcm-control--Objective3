@@ -1,0 +1,8 @@
+[  87600] val E_win 519.3 overheat 0 bypass 2194 sw 604  (88s)
+[ 175200] val E_win 532.1 overheat 0 bypass 1035 sw 637  (178s)
+[ 262800] val E_win 536.8 overheat 0 bypass 933 sw 505  (267s)
+[ 350400] val E_win 537.2 overheat 0 bypass 1403 sw 577  (357s)
+[ 438000] val E_win 538.2 overheat 0 bypass 1734 sw 630  (447s)
+[ 525600] val E_win 542.0 overheat 0 bypass 1335 sw 486  (536s)
+[ 600000] val E_win 542.5 overheat 0 bypass 815 sw 378  (614s)
+best ckpt_525600.zip {'E_del_window_kWh': 541.99, 'overheat_h': 0.1, 'bypass_switches': 485.67}

@@ -99,6 +99,8 @@ def run_robustness_suite(
     regime_id: int,
     years: list[int],
     scenarios: list[dict] | None = None,
+    obs_version: str = "V1",
+    forecast_mode: str = "perfect",
 ) -> list[dict]:
     """Run the policy across all perturbation scenarios.
 
@@ -117,7 +119,8 @@ def run_robustness_suite(
 
     results = []
     for scenario in scenarios:
-        inner = PCMEnv(CONTRACT_PATH, regime_id=regime_id)
+        inner = PCMEnv(CONTRACT_PATH, regime_id=regime_id,
+                        obs_version=obs_version, forecast_mode=forecast_mode)
         env = NoisyPCMEnv(
             inner,
             ghi_noise_pct = scenario.get("ghi_noise_pct", 0.0),

@@ -1,14 +1,16 @@
 {
   "spec_version": "obj4_handoff_v1",
-  "generated_utc": "2026-11-09T19:43:13.366010+00:00",
+  "generated_utc": "2026-11-14T07:14:07.654569+00:00",
   "state": "tamilnadu",
   "regime_id": 0,
+  "tag": "smartfc",
   "source_contract": "obj3_environment_contract_tamilnadu_v3.json",
   "status": "SPECIFICATION ONLY \u2014 NOT AUTHORISED FOR FIELD DEPLOYMENT",
   "exit_gate": "No embedded deployment until hardware-in-the-loop tests pass (deployment_test_plan step 5).",
   "sampling": {
     "control_cycle_s": 10,
-    "observation_assembly": "assemble 11-dim V1 vector each cycle; normalise with TRAINING-set statistics only (never live stats)"
+    "policy_decision_cycle_s": 3600,
+    "observation_assembly": "assemble the 15-dim V3 vector once per policy decision (hourly); normalise with TRAINING-set constants only, never live statistics. The interlock (control_cycle_s=10) runs independently and far more often than the policy decides."
   },
   "sensor_list": [
     {
@@ -142,6 +144,54 @@
       ],
       "sample_rate_s": 10,
       "notes": "safety margin, computed from T_water_top"
+    },
+    {
+      "obs_index": 11,
+      "signal": "GHI_forecast_1h",
+      "unit": "W/m2",
+      "source": "FORECAST, not a sensor -- Kc(t)*GHI_clearsky(t+1h), Kc(t) = GHI(t)/GHI_clearsky(t) clipped to [0,1.2], held at its last daytime value overnight (pcm_env.py::forecast_ghi, forecast_mode='smart')",
+      "range": [
+        0,
+        1400
+      ],
+      "sample_rate_s": 3600,
+      "notes": "needs GHI_clearsky(t), GHI_clearsky(t+1h) -- an analytic clear-sky model (e.g. pvlib from site lat/lon), NOT a sensor reading. This is the field the deployed controller actually uses -- never substitute a perfect/NWP forecast without retraining."
+    },
+    {
+      "obs_index": 12,
+      "signal": "GHI_forecast_2h",
+      "unit": "W/m2",
+      "source": "FORECAST -- same Kc(t), GHI_clearsky(t+2h)",
+      "range": [
+        0,
+        1400
+      ],
+      "sample_rate_s": 3600,
+      "notes": "see obs_index 11"
+    },
+    {
+      "obs_index": 13,
+      "signal": "GHI_forecast_3h",
+      "unit": "W/m2",
+      "source": "FORECAST -- same Kc(t), GHI_clearsky(t+3h)",
+      "range": [
+        0,
+        1400
+      ],
+      "sample_rate_s": 3600,
+      "notes": "see obs_index 11"
+    },
+    {
+      "obs_index": 14,
+      "signal": "demand_forecast_next_h",
+      "unit": "L/h",
+      "source": "known schedule (O2's fixed 24h draw-off profile), not a sensor",
+      "range": [
+        0,
+        100
+      ],
+      "sample_rate_s": 3600,
+      "notes": "perfect by design -- the installation's own draw schedule is knowable in advance; not a forecasting problem"
     }
   ],
   "actuator_interface": [
@@ -187,11 +237,12 @@
     "control_cycle_s": 10
   },
   "policy_export": {
-    "algo": "ppo",
+    "algo": "sac",
     "regime_id": 0,
-    "source_checkpoint": "results\\ppo\\r0\\best_model\\best_model.zip",
-    "exported_to": "results\\obj4_handoff\\policy_ppo_r0.zip",
-    "sha256": "22aadfa524eb4e7703c6c3db235faa896060d619ed6a18bc1d0f605e044e0134",
+    "tag": "smartfc",
+    "source_checkpoint": "results\\sac\\r0_smartfc\\best_model\\best_model.zip",
+    "exported_to": "results\\obj4_handoff\\policy_sac_r0_smartfc.zip",
+    "sha256": "fb13d8415f3338f5f1d6caafbf0e79d4c64bb365c8f4daa59d0d854be63aa1b2",
     "onnx_export": "supported \u2014 run torch.onnx.export on the policy network for MCU/edge inference (not auto-run here)"
   },
   "deployment_test_plan": [

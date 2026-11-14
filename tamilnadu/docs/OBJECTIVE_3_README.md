@@ -92,6 +92,99 @@ events. R2 is the default; pass `reward_weights={"shield": 0.0}` to recover R1.
 The R1 results are archived under `results/archive_R1_reward/` because the
 collapse is itself a reportable result about reward shaping.
 
+## 5b. Final result — selected policy: SAC; DQN is the regime-0-only alternative
+
+*(Corrected 2026-11-13 after the weather-year bug fix; see
+`CORRECTIONS_OBJECTIVE3.md`. Earlier numbers in this section, e.g. 2097.4 kWh /
+23,117 shields, were computed on one repeated weather year and are retired.)*
+
+Held-out test years 2011–2015 (never seen in training, tuning or selection),
+mean per year:
+
+| Regime | Policy | Delivered kWh/yr | Shield/yr | Safety violations |
+|---|---|---|---|---|
+| 0 | B0 always-charge | 2096.9 | 46,969 | 0 |
+| 0 | DQN | 2018.0 (96.2 %) | 17,838 (-62 %) | 0 |
+| 0 | **SAC** | 2044.6 (97.5 %) | 21,406 (-54 %) | 0 |
+| 1 | B0 always-charge | 2094.8 | 24,815 | 0 |
+| 1 | DQN | 2094.7 (~100 %) | 24,298 (-2 %) | 0 |
+| 1 | **SAC** | 2067.5 (98.7 %) | 15,569 (-37 %) | 0 |
+| 2 | B0 always-charge | 2068.8 | 34,796 | 0 |
+| 2 | DQN | 2068.8 (identical to B0) | 34,796 (0 %) | 0 |
+| 2 | **SAC** | 2012.6 (97.3 %) | 23,138 (-33.5 %) | 0 |
+
+**Why SAC is the final pick:** it is the only learned controller that cuts
+shield activations (33-54 %) while keeping >= 97 % of B0 delivery on *all three*
+regimes, with zero safety violations. DQN is slightly better on regime 0
+(-62 % shields) but collapses to B0 on regimes 1-2, so it adds nothing there.
+On validation SAC also has the highest reward in regimes 0 and 1. Honest
+caveats: in regime 2 SAC's reward is ~2.5 % *below* B0 (it trades ~3 % delivery
+for 34 % fewer shields); SAC is ~5x slower at inference and ~34x larger than
+DQN (still negligible against a 1-hour control period); and on regime 1 a dead
+pyranometer collapses SAC's delivery (see METHODOLOGY_AND_FINDINGS.md 5b).
+
+Data note: `results/phase6_final_test_{dqn,sac}.csv` is overwritten by each
+regime run and currently holds regime 2 only; the regime 0/1 locked-test
+numbers above come from the run logs.
+
+## 5c. Deployment metrics (Phase O3-9, regime 0, validation years)
+
+- **Thermal efficiency** (delivered / incident solar on 2.5 m^2): B0 41.6 %,
+  DQN 40.1 %, SAC 40.6 %, B1 39.3 %, B2 38.7 %; demand coverage
+  80.4 / 78.9 / 79.5 / 78.0 / 77.0 %.
+- **Vs B1:** DQN +2.2 % delivery (15 kWh/yr backup avoided), SAC +3.5 %
+  (28 kWh/yr avoided). Vs B0 both deliver ~2-3 % less but cut shields 54-59 %.
+- **Inference cost:** DQN ~1 ms/decision, 40 kB weights; SAC ~5 ms, 1.4 MB.
+- **Sensor faults:** zero hard-safety violations in every scenario (the shield
+  acts on true state). Source: `results/deployment_metrics_r{0,1,2}.json`.
+
+## 5d. Generation-2 research extensions (advisor feedback round, 2026-11-11/12)
+
+Five gaps raised in review, each addressed in the environment
+(`o3/environment/pcm_env.py`): a 15-dim **V2 observation** (+3h GHI forecast,
++1h demand), a configurable **control-step** (`control_step_min`), and
+**training-time domain randomisation** (GHI/ambient/demand sampled per
+episode, applied to the physics). A reduced-budget study (50k steps/SAC run,
+100k/DQN run — a trend ablation, not full convergence) ran all three regimes:
+
+**Pareto sweep** (SAC, regime 0, weights {0,10,20} × seeds {42,0,123} —
+50k-step reduced budget; weights 5/15 and the full 300k-step budget deferred
+for time, noted as future work):
+
+| weight | delivered kWh (mean of 3 seeds) | shields (mean of 3 seeds) |
+|---|---|---|
+| 0 | 2146.1 | 50,296 |
+| 10 | 2098.2 | 26,426 |
+| 20 | 2021.2 | 15,114 |
+
+Clean, monotonic frontier across all three seeds (full 3-seed coverage now
+matches DQN's existing seed-robustness study): higher shield penalty → fewer
+shields, less delivery, consistently. Confirms the Pareto trade-off is real,
+controllable via the reward weight, and robust to seed.
+
+**Sub-hourly control ablation** (weight=10, seed=42) — run twice. First at an
+equal 50k-step budget for both control cadences: 60-min gave 28,588 shields,
+15-min gave 28,762 — flat, confounded by the 15-min run covering only ~1.4
+training-years vs ~5.7 at 60-min for the same step count. **Rerun at a
+calendar-scaled budget** (60-min: 50k steps/5.7yr; 15-min: 160k ticks/~4.6yr,
+closely matched coverage): **60-min → 28,588 shields; 15-min → 11,882
+shields — a 58% reduction, for a 4% delivery cost (2092.6 → 2008.5 kWh).**
+This **confirms the feedback's central claim**: control-step granularity is
+a major lever for cutting guard-band activations, once the training-budget
+confound is removed.
+
+**Regime 1 & 2 coverage** (weight=10, seed=42) — SAC generalises cleanly to
+both: R1 2118.3 kWh/22,180 shields; R2 2054.9 kWh/28,332 shields. DQN R1 is
+also healthy (2129.8 kWh/25,691 shields). **DQN R2 was rerun at the full
+300k-step budget** after the initial 100k-step run produced a degenerate,
+near-always-bypass result (1647.7 kWh, 744 kWh unmet, 2 shields); the
+full-budget rerun gives a sane **2086.9 kWh delivered, 31,619 shields**,
+confirming the earlier anomaly was a training-budget artefact, now resolved.
+
+Plots: `results/plots/R2/gen2_extensions.html` (Pareto frontier, sub-hourly
+comparison, regime comparison). Raw data: `results/phase10_*.csv`,
+`results/phase10_gen2_summary.json`.
+
 ## 6. Phases and how to run them
 
 Run everything from the `objective3/` root. On Windows, prefix long-running
@@ -109,7 +202,9 @@ training with `PYTHONIOENCODING=utf-8`.
 | O3-6 | `scripts/phase6_locked_eval.py --algo <best>` | **locked** test on 2011–2015 (run once) |
 | O3-7 | `scripts/phase7_demo.py --mode stub\|replay\|live` | software-in-the-loop demo |
 | O3-8 | `scripts/phase8_o4_handoff.py --algo <best>` | Objective 4 hardware handoff spec |
-| viz | `scripts/make_plots.py --tag R2` | interactive Plotly dashboard + Folium map |
+| O3-9 | `scripts/phase9_deployment_metrics.py` | efficiency, savings, latency/memory, sensor-fault suite |
+| viz | `scripts/make_plots.py --tag R2 --selected sac` | interactive Plotly dashboard + Folium map |
+| viz | `scripts/make_live_dashboard.py --algo sac [--live]` | animated live/replay controller dashboard |
 
 **Train / validation / test split (year-locked):** train 2016–2020, validate
 2021–2023, final test 2011–2015 (never touched until O3-6).
@@ -120,12 +215,20 @@ training with `PYTHONIOENCODING=utf-8`.
 
 1. **Policy comparison** — delivered energy, shield activations, reward per policy.
 2. **Delivery-vs-shield tradeoff** — the headline plot; up-and-left is better.
-3. **Learning curves** — validation reward vs training steps per algorithm.
-4. **Reward decomposition** — delivery reward vs unmet/shield penalties (R2).
-5. **Per-year delivery** — consistency across validation years.
-6. **Folium regime map** — 133 climate points, 3 regimes, medoid designs.
+3. **Locked test** — the final verified result on 2011–2015.
+4. **Robustness** — delivery across perturbation scenarios.
+5. **Multi-seed** — seed-to-seed spread (the "precision" of each method).
+6. **Reward decomposition** — delivery reward vs unmet/shield penalties (R2).
+7. **Per-year delivery** — consistency across validation years.
+8–11. **Deployment metrics** (`deployment_metrics.html`) — thermal efficiency &
+   demand coverage, energy savings vs baselines, inference latency & memory,
+   sensor-fault robustness.
+- **Folium regime map** — 133 climate points, 3 regimes, medoid designs.
+- **Live controller dashboards** (`results/plots/live_demo/`) — animated
+  hour-by-hour CHARGE/IDLE/BYPASS playback, in historical-replay and LIVE
+  (present-day Open-Meteo weather) modes, for SAC and DQN.
 
-Open `results/plots/R2/dashboard.html` (and the linked map) in a browser.
+Open `results/plots/R2/dashboard.html` (and the linked pages) in a browser.
 
 ## 8. Safety status and scope
 
@@ -152,5 +255,7 @@ objective3/
   contracts/       obj3_environment_contract_tamilnadu_v3.json (frozen)
   results/         model checkpoints, comparison CSVs, plots/, obj4_handoff/
   tests/           pytest suite
-  docs/            this file, objective3_plans/, from_before/
+  docs/            this file, METHODOLOGY_AND_FINDINGS.md, ALGORITHMS.md,
+                   HOW_TO_RUN.md, LITERATURE_REVIEW.md, references.bib,
+                   objective3_plans/ (FINAL_v1 plan)
 ```
