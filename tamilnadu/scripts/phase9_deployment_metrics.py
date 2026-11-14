@@ -130,6 +130,43 @@ def efficiency_and_savings(regime: int) -> dict:
     return out
 
 
+
+def apply_nominal_override(eff: dict, faults: list) -> dict:
+    """For a tagged (non-canonical) model set, replace the DQN/SAC rows of the
+    efficiency table with that model's own nominal 2021 rollout.
+
+    efficiency_and_savings() reads phase4_comparison_r{regime}.csv, which holds
+    the CANONICAL models only; without this a tagged JSON (e.g. *_smartfc)
+    silently reports the canonical models' numbers. The sensor-fault 'nominal'
+    row is the tagged model on the same year (2021) with an uncorrupted
+    observation, so it is the correct source. B0/B1/B2 are unaffected.
+    """
+    solar = eff["annual_solar_on_collector_kwh"]
+    ctr = eff["controllers"]
+    have = {r["algo"] for r in faults if r.get("fault") == "nominal"}
+    for a in ("DQN", "SAC", "PPO"):      # no tagged model -> no honest row
+        if a in ctr and a not in have:
+            del ctr[a]
+    for r in faults:
+        if r.get("fault") != "nominal" or r["algo"] not in ctr:
+            continue
+        d = ctr[r["algo"]]
+        deliv = r["delivered_kWh"]; unmet = r["unmet_kWh"]; sh = r["shields"]
+        d.update({"delivered_kWh": deliv, "unmet_kWh": unmet, "shields": int(sh),
+                  "thermal_efficiency_pct": round(100.0 * deliv / solar, 2),
+                  "demand_coverage_pct": round(100.0 * deliv / (deliv + unmet), 2)})
+        for base in ("B0", "B1"):
+            b = ctr.get(base)
+            if not b:
+                continue
+            d[f"delivery_vs_{base}_pct"] = round(100.0 * deliv / b["delivered_kWh"], 1)
+            d[f"backup_energy_saved_vs_{base}_kWh"] = round(b["unmet_kWh"] - unmet, 1)
+            d[f"shield_reduction_vs_{base}_pct"] = round(
+                100.0 * (b["shields"] - sh) / b["shields"], 1)
+    eff["note"] = ("DQN/SAC rows = this tag's own nominal 2021 rollout; "
+                   "baselines from phase4_comparison")
+    return eff
+
 # ------------------------------------------------- 3: latency and memory ----
 def latency_and_memory(regime: int, n_iter: int = 2000,
                         obs_version: str = "V1", forecast_mode: str = "perfect",
@@ -397,6 +434,8 @@ def main():
             w.writeheader(); w.writerows(faults)
         print(f"[INFO] sensor-fault CSV -> {fp}")
 
+    if args.tag and faults:
+        eff = apply_nominal_override(eff, faults)
     out = {"efficiency_and_savings": eff, "latency_memory": lat,
            "sensor_faults": faults}
     suffix = f"_{args.tag}" if args.tag else ""

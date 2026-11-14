@@ -25,33 +25,21 @@
     "thermal_efficiency_pct": 41.99,
     "demand_coverage_pct": 65.3
    },
-   "DQN": {
-    "delivered_kWh": 2012.1,
-    "unmet_kWh": 920.1,
-    "shields": 20401,
-    "thermal_efficiency_pct": 44.91,
-    "demand_coverage_pct": 68.62,
-    "delivery_vs_B0_pct": 100.0,
-    "backup_energy_saved_vs_B0_kWh": -0.1,
-    "shield_reduction_vs_B0_pct": 2.2,
-    "delivery_vs_B1_pct": 104.9,
-    "backup_energy_saved_vs_B1_kWh": 45.3,
-    "shield_reduction_vs_B1_pct": -101.5
-   },
    "SAC": {
-    "delivered_kWh": 1990.2,
-    "unmet_kWh": 929.9,
-    "shields": 12397,
-    "thermal_efficiency_pct": 44.42,
-    "demand_coverage_pct": 68.16,
-    "delivery_vs_B0_pct": 98.9,
-    "backup_energy_saved_vs_B0_kWh": -9.9,
-    "shield_reduction_vs_B0_pct": 40.6,
-    "delivery_vs_B1_pct": 103.8,
-    "backup_energy_saved_vs_B1_kWh": 35.5,
-    "shield_reduction_vs_B1_pct": -22.5
+    "delivered_kWh": 2008.5,
+    "unmet_kWh": 922.0,
+    "shields": 15195,
+    "thermal_efficiency_pct": 44.83,
+    "demand_coverage_pct": 68.54,
+    "delivery_vs_B0_pct": 99.8,
+    "backup_energy_saved_vs_B0_kWh": -2.0,
+    "shield_reduction_vs_B0_pct": 27.2,
+    "delivery_vs_B1_pct": 104.8,
+    "backup_energy_saved_vs_B1_kWh": 43.4,
+    "shield_reduction_vs_B1_pct": -50.1
    }
-  }
+  },
+  "note": "DQN/SAC rows = this tag's own nominal 2021 rollout; baselines from phase4_comparison"
  },
  "latency_memory": {
   "SAC": {

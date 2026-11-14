@@ -11,3 +11,6 @@ tb_logs/
 *.log
 .DS_Store
 Thumbs.db
+
+# New runs: keep intermediate checkpoints out of git (final/best models are kept)
+results/**/checkpoints/
