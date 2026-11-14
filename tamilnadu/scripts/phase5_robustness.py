@@ -34,12 +34,13 @@ CONTRACT_PATH = REPO_ROOT / "contracts" / "obj3_environment_contract_tamilnadu_v
 RESULTS_DIR   = REPO_ROOT / "results"
 
 
-def load_ppo(regime_id: int):
+def load_ppo(regime_id: int, tag: str | None = None):
     from stable_baselines3 import PPO
-    path = RESULTS_DIR / "ppo" / f"r{regime_id}" / "ppo_final"
+    rdir = f"r{regime_id}_{tag}" if tag else f"r{regime_id}"
+    # prefer the validation-selected best_model; fall back to final
+    path = RESULTS_DIR / "ppo" / rdir / "best_model" / "best_model"
     if not path.with_suffix(".zip").exists():
-        # fall back to best model
-        path = RESULTS_DIR / "ppo" / f"r{regime_id}" / "best_model" / "best_model"
+        path = RESULTS_DIR / "ppo" / rdir / "ppo_final"
     model = PPO.load(str(path))
     def policy_fn(obs):
         import numpy as np
@@ -48,16 +49,34 @@ def load_ppo(regime_id: int):
     return policy_fn
 
 
-def load_dqn(regime_id: int):
+def load_dqn(regime_id: int, tag: str | None = None):
     from stable_baselines3 import DQN
-    path = RESULTS_DIR / "dqn" / f"r{regime_id}" / "dqn_final"
+    rdir = f"r{regime_id}_{tag}" if tag else f"r{regime_id}"
+    # prefer the validation-selected best_model; fall back to final
+    path = RESULTS_DIR / "dqn" / rdir / "best_model" / "best_model"
     if not path.with_suffix(".zip").exists():
-        path = RESULTS_DIR / "dqn" / f"r{regime_id}" / "best_model" / "best_model"
+        path = RESULTS_DIR / "dqn" / rdir / "dqn_final"
     model = DQN.load(str(path))
     def policy_fn(obs):
         import numpy as np
         action, _ = model.predict(obs.astype("float32"), deterministic=True)
         return int(action)
+    return policy_fn
+
+
+def load_sac(regime_id: int, tag: str | None = None):
+    from stable_baselines3 import SAC
+    from o3.environment.gym_wrapper import PCMContinuousGymEnv
+    rdir = f"r{regime_id}_{tag}" if tag else f"r{regime_id}"
+    # prefer the validation-selected best_model; fall back to final
+    path = RESULTS_DIR / "sac" / rdir / "best_model" / "best_model"
+    if not path.with_suffix(".zip").exists():
+        path = RESULTS_DIR / "sac" / rdir / "sac_final"
+    model = SAC.load(str(path))
+    def policy_fn(obs):
+        # SAC acts in a continuous [-1,1] space; bin to {CHARGE, IDLE, BYPASS}
+        action, _ = model.predict(obs.astype("float32"), deterministic=True)
+        return int(PCMContinuousGymEnv._to_discrete(float(action[0])))
     return policy_fn
 
 
@@ -71,32 +90,44 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--regime", type=int, default=0)
     parser.add_argument("--algo",   type=str, default="ppo",
-                        choices=["ppo", "dqn", "b1"])
+                        choices=["ppo", "dqn", "sac", "b1"])
     parser.add_argument("--years",  type=int, nargs="+", default=VAL_YEARS[:2])
+    parser.add_argument("--obs-version", default="V1", choices=["V1", "V2", "V3"])
+    parser.add_argument("--forecast-mode", default="perfect",
+                        choices=["perfect", "smart", "none"])
+    parser.add_argument("--tag", default=None,
+                        help="evaluate results/<algo>/r<regime>_<tag>/ instead of "
+                             "the canonical r<regime>/ dir")
     args = parser.parse_args()
 
     print("=" * 60)
     print("Phase O3-5 — Robustness & Ablation")
-    print(f"Algo: {args.algo}  |  Regime: {args.regime}  |  Years: {args.years}")
+    print(f"Algo: {args.algo}  |  Regime: {args.regime}  |  Years: {args.years}  |  "
+          f"obs={args.obs_version}  forecast={args.forecast_mode}  tag={args.tag}")
     print("=" * 60)
 
     if args.algo == "ppo":
-        policy_fn = load_ppo(args.regime)
+        policy_fn = load_ppo(args.regime, tag=args.tag)
     elif args.algo == "dqn":
-        policy_fn = load_dqn(args.regime)
+        policy_fn = load_dqn(args.regime, tag=args.tag)
+    elif args.algo == "sac":
+        policy_fn = load_sac(args.regime, tag=args.tag)
     else:
         policy_fn = load_b1()
 
     results = run_robustness_suite(
-        policy_fn   = policy_fn,
-        policy_name = args.algo.upper(),
-        regime_id   = args.regime,
-        years       = args.years,
+        policy_fn     = policy_fn,
+        policy_name   = args.algo.upper(),
+        regime_id     = args.regime,
+        years         = args.years,
+        obs_version   = args.obs_version,
+        forecast_mode = args.forecast_mode,
     )
 
     print_robustness_summary(results)
 
-    out_path = RESULTS_DIR / f"phase5_robustness_r{args.regime}_{args.algo}.csv"
+    suffix = f"_{args.tag}" if args.tag else ""
+    out_path = RESULTS_DIR / f"phase5_robustness_r{args.regime}_{args.algo}{suffix}.csv"
     save_robustness_results(results, out_path)
 
     # acceptance gate: zero safety violations on nominal scenario

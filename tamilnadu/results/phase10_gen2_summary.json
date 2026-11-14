@@ -1,0 +1,148 @@
+{
+ "pareto_sweep": [
+  {
+   "delivered_kWh": 2146.104083459332,
+   "shields": 50293.0,
+   "reward": 1349190.4167274726,
+   "weight": 0.0,
+   "seed": 0,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2146.161555356176,
+   "shields": 50298.0,
+   "reward": 1349455.5059839026,
+   "weight": 0.0,
+   "seed": 42,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2146.161555356176,
+   "shields": 50298.0,
+   "reward": 1349387.9059839032,
+   "weight": 0.0,
+   "seed": 123,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2100.057189029139,
+   "shields": 26911.0,
+   "reward": 1000483.3554756952,
+   "weight": 10.0,
+   "seed": 0,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2092.6269505522278,
+   "shields": 28588.0,
+   "reward": 970336.5513077691,
+   "weight": 10.0,
+   "seed": 42,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2101.8110407660206,
+   "shields": 23779.0,
+   "reward": 1036388.3418290988,
+   "weight": 10.0,
+   "seed": 123,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2024.2958890780608,
+   "shields": 14603.0,
+   "reward": 842718.059481855,
+   "weight": 20.0,
+   "seed": 0,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 2051.5424974994903,
+   "shields": 18524.0,
+   "reward": 813898.7829313256,
+   "weight": 20.0,
+   "seed": 42,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  },
+  {
+   "delivered_kWh": 1987.71661651488,
+   "shields": 12216.0,
+   "reward": 818974.8149553761,
+   "weight": 20.0,
+   "seed": 123,
+   "regime": 0,
+   "algo": "sac",
+   "ctrl": 60
+  }
+ ],
+ "subhourly_ablation": {
+  "ctrl60": {
+   "delivered_kWh": 2092.6269505522278,
+   "shields": 28588.0,
+   "reward": 970336.5513077691,
+   "weight": 10.0,
+   "seed": "42",
+   "regime": "0",
+   "algo": "sac",
+   "ctrl": "60"
+  },
+  "ctrl15": {
+   "delivered_kWh": 2008.5236251406725,
+   "shields": 11882.0,
+   "reward": 990256.3921029788,
+   "weight": 10.0,
+   "seed": "42",
+   "regime": "0",
+   "algo": "sac",
+   "ctrl": "15"
+  }
+ },
+ "regime_comparison": [
+  [
+   "R0 SAC",
+   2092.6269505522278,
+   28588.0
+  ],
+  [
+   "R0 DQN",
+   2144.0656434093157,
+   36955.0
+  ],
+  [
+   "R1 SAC",
+   2118.2964274938035,
+   22180.0
+  ],
+  [
+   "R1 DQN",
+   2129.7809577622943,
+   25691.0
+  ],
+  [
+   "R2 SAC",
+   2054.892388583574,
+   28332.0
+  ],
+  [
+   "R2 DQN",
+   2086.8812992690687,
+   31619.0
+  ]
+ ]
+}

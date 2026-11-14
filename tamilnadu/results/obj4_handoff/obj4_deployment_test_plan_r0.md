@@ -1,6 +1,6 @@
 # Objective 4 Deployment Test Plan — tamilnadu regime 0
 
-**Policy:** ppo  
+**Policy:** dqn  
 **Status:** SPECIFICATION ONLY — NOT AUTHORISED FOR FIELD DEPLOYMENT  
 **Exit gate:** No embedded deployment until hardware-in-the-loop tests pass (deployment_test_plan step 5).
 

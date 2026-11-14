@@ -1,0 +1,191 @@
+{
+ "efficiency_and_savings": {
+  "annual_ghi_kwh_m2": 1928.1,
+  "collector_area_m2": 2.5,
+  "annual_solar_on_collector_kwh": 4820.2,
+  "controllers": {
+   "B0": {
+    "delivered_kWh": 2002.6,
+    "unmet_kWh": 488.9,
+    "shields": 39705,
+    "thermal_efficiency_pct": 41.55,
+    "demand_coverage_pct": 80.38
+   },
+   "B1": {
+    "delivered_kWh": 1891.8,
+    "unmet_kWh": 533.0,
+    "shields": 17129,
+    "thermal_efficiency_pct": 39.25,
+    "demand_coverage_pct": 78.02
+   },
+   "B2": {
+    "delivered_kWh": 1864.2,
+    "unmet_kWh": 556.7,
+    "shields": 16824,
+    "thermal_efficiency_pct": 38.67,
+    "demand_coverage_pct": 77.0
+   },
+   "DQN": {
+    "delivered_kWh": 1933.7,
+    "unmet_kWh": 517.9,
+    "shields": 16196,
+    "thermal_efficiency_pct": 40.12,
+    "demand_coverage_pct": 78.88,
+    "delivery_vs_B0_pct": 96.6,
+    "backup_energy_saved_vs_B0_kWh": -29.0,
+    "shield_reduction_vs_B0_pct": 59.2,
+    "delivery_vs_B1_pct": 102.2,
+    "backup_energy_saved_vs_B1_kWh": 15.1,
+    "shield_reduction_vs_B1_pct": 5.4
+   },
+   "SAC": {
+    "delivered_kWh": 1958.5,
+    "unmet_kWh": 505.0,
+    "shields": 18227,
+    "thermal_efficiency_pct": 40.63,
+    "demand_coverage_pct": 79.5,
+    "delivery_vs_B0_pct": 97.8,
+    "backup_energy_saved_vs_B0_kWh": -16.1,
+    "shield_reduction_vs_B0_pct": 54.1,
+    "delivery_vs_B1_pct": 103.5,
+    "backup_energy_saved_vs_B1_kWh": 28.0,
+    "shield_reduction_vs_B1_pct": -6.4
+   }
+  }
+ },
+ "latency_memory": {
+  "DQN": {
+   "latency_mean_us": 312.6,
+   "latency_p50_us": 350.9,
+   "latency_p95_us": 428.5,
+   "latency_max_us": 692.3,
+   "n_params": 10758,
+   "weights_fp32_kB": 42.0,
+   "model_zip_kB": 106.6
+  },
+  "SAC": {
+   "latency_mean_us": 1190.3,
+   "latency_p50_us": 1113.4,
+   "latency_p95_us": 1812.4,
+   "latency_max_us": 4593.5,
+   "n_params": 352006,
+   "weights_fp32_kB": 1375.0,
+   "model_zip_kB": 3069.9
+  },
+  "note": "Measured single-threaded on the development x86 CPU. Control period is 1 hour, so even a 100x slower embedded target leaves >6 orders of magnitude of headroom. Weights are MLP fp32; see results/obj4_handoff for the target interface spec."
+ },
+ "sensor_faults": [
+  {
+   "algo": "DQN",
+   "fault": "nominal",
+   "delivered_kWh": 1980.9,
+   "unmet_kWh": 498.0,
+   "shields": 30248,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "ghi_dropout",
+   "delivered_kWh": 2002.4,
+   "unmet_kWh": 489.1,
+   "shields": 39705,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "ghi_stuck",
+   "delivered_kWh": 2002.4,
+   "unmet_kWh": 489.1,
+   "shields": 39705,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "tw_bias_+2C",
+   "delivered_kWh": 1985.8,
+   "unmet_kWh": 495.7,
+   "shields": 31037,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "tw_noise",
+   "delivered_kWh": 1983.1,
+   "unmet_kWh": 496.9,
+   "shields": 30471,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "tpcm_dropout",
+   "delivered_kWh": 1942.9,
+   "unmet_kWh": 514.4,
+   "shields": 20864,
+   "safety_violations": 0
+  },
+  {
+   "algo": "DQN",
+   "fault": "combined_fault",
+   "delivered_kWh": 1990.7,
+   "unmet_kWh": 493.1,
+   "shields": 31871,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "nominal",
+   "delivered_kWh": 1971.4,
+   "unmet_kWh": 499.9,
+   "shields": 18604,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "ghi_dropout",
+   "delivered_kWh": 1696.1,
+   "unmet_kWh": 670.9,
+   "shields": 5621,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "ghi_stuck",
+   "delivered_kWh": 1696.1,
+   "unmet_kWh": 670.9,
+   "shields": 5621,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tw_bias_+2C",
+   "delivered_kWh": 1972.2,
+   "unmet_kWh": 499.5,
+   "shields": 18796,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tw_noise",
+   "delivered_kWh": 1971.5,
+   "unmet_kWh": 499.8,
+   "shields": 18606,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tpcm_dropout",
+   "delivered_kWh": 1971.5,
+   "unmet_kWh": 499.8,
+   "shields": 17895,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "combined_fault",
+   "delivered_kWh": 1971.3,
+   "unmet_kWh": 500.0,
+   "shields": 18708,
+   "safety_violations": 0
+  }
+ ]
+}

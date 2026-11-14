@@ -105,12 +105,36 @@ test plan to `results/obj4_handoff/`.
 ## 9. Interactive visualisations
 
 ```bash
-PYTHONIOENCODING=utf-8 python scripts/make_plots.py --tag R2 --regime 0
+PYTHONIOENCODING=utf-8 python scripts/make_plots.py --tag R2 --regime 0 --selected sac
 ```
-Writes `results/plots/R2/dashboard.html` (5 Plotly charts) and
-`tamilnadu_regimes_map.html` (Folium). Open the dashboard in a browser; it links
-the map. Use `--csv <path> --tag <name>` to plot an archived comparison (e.g. the
-R1 collapse under `results/archive_R1_reward/`).
+Writes `results/plots/R2/dashboard.html` (7 Plotly charts) and
+`tamilnadu_regimes_map.html` (Folium). `--selected` picks whose locked-test /
+robustness CSVs plots 3–4 show. Use `--csv <path> --tag <name>` to plot an
+archived comparison (e.g. the R1 collapse under `results/archive_R1_reward/`).
+
+## 10. Deployment metrics (Phase O3-9)
+
+```bash
+PYTHONIOENCODING=utf-8 python scripts/phase9_deployment_metrics.py --regime 0
+```
+Computes thermal efficiency, energy savings vs B0/B1, inference latency and
+memory footprint, and the sensor-fault robustness suite (observation corrupted,
+physics untouched). Writes `results/deployment_metrics_r0.json`,
+`results/phase9_sensor_faults_r0.csv`, and plots 8–11 to
+`results/plots/R2/deployment_metrics.html`. `--skip-faults` runs only the fast
+metrics.
+
+## 11. Live controller dashboard (animated)
+
+```bash
+# historical replay (reproducible)
+PYTHONIOENCODING=utf-8 python scripts/make_live_dashboard.py --algo sac --year 2021 --start-day 160 --days 10
+# LIVE present-day weather from Open-Meteo (needs network; software-in-the-loop)
+PYTHONIOENCODING=utf-8 python scripts/make_live_dashboard.py --algo sac --live
+```
+Writes a self-contained HTML in `results/plots/live_demo/` — open it and press
+Play to watch the hourly CHARGE / IDLE / BYPASS decisions, shield overrides,
+temperatures against the guard bands, and KPI tiles.
 
 ---
 

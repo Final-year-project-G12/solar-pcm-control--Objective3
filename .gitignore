@@ -13,3 +13,10 @@ CLAUDE.local.md
 # Large files (GitHub rejects >100MB; keep anything >50MB out of git)
 # Track large model/data artifacts with Git LFS or store them externally.
 *.bin
+
+# Training checkpoints / replay buffers (no single file is >50MB, but they add
+# up to ~20GB; final + best models are kept, intermediate checkpoints are not)
+**/checkpoints/
+*_steps.zip
+*replay_buffer*.pkl
+# Anything else over 50MB must be added here by path before committing

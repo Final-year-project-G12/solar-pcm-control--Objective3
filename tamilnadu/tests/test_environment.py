@@ -147,3 +147,113 @@ def test_step_vs_runcase_energy_within_5pct():
         f"Step env ({o3_kWh:.1f} kWh) differs from run_case ({o2_kWh:.1f} kWh) "
         f"by {pct_diff:.1f}% — exceeds 5% gate."
     )
+
+
+# ---------------------------------------------------------------------------
+# forecast_ghi() / forecast_mode tests — required before any forecast_mode
+# training run (smart-persistence forecast replacing the perfect look-ahead)
+# ---------------------------------------------------------------------------
+
+def test_forecast_default_equivalence():
+    """forecast_mode='perfect' must be bit-identical to the true stored
+    value at every step — this guards that the step cannot silently change
+    any pre-existing V2 result."""
+    from o3.environment.pcm_env import PCMEnv
+    env = PCMEnv(CONTRACT_PATH, regime_id=0, year=2018, obs_version="V2",
+                 forecast_mode="perfect")
+    env.reset(year=2018)
+    for _ in range(200):
+        for k in (1, 2, 3):
+            i = env._state["tick_idx"] // env._ticks_per_hour
+            j = i + k
+            if j < len(env._weather):
+                assert env.forecast_ghi(k) == float(env._weather.iloc[j]["GHI_Wm2"])
+        _, _, term, trunc, _ = env.step(0)
+        if term or trunc:
+            break
+
+
+def test_forecast_causality_perfect():
+    """forecast_ghi(1) must track GHI_Wm2[t+1] exactly and must NOT react to
+    a perturbation of t+2's value."""
+    from o3.environment.pcm_env import PCMEnv
+    env = PCMEnv(CONTRACT_PATH, regime_id=0, year=2018, obs_version="V2",
+                 forecast_mode="perfect")
+    env.reset(year=2018)
+    i = env._state["tick_idx"] // env._ticks_per_hour
+
+    orig1 = env._weather.loc[i + 1, "GHI_Wm2"]
+    before = env.forecast_ghi(1)
+    env._weather.loc[i + 1, "GHI_Wm2"] = orig1 + 500
+    assert env.forecast_ghi(1) == before + 500
+    env._weather.loc[i + 1, "GHI_Wm2"] = orig1
+
+    before = env.forecast_ghi(1)
+    orig2 = env._weather.loc[i + 2, "GHI_Wm2"]
+    env._weather.loc[i + 2, "GHI_Wm2"] = orig2 + 500
+    assert env.forecast_ghi(1) == before
+    env._weather.loc[i + 2, "GHI_Wm2"] = orig2
+
+
+def test_forecast_causality_smart():
+    """smart-persistence forecast_ghi(1) must NOT depend on the true future
+    GHI_Wm2 at t+1 (only on the clear-sky envelope there, plus today's Kc) —
+    this is the test that the controller never gets a peek at the future."""
+    from o3.environment.pcm_env import PCMEnv
+    env = PCMEnv(CONTRACT_PATH, regime_id=0, year=2018, obs_version="V2",
+                 forecast_mode="smart")
+    env.reset(year=2018)
+    for _ in range(11):   # advance to a daytime tick
+        env.step(0)
+    i = env._state["tick_idx"] // env._ticks_per_hour
+    assert env._weather.iloc[i]["GHI_clearsky_Wm2"] > 20.0
+
+    before = env.forecast_ghi(1)
+    orig1 = env._weather.loc[i + 1, "GHI_Wm2"]
+    env._weather.loc[i + 1, "GHI_Wm2"] = orig1 + 99999
+    assert env.forecast_ghi(1) == before, \
+        "smart forecast must not read the true future GHI_Wm2"
+    env._weather.loc[i + 1, "GHI_Wm2"] = orig1
+
+    orig0 = env._weather.loc[i, "GHI_Wm2"]
+    env._weather.loc[i, "GHI_Wm2"] = orig0 * 0.5
+    assert env.forecast_ghi(1) != before, \
+        "smart forecast must respond to today's Kc"
+    env._weather.loc[i, "GHI_Wm2"] = orig0
+
+
+def test_forecast_reproducibility():
+    """Two fresh envs, same year, smart mode -> identical forecast/obs
+    series throughout the episode (no hidden RNG in the smart formula)."""
+    from o3.environment.pcm_env import PCMEnv
+    env_a = PCMEnv(CONTRACT_PATH, regime_id=1, year=2019, obs_version="V2",
+                    forecast_mode="smart")
+    env_b = PCMEnv(CONTRACT_PATH, regime_id=1, year=2019, obs_version="V2",
+                    forecast_mode="smart")
+    obs_a, _ = env_a.reset(year=2019)
+    obs_b, _ = env_b.reset(year=2019)
+    assert np.allclose(obs_a, obs_b)
+    for _ in range(100):
+        obs_a, *_ = env_a.step(0)
+        obs_b, *_ = env_b.step(0)
+        assert np.allclose(obs_a, obs_b)
+
+
+def test_forecast_boundedness():
+    """forecast_ghi(k) must be finite and non-negative for every mode, at
+    night, at sunrise, and through the last 3 hours of the year (where the
+    stored look-ahead runs off the end of the file)."""
+    from o3.environment.pcm_env import PCMEnv
+    for mode in ("perfect", "smart", "none"):
+        env = PCMEnv(CONTRACT_PATH, regime_id=2, year=2021, obs_version="V2",
+                     forecast_mode=mode)
+        env.reset(year=2021)
+        done = False
+        n = 0
+        while not done and n < 9000:
+            for k in (1, 2, 3):
+                v = env.forecast_ghi(k)
+                assert np.isfinite(v) and v >= 0.0
+            _, _, term, trunc, _ = env.step(0)
+            done = term or trunc
+            n += 1

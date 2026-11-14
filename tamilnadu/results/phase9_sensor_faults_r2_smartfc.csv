@@ -1,0 +1,8 @@
+algo,fault,delivered_kWh,unmet_kWh,shields,safety_violations
+SAC,nominal,1971.3,549.1,19106,0
+SAC,ghi_dropout,1923.2,569.2,14288,0
+SAC,ghi_stuck,1923.2,569.2,14288,0
+SAC,tw_bias_+2C,1970.8,549.3,19025,0
+SAC,tw_noise,1971.3,549.1,19149,0
+SAC,tpcm_dropout,1925.4,567.0,13599,0
+SAC,combined_fault,1970.5,549.4,19068,0

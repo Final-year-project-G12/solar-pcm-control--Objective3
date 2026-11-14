@@ -1,6 +1,6 @@
 {
   "spec_version": "obj4_handoff_v1",
-  "generated_utc": "2026-11-09T19:43:13.366010+00:00",
+  "generated_utc": "2026-11-10T19:36:53.065520+00:00",
   "state": "tamilnadu",
   "regime_id": 0,
   "source_contract": "obj3_environment_contract_tamilnadu_v3.json",
@@ -187,11 +187,11 @@
     "control_cycle_s": 10
   },
   "policy_export": {
-    "algo": "ppo",
+    "algo": "dqn",
     "regime_id": 0,
-    "source_checkpoint": "results\\ppo\\r0\\best_model\\best_model.zip",
-    "exported_to": "results\\obj4_handoff\\policy_ppo_r0.zip",
-    "sha256": "22aadfa524eb4e7703c6c3db235faa896060d619ed6a18bc1d0f605e044e0134",
+    "source_checkpoint": "results\\dqn\\r0\\best_model\\best_model.zip",
+    "exported_to": "results\\obj4_handoff\\policy_dqn_r0.zip",
+    "sha256": "b5037a681662f04aa0ae7eb16102a88b58385ad2a7b22b5ac72edde31429c503",
     "onnx_export": "supported \u2014 run torch.onnx.export on the policy network for MCU/edge inference (not auto-run here)"
   },
   "deployment_test_plan": [

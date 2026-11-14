@@ -1,0 +1,23 @@
+{
+  "sac": {
+    "delivered_kWh_mean": 2088.9727831021037,
+    "delivered_kWh_std": 37.52768866627019,
+    "unmet_kWh_mean": 865.8924037659757,
+    "shield_mean": 18309.6,
+    "safety_violations": 0
+  },
+  "B1_reactive_rule": {
+    "delivered_kWh_mean": 1982.4771836450122,
+    "delivered_kWh_std": 33.06169181119637,
+    "unmet_kWh_mean": 916.3912235504399,
+    "shield_mean": 11997.4,
+    "safety_violations": 0
+  },
+  "B0_fixed_charge": {
+    "delivered_kWh_mean": 2094.757421060751,
+    "delivered_kWh_std": 37.81302741220573,
+    "unmet_kWh_mean": 863.0466931431017,
+    "shield_mean": 24815.333333333332,
+    "safety_violations": 0
+  }
+}

@@ -1,0 +1,4 @@
+policy,regime_id,year,n_steps,total_reward,total_delivered_kWh,total_unmet_kWh,total_shield_water,total_shield_pcm,n_safety_violations,seed,shield_weight,obs_version,control_step_min,domain_randomize,tag,regime,algo
+DQN,1,2021,8760,195172.9762111763,2129.7809577622943,838.7736407755563,6824,18867,0,42,10.0,V2,60,True,gen2_dqn_r1_w10_s42,1,dqn
+DQN,1,2022,8760,195172.9762111763,2129.7809577622943,838.7736407755563,6824,18867,0,42,10.0,V2,60,True,gen2_dqn_r1_w10_s42,1,dqn
+DQN,1,2023,8760,195172.9762111763,2129.7809577622943,838.7736407755563,6824,18867,0,42,10.0,V2,60,True,gen2_dqn_r1_w10_s42,1,dqn

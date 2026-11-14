@@ -1,0 +1,4 @@
+policy,regime_id,year,n_steps,total_reward,total_delivered_kWh,total_unmet_kWh,total_shield_water,total_shield_pcm,n_safety_violations,seed,shield_weight,obs_version,forecast_mode,control_step_min,domain_randomize,tag,regime,algo
+SAC,0,2021,8760,789495.6884732139,1981.022552009492,496.59268176813947,2038,17770,0,42,10.0,V3,none,60,False,none,0,sac
+SAC,0,2022,8760,862757.692919847,2014.4651229509757,472.5445650155619,2155,18481,0,42,10.0,V3,none,60,False,none,0,sac
+SAC,0,2023,8760,937763.5921929937,2049.0370509382346,449.7330793726206,2604,18551,0,42,10.0,V3,none,60,False,none,0,sac

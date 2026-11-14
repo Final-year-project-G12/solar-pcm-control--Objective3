@@ -25,11 +25,25 @@ CONTRACT_PATH = pathlib.Path(__file__).resolve().parents[2] / "contracts" / \
     "obj3_environment_contract_tamilnadu_v3.json"
 
 # canonical train / val / test splits (year-locked)
-TRAIN_YEARS = [2016, 2017, 2018, 2019, 2020]
+# 2024-2025 added to TRAIN_YEARS on explicit user instruction (2026-11-13),
+# overriding the contract's "forbidden / used_test_v1" role (those years were
+# Objective 2's own one-shot held-out test). Using them as additional
+# TRAINING diversity here does not reopen that test or compromise O3's own
+# 2011-2015 locked test, which stays untouched; it only trades away the
+# stricter "nothing downstream ever reuses an O2 test year" guarantee the
+# original contract aimed for. The role is enforced only in src/weather/
+# roles.py on the O2 side, which this change does not call.
+TRAIN_YEARS = [2016, 2017, 2018, 2019, 2020, 2024, 2025]
 VAL_YEARS   = [2021, 2022, 2023]
 TEST_YEARS  = [2011, 2012, 2013, 2014, 2015]   # never touch until final eval
 
-OBS_DIM  = 11
+OBS_DIM_V1 = 11
+OBS_DIM_V2 = 15   # V1 + 3h GHI forecast + next-hour demand. The forecast
+                  # values are driven by forecast_mode ("perfect"/"smart"/
+                  # "none" — see pcm_env.py forecast_ghi()). "V3" is the same
+                  # 15-dim shape, used as a naming convention for
+                  # forecast_mode="smart" runs.
+OBS_DIM_V3 = OBS_DIM_V2
 OBS_LOW  = -5.0
 OBS_HIGH =  5.0
 
@@ -49,6 +63,15 @@ class PCMGymEnv(gym.Env):
     years         : list of years to sample from on reset (None -> TRAIN_YEARS)
     fixed_year    : if set, every episode uses this year (overrides years)
     reward_weights: dict of w_energy, w_unmet, w_safety, w_switching
+    obs_version   : "V1" (11-dim, default) or "V2" (15-dim, +3h GHI forecast
+                    + next-hour demand — see pcm_env.py docstring)
+    control_step_min : decision cadence in minutes; must divide 60 (default
+                    60 = unchanged hourly control; e.g. 15 -> 4 decisions/hour)
+    domain_randomize : if True, each episode samples a GHI multiplier, an
+                    ambient-temperature bias, and a demand multiplier that
+                    perturb the PHYSICS (not just the observation) for that
+                    episode — training-time robustness, off by default so
+                    validation/locked-test/robustness envs stay nominal.
     """
 
     metadata = {"render_modes": []}
@@ -60,26 +83,36 @@ class PCMGymEnv(gym.Env):
         years: list[int] | None = None,
         fixed_year: int | None = None,
         reward_weights: dict | None = None,
+        obs_version: str = "V1",
+        forecast_mode: str = "perfect",
+        control_step_min: int = 60,
+        domain_randomize: bool = False,
     ):
         super().__init__()
         self._years      = years or TRAIN_YEARS
         self._fixed_year = fixed_year
         self._rng        = np.random.default_rng()
-        self._last_obs   = np.zeros(OBS_DIM, dtype=np.float32)
+        obs_dim = (OBS_DIM_V3 if obs_version == "V3" else
+                   OBS_DIM_V2 if obs_version == "V2" else OBS_DIM_V1)
+        self._last_obs   = np.zeros(obs_dim, dtype=np.float32)
 
         init_year = fixed_year if fixed_year else self._years[0]
         self._env = PCMEnv(
-            contract_path  = contract_path,
-            regime_id      = regime_id,
-            year           = init_year,
-            reward_weights = reward_weights,
+            contract_path    = contract_path,
+            regime_id        = regime_id,
+            year             = init_year,
+            forecast_mode    = forecast_mode,
+            reward_weights   = reward_weights,
+            obs_version      = obs_version,
+            control_step_min = control_step_min,
+            domain_randomize = domain_randomize,
         )
 
         self.action_space = spaces.Discrete(N_ACTIONS)
         self.observation_space = spaces.Box(
             low   = OBS_LOW,
             high  = OBS_HIGH,
-            shape = (OBS_DIM,),
+            shape = (obs_dim,),
             dtype = np.float32,
         )
 
@@ -95,7 +128,7 @@ class PCMGymEnv(gym.Env):
         year = self._fixed_year if self._fixed_year is not None \
                else int(self._rng.choice(self._years))
 
-        obs, info = self._env.reset(year=year)
+        obs, info = self._env.reset(year=year, seed=seed)
         obs = np.clip(obs, OBS_LOW, OBS_HIGH).astype(np.float32)
         self._last_obs = obs
         return obs, info

@@ -1,0 +1,13 @@
+# Objective 4 work-in-progress (separate objective; not reviewed, not part
+# of this Objective 3 repo unless explicitly decided otherwise)
+objective4_software_in_loop/
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+tb_logs/
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,126 @@
+{
+ "efficiency_and_savings": {
+  "annual_ghi_kwh_m2": 1842.9,
+  "collector_area_m2": 2.5,
+  "annual_solar_on_collector_kwh": 4607.2,
+  "controllers": {
+   "B0": {
+    "delivered_kWh": 1993.6,
+    "unmet_kWh": 541.1,
+    "shields": 30843,
+    "thermal_efficiency_pct": 43.27,
+    "demand_coverage_pct": 78.65
+   },
+   "B1": {
+    "delivered_kWh": 1889.3,
+    "unmet_kWh": 583.9,
+    "shields": 15550,
+    "thermal_efficiency_pct": 41.01,
+    "demand_coverage_pct": 76.39
+   },
+   "B2": {
+    "delivered_kWh": 1841.6,
+    "unmet_kWh": 624.4,
+    "shields": 14514,
+    "thermal_efficiency_pct": 39.97,
+    "demand_coverage_pct": 74.68
+   },
+   "DQN": {
+    "delivered_kWh": 1993.6,
+    "unmet_kWh": 541.1,
+    "shields": 30843,
+    "thermal_efficiency_pct": 43.27,
+    "demand_coverage_pct": 78.65,
+    "delivery_vs_B0_pct": 100.0,
+    "backup_energy_saved_vs_B0_kWh": 0.0,
+    "shield_reduction_vs_B0_pct": 0.0,
+    "delivery_vs_B1_pct": 105.5,
+    "backup_energy_saved_vs_B1_kWh": 42.8,
+    "shield_reduction_vs_B1_pct": -98.3
+   },
+   "SAC": {
+    "delivered_kWh": 1938.2,
+    "unmet_kWh": 576.5,
+    "shields": 19988,
+    "thermal_efficiency_pct": 42.07,
+    "demand_coverage_pct": 77.07,
+    "delivery_vs_B0_pct": 97.2,
+    "backup_energy_saved_vs_B0_kWh": -35.4,
+    "shield_reduction_vs_B0_pct": 35.2,
+    "delivery_vs_B1_pct": 102.6,
+    "backup_energy_saved_vs_B1_kWh": 7.4,
+    "shield_reduction_vs_B1_pct": -28.5
+   }
+  }
+ },
+ "latency_memory": {
+  "SAC": {
+   "latency_mean_us": 870.8,
+   "latency_p50_us": 787.2,
+   "latency_p95_us": 1448.0,
+   "latency_max_us": 2624.2,
+   "n_params": 352006,
+   "weights_fp32_kB": 1375.0,
+   "model_zip_kB": 3069.5
+  },
+  "note": "Measured single-threaded on the development x86 CPU. Control period is 1 hour, so even a 100x slower embedded target leaves >6 orders of magnitude of headroom. Weights are MLP fp32; see results/obj4_handoff for the target interface spec."
+ },
+ "sensor_faults": [
+  {
+   "algo": "SAC",
+   "fault": "nominal",
+   "delivered_kWh": 1971.3,
+   "unmet_kWh": 549.1,
+   "shields": 19106,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "ghi_dropout",
+   "delivered_kWh": 1923.2,
+   "unmet_kWh": 569.2,
+   "shields": 14288,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "ghi_stuck",
+   "delivered_kWh": 1923.2,
+   "unmet_kWh": 569.2,
+   "shields": 14288,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tw_bias_+2C",
+   "delivered_kWh": 1970.8,
+   "unmet_kWh": 549.3,
+   "shields": 19025,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tw_noise",
+   "delivered_kWh": 1971.3,
+   "unmet_kWh": 549.1,
+   "shields": 19149,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "tpcm_dropout",
+   "delivered_kWh": 1925.4,
+   "unmet_kWh": 567.0,
+   "shields": 13599,
+   "safety_violations": 0
+  },
+  {
+   "algo": "SAC",
+   "fault": "combined_fault",
+   "delivered_kWh": 1970.5,
+   "unmet_kWh": 549.4,
+   "shields": 19068,
+   "safety_violations": 0
+  }
+ ]
+}
