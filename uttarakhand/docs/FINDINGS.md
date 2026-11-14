@@ -232,7 +232,69 @@ delivery with materially fewer shield hours; B1 is the only point in between (60
 * **Sub-hourly control (PDF 19.1 item 1):** the unchanged O2 kernel consumes whole-hour weather rows (plan 3.0), so a
   15-min decision step would need an edit to O2's physics, which the plan forbids. Tamil Nadu could do it only
   because its environment re-implements the physics.
-* **SAC (PDF 16.3):** with two actions (bypass / enable), a continuous action binned to two values adds nothing that
-  DQN does not already test; it can be added on request.
+* **SAC (PDF 16.3):** added afterwards for the algorithm comparison in section 9.6 (continuous action binned to
+  bypass / enable); it is the weakest of the three agents here.
 * **Regimes 1 and 2 (PDF 19.1 item 4):** already covered: Uttarakhand trained and tested regimes 0, 1 and 2 from the
   start, and regime 3 with baselines.
+
+### 9.6 Realistic forecast and the choice of agent (post-lock, 2026-11-14) - `results/m13_*`, `results/ext/fcalgo/`
+
+**Question.** Every V2 result in 9.4 gave the agent the stored future GHI (a perfect forecast), which no real controller
+has. With a forecast a real controller can make, which DRL agent should Uttarakhand use: PPO (as frozen), DQN
+(Rajasthan's choice) or SAC (Tamil Nadu's)?
+
+**Forecast.** Smart persistence on the clear-sky index (Inman et al. 2013): GHI_hat(t+h) = Kc(t) x GHI_cs(t+h),
+Kc(t) = GHI(t) / GHI_cs(t) clipped to [0, 1.2], held through night hours; GHI_cs is the weather file's NASA POWER
+clear-sky column (`o3/env_ext.py`, `forecast_mode="smart"`; `"perfect"` is the old behaviour, bit-identical,
+`"none"` gives zeros). Measured on the validation years 2021-2023, regimes 0-2, daytime hours: rRMSE 8.4 / 12.7 /
+16.6 % at +1 / +2 / +3 h (MAE 19 / 31 / 41 W/m2), against 31.7 / 59.0 / 81.4 % for plain persistence. Tests:
+`tests/test_forecast.py` (default unchanged over a full year, causal, bounded, reproducible, physics unaffected,
+SAC action binning).
+
+**Study** (`scripts/m13_forecast_algo_study.py`, `scripts/m13_summary.py`): regime 1, frozen M4 reward weights
+(w2 = 0, w4 = 0.3, w3 by the dominance rule), V2 observation, training-time domain randomisation, 600,000 steps,
+3 seeds, best validation checkpoint by the M4 rule. Validation 2021-2023, window delivery at 50 C:
+
+| Agent | Forecast | Window kWh/yr | % of B0 | Overheat h/yr | Switches/yr | Hours over limit |
+|---|---|---|---|---|---|---|
+| B0 always enable | - | 615.7 | 100 | 607 | 0 | 0 |
+| B1 reactive rule | - | 608.5 | 98.8 | 406 | 134 | 0 |
+| **PPO** | **smart** | **567.5 +- 5.0** | **92.2** | **1.4** | **348** | **0** |
+| PPO | perfect | 564.4 +- 2.4 | 91.7 | 1.4 | 371 | 0 |
+| PPO trained perfect, scored smart | (no retraining) | 561.0 +- 2.8 | 91.1 | 1.1 | 372 | 0 |
+| PPO | none (V1, M4) | 557.1 +- 15.8 | 90.5 | 4.8 | 416 | 0 |
+| DQN | smart | 558.8 +- 15.3 | 90.8 | 4.9 | 411 | 0 |
+| DQN | none (V1) | 561.5 +- 8.0 | 91.2 | 1.6 | 587 | 0 |
+| SAC | smart | 521.9 +- 21.7 | 84.8 | 0.0 | 925 | 0 |
+
+**Choice: PPO with the smart-persistence forecast.** It has the highest delivery, the smallest seed spread among the
+learned agents (all three seeds 562-571 kWh), few overheat hours and the fewest switches. DQN reaches similar
+delivery on its best seed but varies three times as much between seeds and overheats more; SAC removes the last overheat
+hours by bypassing much more (about 925 switches a year) and loses another 7-8 % of delivery. Unlike Tamil Nadu and
+Rajasthan, off-policy exploration buys nothing here, because the contract reward already pushes every agent to the same
+'almost never touch the guard band' corner (section 9.4); the on-policy agent reaches that corner most consistently.
+
+**What the forecast is worth.** Little. Swapping the perfect look-ahead for smart persistence at evaluation costs 3.4
+kWh/yr (optimism check); training with smart persistence recovers it (567.5 vs 564.4), and removing the forecast
+altogether costs about 10 kWh/yr, inside the V1 seed spread. In Uttarakhand the result does not rest on perfect
+foresight, unlike Tamil Nadu's 'no forecast -> back to always-charge'.
+
+**All three regimes** (PPO, smart forecast, each regime's frozen weights, 3 seeds; validation 2021-2023):
+r0 546.8 +- 4.3 kWh (88.8 % of B0, overheat 0.4 h), r1 567.5 +- 5.0 (92.2 %, 1.4 h), r2 586.8 +- 1.6 (92.5 %, 0.7 h);
+zero hours over a hard limit in every run.
+
+**Test years 2006-2010, EXPLORATORY** (`scripts/m13b_postlock_test.py`; attaches read-only to the spent lock; the
+agent was chosen after the test years had been seen once, so these numbers do not replace section 3):
+
+| Regime | B0 (M6) | Frozen PPO (M6) | PPO + smart forecast (exploratory) | Overheat h/yr frozen -> smart | Switches frozen -> smart |
+|---|---|---|---|---|---|
+| r0 | 636.9 | 568.2 +- 3.6 (89.2 %) | 562.7 +- 3.7 (88.3 %) | 3.0 -> 0.9 | 306 -> 274 |
+| r1 | 631.6 | 569.5 +- 16.4 (90.2 %) | 580.8 +- 4.8 (91.9 %) | 4.2 -> 2.3 | 426 -> 350 |
+| r2 | 653.6 | 601.6 +- 0.6 (92.0 %) | 600.2 +- 1.8 (91.8 %) | 1.3 -> 0.4 | 367 -> 246 |
+
+Zero hours over a hard limit for every seed and year. The recommended agent matches the frozen PPO on delivery (better
+in r1 by 11 kWh with a third of the seed spread, within about 5 kWh elsewhere) with fewer overheat hours and fewer pump
+switches, and it uses only inputs a real installation has. **B0 still delivers the most energy (8-12 % more); the
+headline of section 1 does not change.** The frozen M4 policies and the M6 lock are untouched; the O4 hand-off and the
+MATLAB twin still carry the frozen V1 PPO and would need a re-export (15 + 4 inputs, with the clear-sky envelope
+computed on the device) to switch to this agent.
