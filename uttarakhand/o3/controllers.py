@@ -117,17 +117,22 @@ class B2Forecast:
 
 
 class SB3Policy:
-    """Any Stable-Baselines3 policy (PPO / DQN) from the post-lock extension study, with the environment settings it was
-    trained on (env_kwargs, e.g. obs_version="V2"); evaluation never uses domain randomisation."""
+    """Any Stable-Baselines3 policy (PPO / DQN / SAC) from the post-lock extension study, with the environment settings
+    it was trained on (env_kwargs, e.g. obs_version="V2", forecast_mode="smart"); evaluation never uses domain
+    randomisation. SAC acts on a continuous [-1, 1] action that is binned to bypass / enable (o3/env_ext.py)."""
     needs_norm = True
 
     def __init__(self, model_path, algo: str = "ppo", name: str | None = None, env_kwargs: dict | None = None):
         import stable_baselines3 as sb3
-        self.model = {"ppo": sb3.PPO, "dqn": sb3.DQN}[algo].load(str(model_path), device="cpu")
+        self.algo = algo
+        self.model = {"ppo": sb3.PPO, "dqn": sb3.DQN, "sac": sb3.SAC}[algo].load(str(model_path), device="cpu")
         self.name = name or algo.upper()
         self.path = model_path
         self.env_kwargs = {k: v for k, v in (env_kwargs or {}).items() if k != "domain_randomize"}
 
     def act(self, raw, norm=None):
         a, _ = self.model.predict(norm, deterministic=True)
+        if self.algo == "sac":
+            from o3.env_ext import bin_action
+            return bin_action(a)
         return int(a)
