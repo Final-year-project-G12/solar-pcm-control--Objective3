@@ -4,7 +4,10 @@ Phase O3-8 — Objective 4 (hardware) handoff specification.
 Produces the deliverables the implementation plan requires before any
 embedded deployment:
 
-  - sensor list (what O4 must instrument to reconstruct the V1 observation);
+  - sensor list (what O4 must instrument to reconstruct the V3 observation --
+    15 fields: the original V1 11 + a 3h smart-persistence GHI forecast +
+    next-hour demand; see docs/DEPLOYMENT_CONTROLLER.md for which SAC
+    checkpoint this is run against);
   - sampling interval and actuator interface (how the policy drives hardware);
   - fail-safe behaviour (the safety shield, restated as embedded firmware
     logic that runs independently of the learned policy);
@@ -37,7 +40,8 @@ RESULTS_DIR   = REPO_ROOT / "results"
 HANDOFF_DIR   = REPO_ROOT / "results" / "obj4_handoff"
 
 
-# Sensors required to reconstruct the 11-dim V1 observation at run time.
+# Sensors (and derived/forecast fields) required to reconstruct the 15-dim
+# V3 observation at run time (obs 0-10 = V1; 11-14 = new in V3).
 SENSOR_LIST = [
     {"obs_index": 0,  "signal": "GHI",            "unit": "W/m2",
      "source": "pyranometer (plane-of-array)",  "range": [0, 1400],
@@ -73,6 +77,26 @@ SENSOR_LIST = [
     {"obs_index": 10, "signal": "T_water_margin", "unit": "degC",
      "source": "derived (max_water_C - T_water)", "range": [-5, 75],
      "sample_rate_s": 10,  "notes": "safety margin, computed from T_water_top"},
+    {"obs_index": 11, "signal": "GHI_forecast_1h", "unit": "W/m2",
+     "source": "FORECAST, not a sensor -- Kc(t)*GHI_clearsky(t+1h), Kc(t) = "
+               "GHI(t)/GHI_clearsky(t) clipped to [0,1.2], held at its last "
+               "daytime value overnight (pcm_env.py::forecast_ghi, "
+               "forecast_mode='smart')", "range": [0, 1400], "sample_rate_s": 3600,
+     "notes": "needs GHI_clearsky(t), GHI_clearsky(t+1h) -- an analytic "
+              "clear-sky model (e.g. pvlib from site lat/lon), NOT a sensor "
+              "reading. This is the field the deployed controller actually "
+              "uses -- never substitute a perfect/NWP forecast without retraining."},
+    {"obs_index": 12, "signal": "GHI_forecast_2h", "unit": "W/m2",
+     "source": "FORECAST -- same Kc(t), GHI_clearsky(t+2h)", "range": [0, 1400],
+     "sample_rate_s": 3600, "notes": "see obs_index 11"},
+    {"obs_index": 13, "signal": "GHI_forecast_3h", "unit": "W/m2",
+     "source": "FORECAST -- same Kc(t), GHI_clearsky(t+3h)", "range": [0, 1400],
+     "sample_rate_s": 3600, "notes": "see obs_index 11"},
+    {"obs_index": 14, "signal": "demand_forecast_next_h", "unit": "L/h",
+     "source": "known schedule (O2's fixed 24h draw-off profile), not a sensor",
+     "range": [0, 100], "sample_rate_s": 3600,
+     "notes": "perfect by design -- the installation's own draw schedule is "
+              "knowable in advance; not a forecasting problem"},
 ]
 
 ACTUATOR_INTERFACE = [
@@ -87,7 +111,12 @@ ACTUATOR_INTERFACE = [
 ]
 
 
-def load_model_path(algo: str, regime_id: int) -> pathlib.Path | None:
+def load_model_path(algo: str, regime_id: int, tag: str | None = None) -> pathlib.Path | None:
+    if tag:
+        p = RESULTS_DIR / algo / f"r{regime_id}_{tag}" / "best_model" / "best_model"
+        if p.with_suffix(".zip").exists():
+            return p
+        return None
     from scripts.phase6_locked_eval import load_model
     try:
         return load_model(algo, regime_id)
@@ -126,15 +155,16 @@ def build_failsafe(contract: dict) -> dict:
     }
 
 
-def export_policy(algo: str, regime_id: int, model_path: pathlib.Path) -> dict:
+def export_policy(algo: str, regime_id: int, model_path: pathlib.Path, tag: str | None = None) -> dict:
     """Copy the frozen policy into the handoff bundle and record its SHA."""
     from scripts.phase6_locked_eval import sha256_of_file
     HANDOFF_DIR.mkdir(parents=True, exist_ok=True)
     zip_src = model_path.with_suffix(".zip")
-    out = {"algo": algo, "regime_id": regime_id,
+    out = {"algo": algo, "regime_id": regime_id, "tag": tag,
            "source_checkpoint": str(zip_src.relative_to(REPO_ROOT))}
+    suffix = f"_{tag}" if tag else ""
     if zip_src.exists():
-        dst = HANDOFF_DIR / f"policy_{algo}_r{regime_id}.zip"
+        dst = HANDOFF_DIR / f"policy_{algo}_r{regime_id}{suffix}.zip"
         shutil.copy2(zip_src, dst)
         out["exported_to"] = str(dst.relative_to(REPO_ROOT))
         out["sha256"] = sha256_of_file(dst)
@@ -175,38 +205,45 @@ def main():
     parser.add_argument("--algo",   type=str, default="recurrent",
                         choices=["ppo", "dqn", "recurrent", "qrdqn", "maskable", "sac"])
     parser.add_argument("--regime", type=int, default=0)
+    parser.add_argument("--tag", type=str, default=None,
+                        help="model-folder tag, e.g. 'smartfc' for r{regime}_smartfc "
+                             "(the deployed controller; see docs/DEPLOYMENT_CONTROLLER.md)")
     args = parser.parse_args()
 
     print("=" * 70)
     print("Phase O3-8 — Objective 4 Hardware Handoff Specification")
-    print(f"Algorithm: {args.algo}  |  Regime: {args.regime}")
+    print(f"Algorithm: {args.algo}  |  Regime: {args.regime}  |  Tag: {args.tag}")
     print("=" * 70)
 
     with open(CONTRACT_PATH) as f:
         contract = json.load(f)
 
-    model_path = load_model_path(args.algo, args.regime)
+    model_path = load_model_path(args.algo, args.regime, args.tag)
     if model_path is None:
-        print(f"[WARN] No trained {args.algo} model for regime {args.regime}; "
-              "spec will be written with a policy-export warning.")
+        print(f"[WARN] No trained {args.algo} model for regime {args.regime} "
+              f"(tag={args.tag}); spec will be written with a policy-export warning.")
         policy_export = {"algo": args.algo, "regime_id": args.regime,
                          "exported_to": None, "sha256": None,
                          "warning": "No trained checkpoint found."}
     else:
-        policy_export = export_policy(args.algo, args.regime, model_path)
+        policy_export = export_policy(args.algo, args.regime, model_path, args.tag)
 
     spec = {
         "spec_version": "obj4_handoff_v1",
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "state": contract.get("state", "tamilnadu"),
         "regime_id": args.regime,
+        "tag": args.tag,
         "source_contract": CONTRACT_PATH.name,
         "status": "SPECIFICATION ONLY — NOT AUTHORISED FOR FIELD DEPLOYMENT",
         "exit_gate": "No embedded deployment until hardware-in-the-loop tests "
                      "pass (deployment_test_plan step 5).",
         "sampling": {"control_cycle_s": 10,
-                     "observation_assembly": "assemble 11-dim V1 vector each cycle; "
-                     "normalise with TRAINING-set statistics only (never live stats)"},
+                     "policy_decision_cycle_s": 3600,
+                     "observation_assembly": "assemble the 15-dim V3 vector once per "
+                     "policy decision (hourly); normalise with TRAINING-set constants "
+                     "only, never live statistics. The interlock (control_cycle_s=10) "
+                     "runs independently and far more often than the policy decides."},
         "sensor_list": SENSOR_LIST,
         "actuator_interface": ACTUATOR_INTERFACE,
         "fail_safe": build_failsafe(contract),

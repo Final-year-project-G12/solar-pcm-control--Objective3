@@ -478,8 +478,13 @@ with tab_deploy:
         st.divider()
 
         # ---------------------------------------------------------- GEN2 live status
-        st.subheader("🔬 Generation-2 research extensions — live status")
-        st.warning("Gen-2 (Phase 10) results below were produced BEFORE the 2026-11-13 weather-year fix and have not been re-run; treat them as indicative only.")
+        st.subheader("🔬 Generation-2 research extensions — retired")
+        st.warning("Gen-2 (Phase 10) results below were produced BEFORE the 2026-11-13 weather-year fix. "
+                   "They were never re-run on corrected data and their raw model/result files were removed "
+                   "in the 2026-11-14 repo cleanup (invalid pre-fix data, not needed going forward). The "
+                   "table below now reads as 'not done' rather than 'in progress' — nothing here is training; "
+                   "a corrected re-run would need to start from scratch. See CORRECTIONS_OBJECTIVE3.md "
+                   "'Still open' #2.")
         st.markdown(
             "Five gaps from advisor feedback, each with an environment change "
             "and a training study. **Domain randomisation** (GHI noise, "
