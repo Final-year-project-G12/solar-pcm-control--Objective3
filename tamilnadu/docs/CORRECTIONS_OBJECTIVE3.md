@@ -311,3 +311,27 @@ picture than O3-4 alone suggested.
    this pass (all previously collapsed to B0-identical behaviour and were
    deprioritized under time pressure); their old numbers are retired along
    with everything else pre-fix, but no corrected rerun exists for them.
+
+---
+
+## O3-7 — Documentation and dashboard refresh (2026-11-15)
+
+Stale pre-fix content found and fixed:
+
+- `METHODOLOGY_AND_FINDINGS.md` section 3 (R2 results) and `PROJECT_JOURNEY.md`
+  sections 7-8 still quoted the old numbers (2,144 kWh / 36,955 trips, SAC
+  2,097.4 / 23,117). Replaced with the corrected regime-0 values; the w=20
+  experiment is marked as a pre-fix result that has not been re-run.
+- `PROJECT_JOURNEY.md` also claimed SAC wins on regime-0 shield reduction. After
+  the fix DQN cuts slightly more there (-62% vs -54%); SAC is selected because it
+  is the only controller that works in all three regimes. Text corrected.
+- `study.md` section 10 (status) rewritten; it still listed regimes 1-2 as pending.
+- `results/plots/R0, R1, R2/dashboard.html` regenerated. They had been built on
+  2026-11-13 from a pre-fix multi-seed file (B0 plotted at 2,146 kWh / 50,298)
+  and carried hard-coded old baseline values in `make_plots.py` (removed). The
+  headings said "reward R0/R1/R2" but the tags are regimes 0/1/2 (fixed).
+- `live_demo` dashboards regenerated (the 2021 replays and the live ones).
+- Moved to `results/archive_prefix_bugfix/`: old dashboards, `gen2_extensions.html`,
+  `phase4_multiseed_raw_r0.csv`, `phase4_stats_r0.json` (all pre-fix).
+- New: `scripts/make_interactive_o3.py` and `results/plots/O3_interactive_tamilnadu.html`.
+- `make_plots.py` gained `--test-csv`, `--robust-csv`, `--label`.

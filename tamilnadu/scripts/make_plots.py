@@ -153,6 +153,9 @@ def _short_tf(df):
     return df
 
 
+MODEL_LABEL = "the selected controller"   # set from --label in main()
+
+
 def plot_locked_test(test_csv: pathlib.Path, regime: int | None = None) -> go.Figure | None:
     """Held-out test set (2011-2015): the FINAL verified output."""
     if not test_csv.exists():
@@ -186,8 +189,8 @@ def plot_locked_test(test_csv: pathlib.Path, regime: int | None = None) -> go.Fi
     fig.update_layout(paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, height=440,
                       font=dict(family='system-ui, sans-serif', color=INK, size=13),
                       margin=dict(l=60, r=30, t=70, b=50),
-                      title="3 · LOCKED TEST (2011-2015, never seen) — the final verified "
-                            "result: DQN holds delivery, cuts shields, zero violations")
+                      title=f"3 · LOCKED TEST (2011-2015, never seen) — {MODEL_LABEL} "
+                            "vs always-charge (B0) and reactive rules (B1)")
     fig.update_xaxes(gridcolor=GRID, linecolor="#c3c2b7")
     fig.update_yaxes(gridcolor=GRID, linecolor="#c3c2b7")
     return fig
@@ -208,8 +211,8 @@ def plot_robustness(robust_csv: pathlib.Path) -> go.Figure | None:
                 name="Delivered kWh",
                 hovertemplate="%{x}<br>%{y:,.1f} kWh<extra></extra>")
     fig.update_layout(**LAYOUT, height=460,
-                      title="4 · Robustness — DQN delivered energy across perturbation "
-                            "scenarios (all zero safety violations)",
+                      title=f"4 · Robustness — {MODEL_LABEL}: delivered energy across "
+                            "perturbation scenarios (validation years 2021-2023)",
                       xaxis_title="", yaxis_title="Delivered energy (kWh)")
     fig.update_xaxes(tickangle=-40)
     return fig
@@ -235,8 +238,15 @@ def plot_multiseed(ms_csv: pathlib.Path) -> go.Figure | None:
         marker=dict(size=15, color=C_ORANGE, line=dict(width=2, color=SURFACE)),
         name="DQN seeds",
         hovertemplate="%{text}<br>shield=%{x:,.0f}<br>del=%{y:,.1f} kWh<extra></extra>"))
-    # baseline refs
-    for lbl, d, s, col in [("B0", 2146.2, 50298, C_AQUA), ("B1", 2015.3, 22371, C_GREEN)]:
+    # baseline refs, computed from the same CSV (no hard-coded numbers)
+    full = pd.read_csv(ms_csv)
+    full["shield_total"] = full["total_shield_water"] + full["total_shield_pcm"]
+    refs = []
+    for key, lbl, col in [("B0_fixed_charge", "B0", C_AQUA), ("B1_reactive_rule", "B1", C_GREEN)]:
+        sub = full[full["policy"] == key]
+        if not sub.empty:
+            refs.append((lbl, sub["total_delivered_kWh"].mean(), sub["shield_total"].mean(), col))
+    for lbl, d, s, col in refs:
         fig.add_trace(go.Scatter(x=[s], y=[d], mode="markers+text", text=[lbl],
                                  textposition="bottom center",
                                  marker=dict(size=13, color=col, symbol="square",
@@ -245,8 +255,7 @@ def plot_multiseed(ms_csv: pathlib.Path) -> go.Figure | None:
                                  hovertemplate=f"{lbl}<br>shield=%{{x:,.0f}}<br>"
                                                "del=%{y:,.1f}<extra></extra>"))
     fig.update_layout(**LAYOUT, height=470,
-                      title="5 · DQN across seeds — all beat the baselines; seed 42 "
-                            "uniquely keeps delivery ≥95% of B0 (up-and-left is better)",
+                      title="5 · DQN across seeds (up-and-left is better)",
                       xaxis_title="Shield activations / yr (fewer →)",
                       yaxis_title="Delivered energy (kWh)")
     fig.update_xaxes(autorange="reversed")
@@ -390,7 +399,15 @@ def main():
                     help="comparison CSV (default results/phase4_comparison_r{regime}.csv)")
     ap.add_argument("--selected", type=str, default="dqn",
                     help="selected policy whose locked-test/robustness CSVs are plotted")
+    ap.add_argument("--test-csv", type=str, default=None,
+                    help="locked-test CSV (default results/phase6_final_test_<selected>.csv)")
+    ap.add_argument("--robust-csv", type=str, default=None,
+                    help="robustness CSV (default results/phase5_robustness_r<regime>_<selected>.csv)")
+    ap.add_argument("--label", type=str, default=None,
+                    help="name of the controller shown in plot titles")
     args = ap.parse_args()
+    global MODEL_LABEL
+    MODEL_LABEL = args.label or args.selected.upper()
 
     csv_path = pathlib.Path(args.csv) if args.csv else \
         RESULTS_DIR / f"phase4_comparison_r{args.regime}.csv"
@@ -407,8 +424,10 @@ def main():
         plot_tradeoff(agg),       # 2 validation tradeoff
     ]
     # 3 locked test (final verified), 4 robustness, 5 multi-seed — add if present
-    test_csv   = RESULTS_DIR / f"phase6_final_test_{args.selected}.csv"
-    robust_csv = RESULTS_DIR / f"phase5_robustness_r{args.regime}_{args.selected}.csv"
+    test_csv   = pathlib.Path(args.test_csv) if args.test_csv else \
+        RESULTS_DIR / f"phase6_final_test_{args.selected}.csv"
+    robust_csv = pathlib.Path(args.robust_csv) if args.robust_csv else \
+        RESULTS_DIR / f"phase5_robustness_r{args.regime}_{args.selected}.csv"
     ms_csv     = RESULTS_DIR / f"phase4_multiseed_raw_r{args.regime}.csv"
     for f in (plot_locked_test(test_csv, args.regime), plot_robustness(robust_csv),
               plot_multiseed(ms_csv)):
@@ -427,7 +446,7 @@ def main():
              'h1{font-size:20px}.card{background:#fcfcfb;border:1px solid rgba(11,11,11,.1);'
              'border-radius:10px;margin:14px 0;padding:8px}'
              'a{color:#2a78d6}</style></head><body>',
-             f'<h1>Objective 3 — adaptive PCM control · reward {args.tag} · regime {args.regime}</h1>',
+             f'<h1>Objective 3 — adaptive PCM control · regime {args.regime}</h1>',
              f'<p style="color:#52514e">Tamil Nadu · 100 L tank · {len(agg)} policies · '
              'validation years 2021–2023. '
              '<a href="tamilnadu_regimes_map.html">↗ open the regime map</a></p>']
