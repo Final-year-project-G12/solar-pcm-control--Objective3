@@ -57,7 +57,7 @@ def test_portal_replay_compares_against_the_always_on_pump():
     assert not at.exception
     m = {x.label: x for x in at.metric}
     assert "Hot water delivered" in m and "vs always-on" in str(m["Hot water delivered"].delta)
-    assert "Pump actually ran" in m and "Hard-limit breaches" in m and m["Hard-limit breaches"].value == "0"
+    assert "Hard-limit breaches" in m and m["Hard-limit breaches"].value == "0" and any(l.startswith("Overheat shield") for l in m)
 
 
 def test_portal_replay_equals_the_environment_numbers():

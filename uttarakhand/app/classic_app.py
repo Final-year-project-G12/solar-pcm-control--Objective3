@@ -22,7 +22,7 @@ from o3 import live                   # noqa: E402
 
 st.set_page_config(page_title="O3 Uttarakhand SIL demo", layout="wide")
 st.error(f"**{live.BANNER}** Tank and PCM temperatures, melt fraction and stored energy come from the O2 simulator, "
-         "not from sensors.", icon="⚠️")
+         "not from sensors.", icon=":material/warning:")
 st.title("Objective 3 - DRL bypass controller, Uttarakhand")
 st.caption("Hourly decision: enable or bypass the collector loop. O2's in-kernel shield (top node 72 C, PCM 62 C) "
            "always applies; hard limits 75 C water / 65 C PCM. Delivery target 50 C, window 18:00-09:00 IST.")

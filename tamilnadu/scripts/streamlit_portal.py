@@ -98,7 +98,7 @@ def hour_reason(r) -> str:
 
 
 def show_chart(fig, key, explain_fn,
-               hint="👆 Click any point or bar for a short explanation."):
+               hint=":material/ads_click: Click any point or bar for a short explanation."):
     """Render a Plotly chart; clicking a point shows explain_fn(point) below."""
     ev = st.plotly_chart(fig, width="stretch", key=key,
                          on_select="rerun", selection_mode="points")
@@ -124,7 +124,7 @@ st.caption(
     "Field validation is Objective 4."
 )
 
-tab_live, tab_deploy = st.tabs(["🔴 Live Controller", "📊 Deployment & ML Models"])
+tab_live, tab_deploy = st.tabs([":material/sensors: Live Controller", ":material/monitoring: Deployment & ML Models"])
 
 # =============================================================================
 # TAB 1 — Live Controller
@@ -151,7 +151,7 @@ with tab_live:
         use_smartfc = variant.startswith("Realistic forecast")
 
         if not smartfc_ready:
-            st.caption("⏳ Realistic-forecast model for this policy/regime is not available.")
+            st.caption(":material/hourglass_empty: Realistic-forecast model for this policy/regime is not available.")
         if mode == "LIVE (Open-Meteo)" and use_smartfc:
             st.warning("Smart-persistence forecast needs a clear-sky irradiance "
                        "column that Open-Meteo doesn't provide — not supported in "
@@ -179,7 +179,7 @@ with tab_live:
         autoplay_speed = st.select_slider(
             "Scrub step size (for the Hour slider below)", [1, 3, 6, 12, 24], value=1)
 
-        run_btn = st.button("▶ Run", type="primary", width="stretch")
+        run_btn = st.button("Run", type="primary", icon=":material/play_arrow:", width="stretch")
 
     if "recs" not in st.session_state:
         st.session_state.recs = None
@@ -419,14 +419,14 @@ with tab_live:
         col1, col2 = st.columns([2, 1])
         with col1:
             show_chart(fig_t, "fig_t", _ex_hour,
-                       "👆 Click a point on a line to see what the controller did that hour and why.")
+                       ":material/ads_click: Click a point on a line to see what the controller did that hour and why.")
             show_chart(fig_r, "fig_r", _ex_hour,
-                       "👆 Click a coloured bar to see what the pump did that hour.")
+                       ":material/ads_click: Click a coloured bar to see what the pump did that hour.")
             show_chart(fig_g, "fig_g", _ex_ghi)
             if is_live:
                 import plotly.express as px
                 st.caption(
-                    f"📍 Live weather source: **{live_ctx['label']}** "
+                    f":material/location_on: Live weather source: **{live_ctx['label']}** "
                     f"({live_ctx['lat']:.2f}, {live_ctx['lon']:.2f}) — Open-Meteo, "
                     f"fetched {live_ctx['fetched']}. Dotted line = now; shaded "
                     f"region = the forecast portion of the fetched window."
@@ -685,7 +685,7 @@ with tab_deploy:
                    f"(policy × fault) scenarios — the shield acts on the true "
                    f"physical state, so safety holds even on corrupted sensor "
                    f"readings." if n_viol == 0 else
-                   f"⚠ {n_viol} safety violations recorded — investigate.")
+                   f":material/warning: {n_viol} safety violations recorded — investigate.")
         with st.expander("Raw sensor-fault results"):
             st.dataframe(fdf, hide_index=True, width="stretch")
 
@@ -695,11 +695,11 @@ with tab_deploy:
         st.subheader("The six algorithms compared, and why two were selected")
         algo_rows = [
             ("PPO", "On-policy policy gradient", "Collapsed to always-charge (B0) — entropy bonus insufficient to keep exploring"),
-            ("DQN", "Value-based, ε-greedy", "✅ Learns anticipatory control on regime 0 only (−59% shields); collapses to B0 on regimes 1–2"),
+            ("DQN", "Value-based, ε-greedy", "Learns anticipatory control on regime 0 only (−59% shields); collapses to B0 on regimes 1–2"),
             ("RecurrentPPO", "On-policy + LSTM", "Collapsed to always-charge — memory doesn't fix an exploration problem"),
             ("QRDQN", "Distributional value-based", "Collapsed to always-charge at this seed/weight"),
             ("MaskablePPO", "On-policy + action masking", "Essentially always-charge — mask forces a few non-charge steps only"),
-            ("SAC", "Off-policy, entropy-regularised", "✅ Selected — only controller beating always-on on all 3 regimes (97–99% of B0 delivery, −33 to −54% shields)"),
+            ("SAC", "Off-policy, entropy-regularised", "Selected — only controller beating always-on on all 3 regimes (97–99% of B0 delivery, −33 to −54% shields)"),
         ]
         adf = pd.DataFrame(algo_rows, columns=["Algorithm", "Family", "Outcome"])
         st.caption("Click a row for a short explanation.")

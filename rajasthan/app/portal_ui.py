@@ -91,7 +91,7 @@ def hour_reason(r) -> str:
     return f"Sun is {g} W/m² but the collector cannot add net heat to a {tw} °C tank."
 
 
-def show_chart(fig, key, explain_fn, hint="👆 Click any point or bar for a short explanation."):
+def show_chart(fig, key, explain_fn, hint=":material/ads_click: Click any point or bar for a short explanation."):
     """Render a Plotly chart; clicking a point shows explain_fn(point) below."""
     ev = st.plotly_chart(fig, width="stretch", key=key, on_select="rerun", selection_mode="points")
     try:
@@ -144,7 +144,7 @@ def render_live(P: dict) -> None:
         other = st.selectbox("Compare with another policy", other_keys, format_func=lambda k: "(none)" if k == "(none)" else pols[k],
                              key=f"p_other_{regime}", help="Runs it over the same window.")
         step = st.select_slider("Scrub step size (for the Hour slider below)", [1, 3, 6, 12, 24], value=1, key="p_step")
-        run_btn = st.button("▶ Run", type="primary", width="stretch", key="p_run")
+        run_btn = st.button("Run", type="primary", icon=":material/play_arrow:", width="stretch", key="p_run")
 
     ss = st.session_state
     for k in ("p_recs", "p_base", "p_recs2", "p_meta", "p_ctx"):
@@ -292,12 +292,12 @@ def render_live(P: dict) -> None:
 
     col1, col2 = st.columns([2, 1])
     with col1:
-        show_chart(fig_t, "fig_t", _ex_hour, "👆 Click a point on a line to see what the controller did that hour and why.")
-        show_chart(fig_r, "fig_r", _ex_hour, "👆 Click a coloured bar to see what the pump did that hour.")
+        show_chart(fig_t, "fig_t", _ex_hour, ":material/ads_click: Click a point on a line to see what the controller did that hour and why.")
+        show_chart(fig_r, "fig_r", _ex_hour, ":material/ads_click: Click a coloured bar to see what the pump did that hour.")
         show_chart(fig_g, "fig_g", _ex_ghi)
         if is_live:
             import plotly.express as px
-            st.caption(f"📍 Live weather source: **{ctx['label']}** ({ctx['lat']:.2f}, {ctx['lon']:.2f}) — Open-Meteo, fetched "
+            st.caption(f":material/location_on: Live weather source: **{ctx['label']}** ({ctx['lat']:.2f}, {ctx['lon']:.2f}) — Open-Meteo, fetched "
                        f"{ctx['fetched']}. Dotted line = now; shaded region = the forecast portion of the fetched window.")
             fig_map = px.scatter_map(pd.DataFrame({"lat": [ctx["lat"]], "lon": [ctx["lon"]], "label": [ctx["label"]]}),
                                      lat="lat", lon="lon", hover_name="label", zoom=6, height=220)
@@ -473,7 +473,7 @@ def render_deployment(P: dict) -> None:
 def run_portal(P: dict) -> None:
     st.title(P["title"])
     st.caption(P["caption"])
-    tab_live, tab_dep = st.tabs(["🔴 Live Controller", "📊 Deployment & ML Models"])
+    tab_live, tab_dep = st.tabs([":material/sensors: Live Controller", ":material/monitoring: Deployment & ML Models"])
     with tab_live:
         render_live(P)
     with tab_dep:
