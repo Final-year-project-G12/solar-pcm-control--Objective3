@@ -39,14 +39,30 @@ def test_vendored_o2_files_match_the_contract_hashes():
     """The O3 contract hashes the O2 files it was built from. Git line-ending conversion changes those bytes (Windows CRLF ->
     Linux LF), which is why .gitattributes marks deploy/vendor as -text. This test names the file instead of failing deep in the app."""
     import hashlib
-    import json
-    v = REPO / "deploy" / "vendor" / "objective2-rajasthan"
-    prov = json.loads((REPO / "rajasthan" / "contracts" / "obj3_environment_contract_rajasthan_v3.json").read_text())["provenance"]
-    want = {f"results/{k}": h for k, h in prov.get("selection", {}).items()}
-    want.update({f"results/{k}": prov[k] for k in ("g10_heldout_results.csv", "held_out_test.lock", "wp6_band.csv") if k in prov})
-    want.update({k: prov[k] for k in ("configs/system_config_shared.yaml", "configs/design_space.yaml", "configs/states/rajasthan.yaml") if k in prov})
-    bad = [rel for rel, h in want.items() if hashlib.sha256((v / rel).read_bytes()).hexdigest() != h]
-    assert not bad, f"vendored files differ from the contract hashes (line endings? see .gitattributes): {bad}"
+    sys.path.insert(0, str(REPO))
+    from hub.vendor_fix import VENDOR, ensure_vendor_bytes, expected_hashes
+    # whatever line endings git delivered, the repair must reach the contract hashes (a real content difference cannot be repaired)
+    bad = ensure_vendor_bytes()
+    assert not bad, f"vendored files differ from the contract hashes beyond line endings: {bad}"
+    assert all(hashlib.sha256((VENDOR / rel).read_bytes()).hexdigest() == h for rel, h in expected_hashes().items())
+
+
+def test_line_ending_repair_fixes_lf_checkouts(tmp_path, monkeypatch):
+    """Simulate what a Linux runner gets when git has normalised the vendored files to LF: the repair must restore them."""
+    import hashlib
+    import shutil
+    sys.path.insert(0, str(REPO))
+    import hub.vendor_fix as vf
+    fake = tmp_path / "vendor"
+    for rel in vf.expected_hashes():
+        dst = fake / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes((vf.VENDOR / rel).read_bytes().replace(b"\r\n", b"\n"))     # LF, like a normalised checkout
+    monkeypatch.setattr(vf, "VENDOR", fake)
+    assert vf.ensure_vendor_bytes() == []
+    for rel, h in vf.expected_hashes().items():
+        assert hashlib.sha256((fake / rel).read_bytes()).hexdigest() == h
+    shutil.rmtree(fake)
 
 
 def test_states_stay_isolated_and_switching_works(app):

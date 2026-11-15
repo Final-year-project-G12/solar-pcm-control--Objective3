@@ -96,6 +96,12 @@ def run_state_app(key: str) -> None:
         st.error("The vendored Objective-2 Rajasthan tree (deploy/vendor/objective2-rajasthan) is missing, "
                  "so Rajasthan cannot run here.")
         return
+    if key == "rajasthan":
+        from hub.vendor_fix import ensure_vendor_bytes      # git may have changed the line endings the contract hashes depend on
+        still_bad = ensure_vendor_bytes()
+        if still_bad:
+            st.error("Vendored Objective-2 files do not match the Rajasthan contract (not a line-ending problem): " + ", ".join(still_bad))
+            return
     _reset_widget_state(key)
     with _LOCK:
         _activate(key)
