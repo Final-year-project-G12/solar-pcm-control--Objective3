@@ -124,7 +124,7 @@ st.caption(
     "Field validation is Objective 4."
 )
 
-tab_live, tab_deploy = st.tabs([":material/sensors: Live Controller", ":material/monitoring: Deployment & ML Models"])
+tab_live, tab_deploy = st.tabs(["Live Controller", "Deployment & ML Models"])
 
 # =============================================================================
 # TAB 1 — Live Controller

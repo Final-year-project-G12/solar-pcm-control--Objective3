@@ -529,7 +529,7 @@ def render_deployment(P: dict) -> None:
 def run_portal(P: dict) -> None:
     st.title(P["title"])
     st.caption(P["caption"])
-    tab_live, tab_dep = st.tabs([":material/sensors: Live controller", ":material/monitoring: Deployment and models"])
+    tab_live, tab_dep = st.tabs(["Live controller", "Deployment and models"])
     with tab_live:
         render_live(P)
     with tab_dep:
