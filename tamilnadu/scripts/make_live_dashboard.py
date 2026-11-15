@@ -24,6 +24,8 @@ import json
 import pathlib
 import sys
 
+import numpy as np
+
 REPO_ROOT = pathlib.Path(__file__).parents[1]
 _O2_ROOT  = REPO_ROOT.parent / "objective2_design_optimization"
 for _p in [str(_O2_ROOT), str(REPO_ROOT)]:
@@ -82,7 +84,8 @@ def run_rollout(algo: str, regime_id: int, year: int,
                 start_hour: int, n_hours: int,
                 model_tag: str | None = None, obs_version: str = "V1",
                 forecast_mode: str = "perfect",
-                control_step_min: int = 60) -> list[dict]:
+                control_step_min: int = 60,
+                force_charge: bool = False) -> list[dict]:
     """Step the policy through the env; log each hour in the window.
 
     model_tag selects a tagged checkpoint (e.g. a Generation-2 or "smartfc"
@@ -98,7 +101,7 @@ def run_rollout(algo: str, regime_id: int, year: int,
     env = EnvCls(CONTRACT_PATH, regime_id=regime_id, fixed_year=year,
                 obs_version=obs_version, forecast_mode=forecast_mode,
                 control_step_min=control_step_min)
-    model = _load_model(algo, regime_id, model_tag=model_tag)
+    model = None if force_charge else _load_model(algo, regime_id, model_tag=model_tag)
 
     obs, _ = env.reset()
     inner  = env.inner
@@ -113,7 +116,9 @@ def run_rollout(algo: str, regime_id: int, year: int,
     step = 0
     end_hour = start_hour + n_hours
     while not done and step < end_hour:
-        if algo == "recurrent":
+        if force_charge:                       # always-on baseline (B0)
+            action = np.array([-1.0], dtype=np.float32) if continuous else 0
+        elif algo == "recurrent":
             action, lstm_state = model.predict(
                 obs, state=lstm_state, deterministic=True)
         else:
@@ -152,6 +157,9 @@ def run_rollout(algo: str, regime_id: int, year: int,
                 "tpcm":     round(float(info["T_pcm_C"]), 2),
                 "melt":     round(float(info["f_melt"]) * 100.0, 1),
                 "e_step":   round(info["E_delivered_Wh"] / 1000.0, 3),
+                "unmet_step": round(info["E_unmet_Wh"] / 1000.0, 3),
+                "pump":     round(float(info["pump_on_frac"]), 2),
+                "shield_step": int(info["n_shield_water"]) + int(info["n_shield_pcm"]),
                 "cum_del":  round(cum_del, 1),
                 "cum_unmet": round(cum_unmet, 1),
                 "cum_shield": cum_shield,
@@ -201,7 +209,8 @@ def fetch_open_meteo(lat: float, lon: float,
 def run_rollout_live(algo: str, regime_id: int, wx_df, iso_times: list[str],
                      model_tag: str | None = None, obs_version: str = "V1",
                      forecast_mode: str = "perfect",
-                     control_step_min: int = 60) -> list[dict]:
+                     control_step_min: int = 60,
+                     force_charge: bool = False) -> list[dict]:
     """Run the policy through the frozen physics on *live* fetched weather.
 
     NOTE: Open-Meteo's feed has no clear-sky-irradiance column, so
@@ -221,7 +230,7 @@ def run_rollout_live(algo: str, regime_id: int, wx_df, iso_times: list[str],
     env = EnvCls(CONTRACT_PATH, regime_id=regime_id, fixed_year=2021,
                 obs_version=obs_version, forecast_mode=live_forecast_mode,
                 control_step_min=control_step_min)
-    model = _load_model(algo, regime_id, model_tag=model_tag)
+    model = None if force_charge else _load_model(algo, regime_id, model_tag=model_tag)
 
     obs, _ = env.reset()                 # sets initial tank/PCM state
     inner  = env.inner
@@ -238,7 +247,9 @@ def run_rollout_live(algo: str, regime_id: int, wx_df, iso_times: list[str],
     n = len(wx_df)
     done = False
     while not done and len(recs) < n:
-        if algo == "recurrent":
+        if force_charge:                       # always-on baseline (B0)
+            action = np.array([-1.0], dtype=np.float32) if continuous else 0
+        elif algo == "recurrent":
             action, lstm_state = model.predict(obs, state=lstm_state, deterministic=True)
         else:
             action, _ = model.predict(obs, deterministic=True)
@@ -264,6 +275,9 @@ def run_rollout_live(algo: str, regime_id: int, wx_df, iso_times: list[str],
             "tpcm": round(float(info["T_pcm_C"]), 2),
             "melt": round(float(info["f_melt"]) * 100.0, 1),
             "e_step": round(info["E_delivered_Wh"] / 1000.0, 3),
+            "unmet_step": round(info["E_unmet_Wh"] / 1000.0, 3),
+            "pump": round(float(info["pump_on_frac"]), 2),
+            "shield_step": int(info["n_shield_water"]) + int(info["n_shield_pcm"]),
             "cum_del": round(cum_del, 1), "cum_unmet": round(cum_unmet, 1),
             "cum_shield": cum_shield, "cum_safety": cum_safety,
         })
@@ -282,233 +296,261 @@ def build_html(recs: list[dict], meta: dict) -> str:
 _HTML_TEMPLATE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>O3 Live Controller Dashboard</title>
+<title>O3 Controller Playback</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
 <style>
   :root{--bg:#f6f7f5;--surface:#ffffff;--ink:#0b0b0b;--muted:#5c5b57;
-        --line:rgba(11,11,11,.12);--charge:#2a78d6;--idle:#1baf7a;--bypass:#eb6834;}
+        --line:rgba(11,11,11,.12);--collect:#2a78d6;--wait:#b4b7bd;--hold:#1baf7a;--bypass:#eb6834;
+        --good:#0f7b4d;}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
        font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px;}
   h1{font-size:20px;margin:0 0 2px}
-  .sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  h2{font-size:14px;margin:0 0 8px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
   .sil{display:inline-block;background:#fff3e0;color:#8a4b00;border:1px solid #f0c38a;
-       border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600;margin-bottom:12px}
+       border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600}
   .wrap{max-width:1040px;margin:0 auto}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
-        padding:14px;margin:12px 0;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+  .score{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  .sc{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .sc .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .sc .big{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin:3px 0}
+  .sc .ctx{font-size:12px;color:var(--muted);line-height:1.35}
+  .good{color:var(--good)}
+  .verdict{font-size:14px;line-height:1.5;margin:0 0 12px}
   .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  button{font:inherit;font-weight:600;border:none;border-radius:8px;padding:9px 18px;
-         background:var(--charge);color:#fff;cursor:pointer}
+  button{font:inherit;font-weight:600;border:none;border-radius:8px;padding:9px 18px;background:var(--collect);color:#fff;cursor:pointer}
   button.sec{background:#e9e9e6;color:var(--ink)}
-  input[type=range]{flex:1;min-width:180px;accent-color:var(--charge)}
+  select{font:inherit}
+  input[type=range]{flex:1;min-width:180px;accent-color:var(--collect)}
   .clock{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;color:var(--muted)}
-  .badge{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .lamp{font-size:22px;font-weight:800;letter-spacing:.3px;color:#fff;border-radius:10px;
-        padding:12px 22px;min-width:230px;text-align:center;transition:background .15s}
-  .flag{font-size:12px;font-weight:700;color:#8a4b00;background:#fff3e0;
-        border:1px solid #f0c38a;border-radius:6px;padding:6px 10px;display:none}
-  .flag.on{display:inline-block}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
-  .tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .now{display:flex;align-items:stretch;gap:14px;flex-wrap:wrap;margin-top:14px}
+  .lamp{font-size:19px;font-weight:800;color:#fff;border-radius:10px;padding:12px 18px;
+        min-width:250px;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .15s}
+  .why{flex:1;min-width:240px;font-size:14px;line-height:1.45;align-self:center}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-top:12px}
+  .tile{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   .tile .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-  .tile .val{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px}
+  .tile .val{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
   .tile .u{font-size:12px;color:var(--muted);font-weight:500}
-  .ribbonwrap{margin-top:6px}
-  .ribbon{display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line);cursor:pointer}
-  .cell{flex:1 0 0;position:relative}
-  .cursor{height:34px;width:2px;background:#0b0b0b;position:relative;margin-top:-30px;
-          transition:left .12s linear;pointer-events:none}
+  .ribbon{display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line);cursor:pointer;margin-top:6px}
+  .cell{flex:1 0 0}
+  .cursor{height:34px;width:2px;background:var(--ink);position:relative;margin-top:-30px;transition:left .12s linear;pointer-events:none}
   .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
   .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  details{font-size:13px;line-height:1.55;color:var(--ink)}
+  summary{cursor:pointer;font-weight:700;font-size:14px}
+  details p{margin:8px 0}
   @media (prefers-color-scheme:dark){:root:not([data-theme=light]){
-     --bg:#15161a;--surface:#1e2026;--ink:#f2f2ef;--muted:#a3a39d;--line:rgba(242,242,239,.14);}}
+     --bg:#15161a;--surface:#1e2026;--ink:#f2f2ef;--muted:#a3a39d;--line:rgba(242,242,239,.14);--good:#4cc794;}
+     .sil{background:#3a2a10;color:#f0c38a;border-color:#6b4a1a} button.sec{background:#2b2e36;color:var(--ink)}}
 </style></head>
 <body><div class="wrap">
-  <h1>Objective 3 — Live Controller Dashboard</h1>
+  <h1>Solar water heater — controller playback</h1>
   <p class="sub" id="subtitle"></p>
-  <span class="sil">SOFTWARE-IN-THE-LOOP — thermal state from the frozen simulator, not field sensors</span>
+  <span class="sil">Simulation: temperatures come from the validated simulator, not field sensors</span>
+
+  <div class="card">
+    <h2>Did the controller do its job over these <span id="nhrs"></span> hours?</h2>
+    <p class="verdict" id="verdict"></p>
+    <div class="score" id="score"></div>
+  </div>
 
   <div class="card">
     <div class="controls">
       <button id="play">▶ Play</button>
       <button id="reset" class="sec">⟲ Reset</button>
       <label class="clock">speed
-        <select id="speed">
-          <option value="240">0.5×</option>
-          <option value="120" selected>1×</option>
-          <option value="60">2×</option>
-          <option value="24">5×</option>
-        </select>
-      </label>
+        <select id="speed"><option value="240">0.5×</option><option value="120" selected>1×</option>
+          <option value="60">2×</option><option value="24">5×</option></select></label>
       <input type="range" id="scrub" min="0" value="0">
       <span class="clock" id="clock">—</span>
     </div>
-    <div class="badge" style="margin-top:14px">
+    <div class="now">
       <div class="lamp" id="lamp">—</div>
-      <div class="flag" id="flag">⚠ SHIELD OVERRODE POLICY</div>
-      <div class="clock" id="intent"></div>
+      <div class="why" id="why"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </div>
+
+  <div class="card"><div id="tempChart" style="height:290px"></div>
+    <div class="ribbon" id="ribbon"></div>
+    <div class="cursor" id="cursor"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--collect)"></span>Collecting — pump running, solar heat going into tank + PCM</span>
+      <span><span class="sw" style="background:var(--wait)"></span>Standby — pump off (no useful sun / no net gain)</span>
+      <span><span class="sw" style="background:var(--hold)"></span>Held off — controller paused the pump in sun</span>
+      <span><span class="sw" style="background:var(--bypass)"></span>Bypass — collector isolated to avoid overheating</span>
+      <span>hatched = safety shield forced it</span>
     </div>
   </div>
 
-  <div class="card tiles" id="tiles"></div>
+  <div class="card"><div id="dayChart" style="height:230px"></div></div>
+  <div class="card"><div id="ghiChart" style="height:180px"></div></div>
 
-  <div class="card"><div id="tempChart" style="height:300px"></div>
-    <div class="ribbonwrap">
-      <div class="ribbon" id="ribbon"></div>
-      <div class="cursor" id="cursor"></div>
-      <div class="legend">
-        <span><span class="sw" style="background:var(--charge)"></span>CHARGE — loop on, heating PCM</span>
-        <span><span class="sw" style="background:var(--idle)"></span>IDLE/SERVE — pump off, serving demand</span>
-        <span><span class="sw" style="background:var(--bypass)"></span>BYPASS — collector isolated</span>
-        <span>▦ hatched = shield overrode the policy</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="card"><div id="ghiChart" style="height:210px"></div></div>
+  <div class="card"><details>
+    <summary>How to read this page</summary>
+    <p><b>The controller picks one of three commands every hour:</b> CHARGE (allow the pump), IDLE (pump off) or BYPASS (isolate the collector).
+       CHARGE only means "pump allowed". The simulator itself switches the pump off whenever the collector would lose heat — all night and in weak sun — so a CHARGE command at night changes nothing.
+       That is why this page colours each hour by what the <b>pump physically did</b>, not just by the command: otherwise most of the strip would look like "always charge".</p>
+    <p><b>Why so few Held-off / Bypass hours?</b> Hot water is only at risk of overheating for a few midday hours (water ≥ 72 °C or PCM ≥ 62 °C). Outside that, running the pump whenever the sun gives net gain is already the right thing to do, so the controller only steps in for a few hours per day. IDLE and BYPASS both switch the pump off; BYPASS marks the cases that protect against overheating.</p>
+    <p><b>What "efficient" means here.</b> Both the controller and an always-on pump collect nearly all available heat. The gain is avoiding overheat guard hits (wasted heat dumped by the safety shield and thermal stress on tank and PCM) while the same hot water is delivered. The scorecard compares both on the identical weather window.</p>
+    <p><b>Playback</b> = pressing ▶ steps through the window one simulated hour at a time; drag the slider or click the colour strip to jump to any hour.</p>
+  </details></div>
 
 <script>
 const DATA = __DATA__;
 const META = __META__;
-const AC = {0:"#2a78d6",1:"#1baf7a",2:"#eb6834"};
-const ANAME = {0:"CHARGING",1:"SERVING (idle)",2:"BYPASS"};
-const ASHORT = {0:"CHARGE",1:"IDLE",2:"BYPASS"};
 const N = DATA.length;
+const COL = {collect:"#2a78d6", wait:"#b4b7bd", hold:"#1baf7a", bypass:"#eb6834"};
+const LBL = {collect:"COLLECTING SOLAR HEAT", wait:"STANDBY — PUMP OFF", hold:"HELD OFF (in sun)", bypass:"BYPASS — OVERHEAT PROTECTION"};
+const SUN = 50;   // W/m2 threshold for "useful sun"
 const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme:dark)").matches;
-const INK = isDark? "#f2f2ef":"#0b0b0b", MUT = isDark? "#a3a39d":"#5c5b57",
-      GRID = isDark? "rgba(242,242,239,.10)":"rgba(11,11,11,.08)",
-      PAPER = "rgba(0,0,0,0)";
+const INK = isDark?"#f2f2ef":"#0b0b0b", MUT = isDark?"#a3a39d":"#5c5b57",
+      GRID = isDark?"rgba(242,242,239,.10)":"rgba(11,11,11,.08)", PAPER="rgba(0,0,0,0)";
 
-if(META.mode==="live"){
-  document.getElementById("subtitle").innerHTML =
-    "<b>LIVE</b> — "+META.algo_name+" policy · regime "+META.regime+" · "+
-    META.location+" · present weather from Open-Meteo (fetched "+META.fetched+
-    ") · "+N+" hours · "+META.pcm;
-}else{
-  document.getElementById("subtitle").textContent =
-    "REPLAY — "+META.algo_name+" policy · regime "+META.regime+" · historical year "+
-    META.year+" · "+N+" hours ("+META.days+" days) · "+META.pcm;
+function mode(d){
+  if(d.exe===2 && d.overridden) return "bypass";
+  if(d.ghi<SUN && d.pump<0.5) return "wait";
+  if(d.exe===2) return "bypass";
+  if(d.exe===1) return "hold";
+  return d.pump>=0.5 ? "collect" : "wait";
+}
+function reason(d){
+  const m=mode(d), tw=d.tw.toFixed(0), g=Math.round(d.ghi);
+  if(m==="collect") return "Sun is "+g+" W/m² and the collector is hotter than the tank ("+tw+" °C), so the pump runs and stores the heat.";
+  if(m==="bypass" && d.overridden) return "Water/PCM reached the guard band ("+tw+" °C water). The safety shield isolated the collector"+(d.req!==2?" even though the controller asked for "+["CHARGE","IDLE","BYPASS"][d.req]:"")+".";
+  if(m==="bypass") return "Controller isolated the collector before the guard band: tank "+tw+" °C and sun "+g+" W/m² — heading for overheating.";
+  if(m==="hold") return "Sun is available ("+g+" W/m²) but the controller paused the pump to keep temperatures (water "+tw+" °C, PCM "+d.tpcm.toFixed(0)+" °C) below the limits.";
+  return d.ghi<SUN ? "No useful sun ("+g+" W/m²). The pump is off by itself; the stored heat is serving the "+d.demand_L+" L draw."
+                   : "Sun is "+g+" W/m² but the collector cannot add net heat to a "+tw+" °C tank, so the pump stays off.";
 }
 
-// ---- time label (prefers real timestamp; falls back to day/hour)
-function clockLabel(d){
-  if(d.ts) return d.ts;
-  return "day "+d.day+"  "+String(d.hod).padStart(2,"0")+":00"; }
+// ---------- header + scorecard
+document.getElementById("subtitle").textContent =
+  (META.mode==="live" ? "LIVE weather ("+META.location+", fetched "+META.fetched+")" : "Historical replay, year "+META.year)
+  +" · "+META.algo_name+" controller · regime "+META.regime+" · "+META.pcm;
+document.getElementById("nhrs").textContent = N;
 
-const xs = DATA.map(d=>d.k);
-const tw = DATA.map(d=>d.tw), tp = DATA.map(d=>d.tpcm), ghi = DATA.map(d=>d.ghi);
+const sum=(f)=>DATA.reduce((a,d)=>a+f(d),0);
+const cnt={collect:0,wait:0,hold:0,bypass:0}; DATA.forEach(d=>cnt[mode(d)]++);
+const sunHrs=DATA.filter(d=>d.ghi>=SUN).length;
+const pumpHrs=sum(d=>d.pump), pumpSun=DATA.filter(d=>d.ghi>=SUN).reduce((a,d)=>a+d.pump,0);
+const del=DATA[N-1].cum_del, unmet=DATA[N-1].cum_unmet, metPct=100*del/(del+unmet);
+const shield=DATA[N-1].cum_shield, safety=DATA[N-1].cum_safety;
+const B=META.base, bMet=100*B.del/(B.del+B.unmet);
+const shieldCut = B.shield>0 ? 100*(B.shield-shield)/B.shield : 0;
+const delDiff = 100*(del-B.del)/B.del;
 
-// ---- temperature chart with guard/limit reference lines
-const hl = (y,txt,col,dash)=>({type:"line",x0:0,x1:N-1,y0:y,y1:y,xref:"x",yref:"y",
-  line:{color:col,width:1,dash:dash}});
-const ann = (y,txt,col)=>({x:N-1,y:y,xref:"x",yref:"y",text:txt,showarrow:false,
-  xanchor:"right",yanchor:"bottom",font:{size:10,color:col}});
-let nowLine = {type:"line",x0:0,x1:0,y0:0,y1:1,xref:"x",yref:"paper",
-  line:{color:INK,width:2}};
+document.getElementById("verdict").innerHTML =
+  "Compared with an <b>always-on pump</b> on the same weather, this controller delivered "+
+  (Math.abs(delDiff)<0.05?"the same":"<b>"+Math.abs(delDiff).toFixed(1)+"% "+(delDiff<0?"less":"more")+"</b>")+
+  " hot water and triggered the overheat safety shield <b>"+shield+"</b> times instead of <b>"+B.shield+"</b>"+
+  (B.shield>0?" (<b class='good'>"+shieldCut.toFixed(0)+"% fewer</b>)":"")+". "+
+  "Hard safety limits were breached <b>"+safety+"</b> times.";
 
-Plotly.newPlot("tempChart",[
-  {x:xs,y:tw,name:"water T",mode:"lines",line:{color:"#2a78d6",width:2}},
-  {x:xs,y:tp,name:"PCM T",mode:"lines",line:{color:"#eb6834",width:2}},
-],{
-  margin:{l:48,r:12,t:28,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
-  title:{text:"Tank water & PCM temperature (°C)",font:{size:13,color:INK},x:0},
-  font:{color:MUT,size:11},showlegend:true,
-  legend:{orientation:"h",y:1.14,x:0,font:{color:MUT}},
-  xaxis:{showgrid:false,color:MUT,title:{text:"hour in window",font:{size:10}}},
-  yaxis:{gridcolor:GRID,color:MUT,zeroline:false},
-  shapes:[hl(45,"","#1baf7a","dot"),hl(72,"","#eb6834","dash"),hl(75,"","#b01d0f","solid"),
-          hl(62,"","#eb6834","dash"),hl(65,"","#b01d0f","solid"),nowLine],
-  annotations:[ann(45,"deliver 45°",MUT),ann(75,"water hard 75°","#b01d0f"),
-               ann(72,"water shield 72°","#eb6834"),ann(65,"PCM hard 65°","#b01d0f"),
-               ann(62,"PCM shield 62°","#eb6834")],
-},{displayModeBar:false,responsive:true});
-
-Plotly.newPlot("ghiChart",[
-  {x:xs,y:ghi,name:"GHI",mode:"lines",fill:"tozeroy",
-   line:{color:"#e0a21a",width:1.5},fillcolor:"rgba(224,162,26,.18)"},
-],{
-  margin:{l:48,r:12,t:28,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
-  title:{text:"Solar irradiance GHI (W/m²)",font:{size:13,color:INK},x:0},
-  font:{color:MUT,size:11},showlegend:false,
-  xaxis:{showgrid:false,color:MUT,title:{text:"hour in window",font:{size:10}}},
-  yaxis:{gridcolor:GRID,color:MUT,zeroline:false,rangemode:"tozero"},
-  shapes:[Object.assign({},nowLine)],
-},{displayModeBar:false,responsive:true});
-
-// ---- action ribbon (one cell per hour; hatch if overridden)
-const ribbon = document.getElementById("ribbon");
-DATA.forEach(d=>{
-  const c=document.createElement("div"); c.className="cell";
-  c.style.background=AC[d.exe];
-  if(d.overridden){
-    c.style.backgroundImage="repeating-linear-gradient(45deg,"+
-      "rgba(255,255,255,.55) 0 3px,transparent 3px 6px)";
-  }
-  c.title="day "+d.day+" "+String(d.hod).padStart(2,"0")+":00 — "+ANAME[d.exe];
-  ribbon.appendChild(c);
-});
-
-// ---- KPI tiles
-const TILES=[
-  ["ghi","GHI","W/m²"],["tamb","Ambient","°C"],["tw","Water","°C"],
-  ["tpcm","PCM","°C"],["melt","Melt","%"],["demand_L","Draw now","L"],
-  ["cum_del","Delivered","kWh"],["cum_shield","Shield fires",""],
+const SC=[
+ ["Hot-water energy delivered", del.toFixed(0)+" kWh", metPct.toFixed(1)+"% of demand met · always-on: "+B.del.toFixed(0)+" kWh ("+bMet.toFixed(1)+"%)"],
+ ["Overheat guard hits", String(shield), "always-on pump: "+B.shield+" · each hit = wasted heat + thermal stress"],
+ ["Pump actually ran", pumpHrs.toFixed(0)+" h", "of "+N+" h · "+pumpSun.toFixed(0)+" h of the "+sunHrs+" sunny hours"],
+ ["Controller stepped in", (cnt.hold+cnt.bypass)+" h", cnt.hold+" h held off · "+cnt.bypass+" h bypass ("+DATA.filter(d=>d.overridden).length+" forced by shield) — only needed at hot midday"],
+ ["Hard-limit breaches", String(safety), "75 °C water / 65 °C PCM limits — target is 0"],
 ];
+const scEl=document.getElementById("score");
+SC.forEach(([l,b,c])=>{const e=document.createElement("div");e.className="sc";
+  e.innerHTML='<div class="lab">'+l+'</div><div class="big">'+b+'</div><div class="ctx">'+c+'</div>';scEl.appendChild(e);});
+
+// ---------- temperature chart
+const xs=DATA.map(d=>d.k), tw=DATA.map(d=>d.tw), tp=DATA.map(d=>d.tpcm), ghi=DATA.map(d=>d.ghi);
+const hl=(y,col,dash)=>({type:"line",x0:0,x1:N-1,y0:y,y1:y,xref:"x",yref:"y",line:{color:col,width:1,dash:dash}});
+const ann=(y,t,col)=>({x:N-1,y:y,xref:"x",yref:"y",text:t,showarrow:false,xanchor:"right",yanchor:"bottom",font:{size:10,color:col}});
+const nowLine=()=>({type:"line",x0:0,x1:0,y0:0,y1:1,xref:"x",yref:"paper",line:{color:INK,width:2}});
+const dayTicks=[], dayText=[]; let last=-1;
+DATA.forEach(d=>{ if(d.day!==last){dayTicks.push(d.k);dayText.push("day "+d.day);last=d.day;} });
+Plotly.newPlot("tempChart",[
+  {x:xs,y:tw,name:"Tank water",mode:"lines",line:{color:"#2a78d6",width:2}},
+  {x:xs,y:tp,name:"PCM",mode:"lines",line:{color:"#eb6834",width:2}}],
+ {margin:{l:44,r:10,t:62,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
+  title:{text:"Tank water and PCM temperature (°C) — stay under the guard lines",font:{size:13,color:INK},x:0},
+  font:{color:MUT,size:11},legend:{orientation:"h",y:1.0,yanchor:"bottom",x:0},
+  xaxis:{showgrid:false,color:MUT,tickvals:dayTicks,ticktext:dayText},
+  yaxis:{gridcolor:GRID,color:MUT,zeroline:false},
+  shapes:[hl(45,"#1baf7a","dot"),hl(72,"#eb6834","dash"),hl(75,"#b01d0f","solid"),nowLine()],
+  annotations:[ann(45,"45° delivery target",MUT),ann(72,"72° water guard","#eb6834"),ann(75,"75° water limit","#b01d0f")]},
+ {displayModeBar:false,responsive:true});
+const T_NOW=3;
+
+// ---------- hours-per-day stacked bars
+const days=[...new Set(DATA.map(d=>d.day))];
+const perDay=(m)=>days.map(dy=>DATA.filter(d=>d.day===dy&&mode(d)===m).length);
+Plotly.newPlot("dayChart",["collect","hold","bypass","wait"].map(m=>({
+    type:"bar",name:{collect:"Collecting",hold:"Held off",bypass:"Bypass",wait:"Standby"}[m],
+    x:days.map(x=>"day "+x),y:perDay(m),marker:{color:COL[m]}})),
+ {barmode:"stack",margin:{l:40,r:10,t:62,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
+  title:{text:"What the pump did each day (hours)",font:{size:13,color:INK},x:0},
+  font:{color:MUT,size:11},legend:{orientation:"h",y:1.0,yanchor:"bottom",x:0},
+  xaxis:{color:MUT},yaxis:{gridcolor:GRID,color:MUT,zeroline:false}},
+ {displayModeBar:false,responsive:true});
+
+Plotly.newPlot("ghiChart",[{x:xs,y:ghi,mode:"lines",fill:"tozeroy",line:{color:"#e0a21a",width:1.5},fillcolor:"rgba(224,162,26,.18)"}],
+ {margin:{l:44,r:10,t:30,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
+  title:{text:"Sunshine available (GHI, W/m²)",font:{size:13,color:INK},x:0},font:{color:MUT,size:11},showlegend:false,
+  xaxis:{showgrid:false,color:MUT,tickvals:dayTicks,ticktext:dayText},
+  yaxis:{gridcolor:GRID,color:MUT,zeroline:false,rangemode:"tozero"},shapes:[nowLine()]},
+ {displayModeBar:false,responsive:true});
+
+// ---------- ribbon
+const ribbon=document.getElementById("ribbon");
+DATA.forEach(d=>{const c=document.createElement("div");c.className="cell";c.style.background=COL[mode(d)];
+  if(d.overridden)c.style.backgroundImage="repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 6px)";
+  c.title=(d.ts||("day "+d.day))+" — "+LBL[mode(d)];ribbon.appendChild(c);});
+
+// ---------- now tiles
+const TILES=[["ghi","Sun","W/m²"],["tamb","Outside","°C"],["tw","Tank water","°C"],["tpcm","PCM","°C"],
+  ["melt","PCM melted","%"],["demand_L","Hot water drawn","L"],["cum_del","Delivered so far","kWh"],["cum_shield","Guard hits so far",""]];
 const tilesEl=document.getElementById("tiles");
-TILES.forEach(([k,lab,u])=>{
-  const t=document.createElement("div");t.className="tile";
-  t.innerHTML='<div class="lab">'+lab+'</div><div class="val">'+
-              '<span class="num" id="t_'+k+'">—</span>'+
-              (u?' <span class="u">'+u+'</span>':'')+'</div>';
-  tilesEl.appendChild(t);
-});
+TILES.forEach(([k,l,u])=>{const t=document.createElement("div");t.className="tile";
+  t.innerHTML='<div class="lab">'+l+'</div><div class="val"><span id="t_'+k+'">—</span>'+(u?' <span class="u">'+u+'</span>':'')+'</div>';
+  tilesEl.appendChild(t);});
 
-// ---- playback state
-let k=0, timer=null, stepMs=120;
-const lamp=document.getElementById("lamp"), flag=document.getElementById("flag"),
-      intent=document.getElementById("intent"), clock=document.getElementById("clock"),
-      scrub=document.getElementById("scrub"), cursor=document.getElementById("cursor"),
-      ribbonBox=ribbon.getBoundingClientRect;
+// ---------- playback
+let k=0,timer=null,stepMs=120;
+const lamp=document.getElementById("lamp"),why=document.getElementById("why"),clock=document.getElementById("clock"),
+      scrub=document.getElementById("scrub"),cursor=document.getElementById("cursor");
 scrub.max=N-1;
-
 function render(i){
-  const d=DATA[i];
-  lamp.textContent=ANAME[d.exe]; lamp.style.background=AC[d.exe];
-  flag.classList.toggle("on", d.overridden);
-  intent.textContent = d.overridden ? ("policy asked: "+ASHORT[d.req]) : "";
-  clock.textContent=clockLabel(d);
+  const d=DATA[i],m=mode(d);
+  lamp.textContent=LBL[m];lamp.style.background=COL[m];
+  lamp.style.color = m==="wait" ? "#1a1a1a":"#fff";
+  why.textContent=reason(d);
+  clock.textContent=d.ts||("day "+d.day+" "+String(d.hod).padStart(2,"0")+":00");
   scrub.value=i;
-  for(const [key] of TILES){
-    document.getElementById("t_"+key).textContent = d[key];
-  }
-  // move now-line on both charts
-  const nl={ "shapes[5].x0":i,"shapes[5].x1":i };
-  Plotly.relayout("tempChart",nl);
-  Plotly.relayout("ghiChart",{ "shapes[0].x0":i,"shapes[0].x1":i });
-  // move ribbon cursor
-  const frac=(i+0.5)/N;
-  cursor.style.left=(frac*ribbon.clientWidth)+"px";
+  for(const [key] of TILES)document.getElementById("t_"+key).textContent=d[key];
+  Plotly.relayout("tempChart",{["shapes["+T_NOW+"].x0"]:i,["shapes["+T_NOW+"].x1"]:i});
+  Plotly.relayout("ghiChart",{"shapes[0].x0":i,"shapes[0].x1":i});
+  cursor.style.left=((i+0.5)/N*ribbon.clientWidth)+"px";
 }
-
-function play(){ if(timer) return;
-  document.getElementById("play").textContent="❚❚ Pause";
-  timer=setInterval(()=>{ k++; if(k>=N){k=N-1;stop();return;} render(k); }, stepMs); }
-function stop(){ clearInterval(timer); timer=null;
-  document.getElementById("play").textContent="▶ Play"; }
-
-document.getElementById("play").onclick=()=>{ timer?stop():play(); };
-document.getElementById("reset").onclick=()=>{ stop(); k=0; render(0); };
-document.getElementById("speed").onchange=(e)=>{ stepMs=+e.target.value;
-  if(timer){stop();play();} };
-scrub.oninput=(e)=>{ stop(); k=+e.target.value; render(k); };
-ribbon.onclick=(e)=>{ stop(); const r=ribbon.getBoundingClientRect();
-  k=Math.min(N-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*N))); render(k); };
-
+function play(){if(timer)return;document.getElementById("play").textContent="❚❚ Pause";
+  timer=setInterval(()=>{k++;if(k>=N){k=N-1;stop();return;}render(k);},stepMs);}
+function stop(){clearInterval(timer);timer=null;document.getElementById("play").textContent="▶ Play";}
+document.getElementById("play").onclick=()=>{timer?stop():play();};
+document.getElementById("reset").onclick=()=>{stop();k=0;render(0);};
+document.getElementById("speed").onchange=(e)=>{stepMs=+e.target.value;if(timer){stop();play();}};
+scrub.oninput=(e)=>{stop();k=+e.target.value;render(k);};
+ribbon.onclick=(e)=>{stop();const r=ribbon.getBoundingClientRect();
+  k=Math.min(N-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*N)));render(k);};
 render(0);
 </script>
 </div></body></html>
 """
+
+
+def _baseline_kpis(base: list[dict]) -> dict:
+    """KPIs of the always-charge (B0) run on the identical window."""
+    last = base[-1]
+    return {"del": last["cum_del"], "unmet": last["cum_unmet"],
+            "shield": last["cum_shield"], "safety": last["cum_safety"]}
 
 
 def main():
@@ -534,7 +576,7 @@ def main():
     import json as _json
     contract = _json.load(open(CONTRACT_PATH))
     design = {d["regime_id"]: d for d in contract["static_design_per_regime"]}
-    pcm = design.get(args.regime, {}).get("pcm", "PCM")
+    pcm = design.get(args.regime, {}).get("selected_pcm", "PCM")
     name = {"ppo":"PPO","dqn":"DQN","recurrent":"RecurrentPPO","qrdqn":"QRDQN",
             "maskable":"MaskablePPO","sac":"SAC"}[args.algo]
 
@@ -553,10 +595,12 @@ def main():
             print(f"[live-dash] fetched {len(wx_df)} hours — running policy "
                   f"through real physics ...")
             recs = run_rollout_live(args.algo, args.regime, wx_df, iso_times)
+            base = run_rollout_live(args.algo, args.regime, wx_df, iso_times,
+                                    force_charge=True)
             meta = {"algo": args.algo, "algo_name": name, "regime": args.regime,
                     "mode": "live", "location": label, "fetched": fetched,
                     "year": "live", "days": round(len(recs)/24, 1), "pcm": pcm,
-                    "n": len(recs)}
+                    "n": len(recs), "base": _baseline_kpis(base)}
 
     if not args.live:
         start_hour = args.start_day * 24
@@ -565,9 +609,11 @@ def main():
               f"window day {args.start_day}..{args.start_day+args.days} "
               f"({n_hours} h) — running policy through real physics ...")
         recs = run_rollout(args.algo, args.regime, args.year, start_hour, n_hours)
+        base = run_rollout(args.algo, args.regime, args.year, start_hour, n_hours,
+                           force_charge=True)
         meta = {"algo": args.algo, "algo_name": name, "regime": args.regime,
                 "mode": "replay", "year": args.year, "days": args.days,
-                "pcm": pcm, "n": len(recs)}
+                "pcm": pcm, "n": len(recs), "base": _baseline_kpis(base)}
 
     if not recs:
         print("[ERROR] no steps logged.")

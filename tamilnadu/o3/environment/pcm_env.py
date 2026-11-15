@@ -319,6 +319,7 @@ class PCMEnv:
             "n_safety_violations": result["n_safety_violations"],
             "action_requested":  action,
             "action_executed":   result["action_executed"],
+            "pump_on_frac":      result["pump_on_frac"],
         }
         return obs, reward, terminated, truncated, info
 
@@ -366,6 +367,7 @@ class PCMEnv:
         # action -> circulating flag before the shield may override it
         policy_circulate = (action == CHARGE)
 
+        pump_on_s = pump_tot_s = 0.0   # logging only: real pump run-time
         hour_E_del_Wh = hour_E_unmet_Wh = 0.0
         n_shield_w = n_shield_p = n_safety = 0
         shield_fired_this_hour = False
@@ -436,6 +438,10 @@ class PCMEnv:
                 if not circulating:
                     T_w_new = base_rhs / base_coeff if base_coeff > 0 else T_w
 
+                pump_tot_s += dt_sub
+                if circulating:
+                    pump_on_s += dt_sub
+
                 q_unmet = (m_draw_rate * cp_w * max(deliv_T - T_w_new, 0.0)
                            if m_draw_rate > 0 else 0.0)
                 q_load  = max(m_draw_rate * cp_w * (T_w_new - mains), 0.0)
@@ -468,6 +474,7 @@ class PCMEnv:
             "n_safety_violations": n_safety,
             "shield_override":   shield_fired_this_hour,
             "action_executed":   action_executed,
+            "pump_on_frac":      (pump_on_s / pump_tot_s) if pump_tot_s > 0 else 0.0,
         }
 
     # ------------------------------------------------------------------
