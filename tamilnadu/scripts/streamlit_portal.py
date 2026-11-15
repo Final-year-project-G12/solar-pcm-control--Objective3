@@ -302,13 +302,15 @@ with tab_live:
             '<div style="background:#fff3e0;color:#8a4b00;font-weight:600;padding:8px 14px;'
             'border-radius:8px;border:1px solid #f0c38a;">SAFETY SHIELD FORCED THIS</div>'
             if row["overridden"] else "")
+        # Single-line HTML: an empty shield_html used to leave a whitespace-only line, which
+        # Markdown treats as a blank line, so the indented rest rendered as a code block.
         st.markdown(
-            f"""<div style="display:flex;gap:16px;align-items:center;margin:8px 0;flex-wrap:wrap;">
-            <div style="background:{badge_color};color:{text_color};font-weight:700;
-                 font-size:20px;padding:10px 22px;border-radius:10px;">{badge_text}</div>
-            {shield_html}
-            <div style="color:#5c5b57;font-weight:600;">{row['ts']}</div>
-            </div>""",
+            '<div style="display:flex;gap:16px;align-items:center;margin:8px 0;flex-wrap:wrap;">'
+            f'<div style="background:{badge_color};color:{text_color};font-weight:700;'
+            f'font-size:20px;padding:10px 22px;border-radius:10px;">{badge_text}</div>'
+            f'{shield_html}'
+            f'<div style="color:#8a8a85;font-weight:600;">{row["ts"]}</div>'
+            '</div>',
             unsafe_allow_html=True,
         )
         st.write(row["why"])

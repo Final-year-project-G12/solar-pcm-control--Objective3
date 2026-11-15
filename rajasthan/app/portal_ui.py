@@ -217,7 +217,7 @@ def render_live(P: dict) -> None:
     st.markdown(f"""<div style="display:flex;gap:16px;align-items:center;margin:8px 0;flex-wrap:wrap;">
         <div style="background:{MODE_COLOR[row['mode']]};color:{text_color};font-weight:700;font-size:20px;padding:10px 22px;
         border-radius:10px;">{MODE_LABEL[row['mode']]}</div>{shield_html}
-        <div style="color:#5c5b57;font-weight:600;">{row['ts']}</div></div>""", unsafe_allow_html=True)
+        <div style="color:#8a8a85;font-weight:600;">{row['ts']}</div></div>""", unsafe_allow_html=True)
     st.write(row["why"])
     k1, k2, k3, k4, k5, k6 = st.columns(6)
     k1.metric("Sun (GHI)", f"{row['ghi']:.0f} W/m²")
@@ -367,90 +367,159 @@ CTRL_DESC_DEFAULT = {
 
 
 def render_deployment(P: dict) -> None:
-    """P['deployment'](regime) -> {"controllers": {name: {delivered_kWh, shield_h, violations, thermal_efficiency_pct, demand_coverage_pct}},
-    "inference": {name: {ms, params, kB}}, "faults": DataFrame[policy, fault, delivered_kWh, shield_h, violations], "note": str,
-    "assumptions": str} or None"""
-    st.header("Deployment metrics and algorithms")
+    """Same layout as the Tamil Nadu deployment tab. P['deployment'](regime) -> {"controllers": {name: {delivered_kWh,
+    thermal_efficiency_pct, demand_coverage_pct, shield_h, violations, backup_kWh?}}, "inference": {name: {ms, params, kB}},
+    "faults": DataFrame[policy, fault, delivered_kWh, shield_h, violations], "note": str, "assumptions": str} or None.
+    Sections whose data is missing are skipped."""
+    st.header("Deployment metrics and the algorithms")
     d_regime = st.selectbox("Regime", list(P["regimes"]), key="d_regime", format_func=lambda r: P["regimes"][r])
     dep = P["deployment"](d_regime) if P.get("deployment") else None
     if not dep:
         st.warning("No deployment-metrics file exists for this regime yet (it is produced by the phase-9 / M10 script).")
     else:
         ctr = dep["controllers"]
-        st.caption(dep.get("assumptions", "") or "Numbers are simulated validation years for the chosen regime.")
-        order = list(ctr)
-        palette = {n: (C_B0 if n.startswith("B0") else C_B1 if n.startswith(("B1", "B2")) else "#d2d1cb" if "twin" in n.lower() or "water" in n.lower() else C_DQN)
-                   for n in order}
-        has_eff = all("thermal_efficiency_pct" in ctr[c] for c in order)
-        st.subheader("1 · Delivered heat" + (" and efficiency" if has_eff else ""))
-        fig1 = go.Figure()
-        fig1.add_bar(name="delivered kWh/yr", x=order, y=[ctr[c]["delivered_kWh"] for c in order], marker_color=[palette[c] for c in order])
-        fig1.update_layout(template="plotly_white", height=320, yaxis_title="kWh per year", title=f"Heat delivered to {P['guards'][2]:g} °C (kWh/yr)")
-        show_chart(fig1, "dfig1", lambda p: f"**{p['x']}** — {p['y']:.0f} kWh/yr. {CTRL_DESC_DEFAULT.get(str(p['x'])[:2], '')}")
-        if has_eff:
-            fig1b = go.Figure()
-            fig1b.add_bar(name="thermal efficiency %", x=order, y=[ctr[c]["thermal_efficiency_pct"] for c in order], marker_color=[palette[c] for c in order])
-            if all("demand_coverage_pct" in ctr[c] for c in order):
-                fig1b.add_bar(name="demand coverage %", x=order, y=[ctr[c]["demand_coverage_pct"] for c in order],
-                              marker_color=[palette[c] for c in order], opacity=0.45)
-            fig1b.update_layout(barmode="group", template="plotly_white", height=320, yaxis_title="%", title="Solar→load efficiency and demand coverage")
-            show_chart(fig1b, "dfig1b", lambda p: (f"**{p['x']}** — {p['y']:.1f}%. Efficiency = hot-water energy delivered ÷ solar energy falling on the collector; "
-                                                   f"coverage = share of the hot-water demand met by solar (the rest needs backup)."))
-        b0 = next((c for c in order if c.startswith("B0")), None)
-        if all("shield_h" in ctr[c] for c in order):
-            st.subheader("2 · Overheat-shield hours against the baselines")
-            fig2 = go.Figure(go.Bar(x=order, y=[ctr[c]["shield_h"] for c in order], marker_color=[palette[c] for c in order]))
-            fig2.update_layout(template="plotly_white", height=320, yaxis_title="hours per year", title="Hours the safety shield had to act (fewer is better)")
 
-            def _ex2(p):
-                msg = f"**{p['x']}** — {p['y']:.0f} shield hours per year."
-                if b0 and ctr[b0]["shield_h"]:
-                    msg += f" That is {100 * (1 - p['y'] / ctr[b0]['shield_h']):.0f}% fewer than the always-on pump."
-                return msg + "\n\nFewer hours means less heat dumped and less thermal stress on the tank and PCM."
-            show_chart(fig2, "dfig2", _ex2)
+        def is_base(n):
+            return n.startswith(("B0", "B1", "B2", "Water"))
+
+        drls = [c for c in ctr if not is_base(c)]
+        b0 = next((c for c in ctr if c.startswith("B0")), None)
+        b1 = next((c for c in ctr if c.startswith("B1")), None)
+        order = [c for c in (b0, b1) if c] + [c for c in ctr if c.startswith(("B2", "Water"))] + drls
+        palette = {n: (C_B0 if n.startswith("B0") else C_B1 if n.startswith("B1") else "#d2d1cb" if n.startswith(("B2", "Water"))
+                       else C_SAC if n == "SAC" else C_DQN) for n in order}
+        st.caption((dep.get("assumptions", "") or "Numbers are simulated validation years for the chosen regime.")
+                   + " B0 = always-on pump, B1 = reactive rules.")
+
+        # ---------------------------------------------------------------- 1. efficiency
+        if all("thermal_efficiency_pct" in ctr[c] for c in order):
+            st.subheader("1 · Thermal efficiency & demand coverage")
+            fig1 = go.Figure()
+            fig1.add_bar(name="thermal efficiency %", x=order, y=[ctr[c]["thermal_efficiency_pct"] for c in order],
+                         marker_color=[palette[c] for c in order])
+            if all("demand_coverage_pct" in ctr[c] for c in order):
+                fig1.add_bar(name="demand coverage %", x=order, y=[ctr[c]["demand_coverage_pct"] for c in order],
+                             marker_color=[palette[c] for c in order], opacity=0.45)
+            fig1.update_layout(barmode="group", template="plotly_white", height=340, yaxis_title="%",
+                               title=f"Solar→load efficiency and demand coverage (heat delivered to {P['guards'][2]:g} °C)")
+
+            def _ex1(p):
+                c = p["x"]
+                desc = CTRL_DESC_DEFAULT.get(str(c).split()[0], "")
+                if p["curve_number"] == 0:
+                    return (f"**{c}** — {desc}\n\nThermal efficiency {p['y']:.1f}% = hot-water energy delivered ÷ solar energy "
+                            f"falling on the collector.")
+                return (f"**{c}** — {desc}\n\nDemand coverage {p['y']:.1f}% = share of the hot-water demand met by solar; "
+                        f"the rest needs electric backup.")
+            show_chart(fig1, "dfig1", _ex1)
+
+        # ---------------------------------------------------------------- 2. comparison
+        bases = [(b.split()[0], b, palette[b]) for b in (b0, b1) if b]
+        base_names = [b for _, b, _ in bases]
+        can_backup = bool(drls and bases and all(ctr[c].get("backup_kWh") is not None for c in drls + base_names))
+        can_shield = bool(drls and bases and all("shield_h" in ctr[c] for c in drls + base_names))
+        if can_backup or can_shield:
+            st.subheader("2 · How the DRL controller compares with the baselines")
+            st.caption("Positive = better than that baseline. Compare the two charts together: the DRL controller may deliver "
+                       "slightly less than the always-on pump (B0, so a small negative backup saving) but cuts overheat shield "
+                       "hours sharply.")
+            scol1, scol2 = st.columns(2)
+            if can_backup:
+                with scol1:
+                    fig2a = go.Figure()
+                    for nm, full, col in bases:
+                        fig2a.add_bar(name=f"vs {nm}", x=drls, y=[ctr[full]["backup_kWh"] - ctr[d]["backup_kWh"] for d in drls],
+                                      marker_color=col)
+                    fig2a.update_layout(title="Electric backup saved (kWh/yr) — negative = needs more backup",
+                                        barmode="group", template="plotly_white", height=320)
+
+                    def _ex2a(p):
+                        nm = bases[p["curve_number"]][0]
+                        v = p["y"]
+                        return (f"**{p['x']} vs {nm}** — needs {abs(v):.1f} kWh/yr {'less' if v >= 0 else 'more'} electric backup.\n\n"
+                                + ("Negative here only means it delivers a little less solar heat than that baseline; check the "
+                                   "shield chart for what it gains in return." if v < 0 else
+                                   "It delivers more solar hot water than that baseline, so less backup is needed."))
+                    show_chart(fig2a, "dfig2a", _ex2a)
+            if can_shield:
+                with scol2:
+                    fig2b = go.Figure()
+                    for nm, full, col in bases:
+                        fig2b.add_bar(name=f"vs {nm}", x=drls, marker_color=col,
+                                      y=[100 * (1 - ctr[d]["shield_h"] / ctr[full]["shield_h"]) if ctr[full]["shield_h"] else 0
+                                         for d in drls])
+                    fig2b.update_layout(title="Overheat shield hours reduced (%) — negative = more hours",
+                                        barmode="group", template="plotly_white", height=320)
+
+                    def _ex2b(p):
+                        nm = bases[p["curve_number"]][0]
+                        v = p["y"]
+                        return (f"**{p['x']} vs {nm}** — {abs(v):.1f}% {'fewer' if v >= 0 else 'more'} overheat shield hours.\n\n"
+                                f"Fewer hours means less heat dumped and less thermal stress on the tank and PCM.")
+                    show_chart(fig2b, "dfig2b", _ex2b)
+            if drls and b0 and b1:
+                for col, name in zip(st.columns(len(drls)), drls):
+                    with col:
+                        st.metric(f"{name} delivery vs B0 / B1",
+                                  f"{100 * (ctr[name]['delivered_kWh'] / ctr[b0]['delivered_kWh'] - 1):+.1f}% / "
+                                  f"{100 * (ctr[name]['delivered_kWh'] / ctr[b1]['delivered_kWh'] - 1):+.1f}%",
+                                  help="Hot-water delivery relative to the always-on pump (B0) and the reactive-rule controller (B1).")
+
+        # ---------------------------------------------------------------- 3. latency
         inf = dep.get("inference")
         if inf:
             st.subheader("3 · Inference latency & memory footprint (embedded-target proxy)")
             names = list(inf)
             l1, l2, l3 = st.columns(3)
             with l1:
-                f3a = go.Figure(go.Bar(x=names, y=[inf[a]["ms"] * 1000 for a in names], marker_color=C_DQN))
-                f3a.update_layout(title="Latency per decision (µs)", height=300, template="plotly_white")
-                show_chart(f3a, "dfig3a", lambda p: f"**{p['x']}** — {p['y']:.0f} µs per decision. The controller decides once per hour, so a slow microcontroller has enormous headroom.")
+                f3a = go.Figure(go.Bar(x=names, y=[inf[a]["ms"] * 1000 for a in names],
+                                       marker_color=[palette.get(a, C_DQN) for a in names]))
+                f3a.update_layout(title="Mean latency per decision (µs)", height=300, template="plotly_white")
+                show_chart(f3a, "dfig3a", lambda p: (f"**{p['x']}** — {p['y']:.0f} µs per decision.\n\nThe controller decides once "
+                                                     f"per hour, so even a slow microcontroller has enormous headroom."))
             with l2:
-                f3b = go.Figure(go.Bar(x=names, y=[inf[a]["kB"] for a in names], marker_color=C_SAC))
+                f3b = go.Figure(go.Bar(x=names, y=[inf[a]["kB"] for a in names],
+                                       marker_color=[palette.get(a, C_SAC) for a in names]))
                 f3b.update_layout(title="Model weights (kB, fp32)", height=300, template="plotly_white")
-                show_chart(f3b, "dfig3b", lambda p: f"**{p['x']}** — {p['y']:.0f} kB of weights; small enough for a low-cost embedded controller.")
+                show_chart(f3b, "dfig3b", lambda p: (f"**{p['x']}** — {p['y']:.0f} kB of weights at 32-bit precision.\n\n"
+                                                     f"Small enough to fit on a low-cost embedded controller."))
             with l3:
                 st.markdown("**Parameters**")
                 for a in names:
-                    st.metric(a, f"{inf[a]['params']:,}", help="Number of weights in the acting network.")
+                    st.metric(a, f"{inf[a]['params']:,}", help="Number of trainable weights in the policy network.")
             if dep.get("note"):
                 st.caption(dep["note"])
+
+        # ---------------------------------------------------------------- 4. sensor faults
         faults = dep.get("faults")
         if faults is not None and len(faults):
             st.subheader("4 · Robustness under sensor faults (observation corrupted, physics true)")
             fdf = faults
             f4 = go.Figure()
-            for i, a in enumerate(dict.fromkeys(fdf["policy"])):
+            for a in dict.fromkeys(fdf["policy"]):
                 sub = fdf[fdf["policy"] == a]
-                f4.add_bar(name=a, x=sub["fault"], y=sub["delivered_kWh"], marker_color=[C_DQN, C_SAC, C_B0, C_B1][i % 4])
-            f4.update_layout(title="Delivered energy under sensor faults (kWh/yr)", barmode="group", template="plotly_white", height=360)
+                f4.add_bar(name=a, x=sub["fault"], y=sub["delivered_kWh"], marker_color=palette.get(a, C_B1))
+            f4.update_layout(title="Delivered energy under sensor faults (kWh/yr)", barmode="group", template="plotly_white",
+                             height=360)
             f4.update_xaxes(tickangle=25)
 
             def _ex4(p):
                 a = f4.data[p["curve_number"]].name
                 nom = fdf[(fdf["policy"] == a) & (fdf["fault"].isin(["nominal", "none"]))]
                 nom_txt = f" (clean sensors: {nom['delivered_kWh'].iloc[0]:.0f} kWh)" if len(nom) else ""
-                return (f"**{a} with fault '{p['x']}'** — delivers {p['y']:.0f} kWh/yr{nom_txt}.\n\nThe policy is fed wrong readings, but the safety "
-                        f"shield uses the true state, so safety holds and only efficiency can slip.")
+                return (f"**{a} with fault '{p['x']}'** — delivers {p['y']:.0f} kWh/yr{nom_txt}.\n\nThe policy is fed wrong "
+                        f"readings, but the safety shield uses the true state, so safety holds and only efficiency can slip.")
             show_chart(f4, "dfig4", _ex4)
             n_viol = int(fdf["violations"].sum())
-            (st.success if n_viol == 0 else st.warning)(
-                f"Zero hard-limit violations across all {len(fdf)} (policy × fault) scenarios." if n_viol == 0
-                else f"{n_viol} hard-limit violations recorded — investigate.")
+            if n_viol == 0:
+                st.success(f"Zero hard-limit violations across all {len(fdf)} (policy × fault) scenarios — the shield acts on the "
+                           f"true physical state, so safety holds even on corrupted sensor readings.")
+            else:
+                st.warning(f"{n_viol} hard-limit violations recorded — investigate.")
             with st.expander("Raw sensor-fault results"):
                 st.dataframe(fdf, hide_index=True, width="stretch")
+
+    # ---------------------------------------------------------------- algorithm table
     rows = P.get("algo_rows")
     if rows:
         st.divider()
@@ -464,8 +533,8 @@ def render_deployment(P: dict) -> None:
             arows = []
         if arows:
             r = rows[arows[0]]
-            st.info(f"**{r[0]}** ({r[1]}) — {r[2]}.\n\n\"Always-charge\" means it learned nothing better than leaving the pump on; it only counts "
-                    f"as a success if it beats that with fewer shield hits.")
+            st.info(f"**{r[0]}** ({r[1]}) — {r[2]}.\n\n\"Always-charge\" means it learned nothing better than leaving the pump on; "
+                    f"it only counts as a success if it beats that with fewer shield hits.")
         if P.get("selection_note"):
             st.caption(P["selection_note"])
 

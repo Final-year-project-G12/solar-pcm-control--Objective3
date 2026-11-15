@@ -195,7 +195,8 @@ def deployment(regime: int):
     ctr = {}
     for k, v in d["policies"].items():
         ctr[names.get(k, k)] = {"delivered_kWh": v["E_del45_kWh_yr"], "thermal_efficiency_pct": v["thermal_efficiency_pct"],
-                                "demand_coverage_pct": v["demand_coverage_pct"], "shield_h": v["shield_h_yr"], "violations": v["violations"]}
+                                "demand_coverage_pct": v["demand_coverage_pct"], "shield_h": v["shield_h_yr"], "violations": v["violations"],
+                                "backup_kWh": v.get("backup_heat_kWh_yr")}
     inf = d.get("inference", {})
     algo = d["run"]["algo"].upper()
     rows = [{"policy": pol, "fault": f, "delivered_kWh": m["E45_kWh"], "shield_h": m["shield_h"], "violations": m["violations"]}
