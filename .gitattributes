@@ -1,0 +1,3 @@
+# Vendored Objective-2 files are hashed by the O3 contract (provenance check), and those hashes were taken on Windows (CRLF).
+# Store them byte-for-byte so a Linux checkout (CI, Streamlit Cloud) sees the same bytes.
+deploy/vendor/** -text
