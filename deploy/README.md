@@ -1,7 +1,8 @@
 # Deploying the combined dashboard (Streamlit Community Cloud, free)
 
-The combined app is `streamlit_app.py` at the repo root. It shows Rajasthan and Uttarakhand through their own unmodified apps and
-Tamil Nadu through its saved result dashboards (Tamil Nadu has no interactive app).
+The combined app is `streamlit_app.py` at the repo root. Every state page runs that state's own portal (the Tamil Nadu design: a Live Controller tab
+and a Deployment & ML Models tab): `rajasthan/app/streamlit_app.py`, `uttarakhand/app/streamlit_app.py` and `tamilnadu/scripts/streamlit_portal.py`.
+The Tamil Nadu page also keeps its saved result dashboards in an expander.
 
 ## What is in the repo for this
 | Path | Purpose |
@@ -9,6 +10,7 @@ Tamil Nadu through its saved result dashboards (Tamil Nadu has no interactive ap
 | `streamlit_app.py`, `hub/` | the multipage app and `hub/state_runner.py`, which runs one state's app at a time with a clean module table |
 | `requirements.txt` | single requirements file (CPU-only torch via the PyTorch CPU index) |
 | `.streamlit/config.toml` | headless, no file watcher, no telemetry |
+| `deploy/vendor/objective2-tamilnadu/` | the part of the Objective-2 Tamil Nadu tree that Tamil Nadu's portal reads (`src/`, `config.py`, `configs/`, Objective-1 CSVs without the 150 MB raw-weather and suntime files, validation-and-training weather 2016-2023). About 21 MB. `hub/state_runner.py` points Tamil Nadu at it with `O2_ROOT` |
 | `deploy/vendor/objective2-rajasthan/` | the part of the Objective-2 Rajasthan tree that Rajasthan's O3 reads (`src/`, `config.py`, `configs/`, contract and selection files, train+validation weather 2016-2023, O1 shortlist). About 20 MB. Rajasthan's `config_O2.py` normally looks for this tree OUTSIDE the repo; `hub/state_runner.py` points it here with `O2_RAJASTHAN_ROOT` |
 | `tests/test_hub_app.py` | smoke test: every page loads, each state runs on its own `o3`, vendored files present |
 | `.github/workflows/deploy-dashboard.yml` | test on every push / PR; on a passing push to `main`, copy that commit to the `deploy` branch |

@@ -1,0 +1,518 @@
+{
+  "generated_at_utc": "2026-09-17T10:18:01.259007+00:00",
+  "objective1_root": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline",
+  "small_structural_files": [
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\population_grid_points.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\population_grid_points.csv",
+      "sha256": "3bfb961d454fbf46aa4125548817e9b5ce547e088561d72d4906eb57ebfa3227",
+      "size_bytes": 10575,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\suntimes.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\suntimes.csv",
+      "sha256": "0709ccadef43a4743c37938c489a68f8d68fae867e7e2633f27f5177ced8de86",
+      "size_bytes": 84051907,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\daily_aggregates_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\daily_aggregates_tamilnadu.csv",
+      "sha256": "c2bcd2249e8413ff51f431bc26b1aa95e4233056fe741a21eb62d3367eca1064",
+      "size_bytes": 65726220,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\tier2_signature_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\tier2_signature_tamilnadu.csv",
+      "sha256": "4da0f066d83f57831b63573782ca0a5d298f94a6d293e18215f793185860f946",
+      "size_bytes": 35272,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\era5_power_agreement_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\era5_power_agreement_tamilnadu.csv",
+      "sha256": "b3053f50d61fa67cb0d749fa4a3f1e4fc186dfebf8214db3d35cd49414a22e4a",
+      "size_bytes": 3887,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\signatures\\climate_signature_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\climate_signature_tamilnadu.csv",
+      "sha256": "8927b13078042c2ea63a702d49ed2382329088798e1029fedf2ba5ba6a4941f0",
+      "size_bytes": 210698,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\signatures\\pca_loadings.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\pca_loadings.csv",
+      "sha256": "274bc4379644b2a6ad36d5dde3134f2f04b3e6a4be6e34e57ba76d59e05f20fd",
+      "size_bytes": 632,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\cluster_assignments_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\cluster_assignments_tamilnadu.csv",
+      "sha256": "bc89aa95f18ad6fc22428bb423c21988f2a095bbd2b4783674b02e7703a40ae6",
+      "size_bytes": 17750,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\cluster_profiles_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\cluster_profiles_tamilnadu.csv",
+      "sha256": "96d1d305cfbbeceac59939f3db5c3cfe264543c309776fd318cd873536865cd5",
+      "size_bytes": 2400,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\bic_selection_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\bic_selection_tamilnadu.csv",
+      "sha256": "b76fb54fe4ba7fa1e859f1c83bd02aed9853bc71cf3789429bd6a91ce5a598b5",
+      "size_bytes": 1769,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\kmeans_comparison_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\kmeans_comparison_tamilnadu.csv",
+      "sha256": "97ab3d510931eb834f5677d90e03727f87ff21f7521b2e32407adbf47524b0a5",
+      "size_bytes": 271,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\cluster_profile_cards_tamilnadu.md",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\cluster_profile_cards_tamilnadu.md",
+      "sha256": "2e12c10e59e18a712cc94b5c3c9a2d058ce863db3aa4a4558273db97fa44af72",
+      "size_bytes": 5317,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\cluster_assignments_tamilnadu_levelB.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\cluster_assignments_tamilnadu_levelB.csv",
+      "sha256": "c619233263202798f1357146195dba4e7806a453b70180f33dc2c5c6d9928a2d",
+      "size_bytes": 58090,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\bic_selection_tamilnadu_levelB.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\bic_selection_tamilnadu_levelB.csv",
+      "sha256": "c2d7df7c7f1acb76b94f44782ee02ac2afa3571ba7281039be5d0ce6005734c5",
+      "size_bytes": 1190,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\level_b_feature_importance_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\level_b_feature_importance_tamilnadu.csv",
+      "sha256": "c7e7e2550f65db1a3376e39125224568b202913f06a3740c106881d706652dd4",
+      "size_bytes": 1138,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\level_b_season_contingency_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\level_b_season_contingency_tamilnadu.csv",
+      "sha256": "8d51509b655cc0a57db6022463272b13dc2de999298e70d78ef7a93887a34046",
+      "size_bytes": 85,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\clustering\\level_b_season_tautology_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\level_b_season_tautology_tamilnadu.csv",
+      "sha256": "8b5adad65ab87e0a8fe4200f7fa53e75650a8b7facfb2a881673ffa00be6c895",
+      "size_bytes": 254,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\pcm_database_tamilnadu.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\pcm_database_tamilnadu.csv",
+      "sha256": "56dc3f6461e1581ee979e59ae9bfb41a636f6081eaad035fb9af9d1c8bca7fa0",
+      "size_bytes": 14641,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\feasibility_survivors_by_cluster.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\feasibility_survivors_by_cluster.csv",
+      "sha256": "d31fe1a768eeed99e8fe1e38b73588ed5e0e1d5af66bf365f114aff1f49e6e7b",
+      "size_bytes": 84125,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\feasibility_survivors_by_cluster_kappa_calibrated.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\feasibility_survivors_by_cluster_kappa_calibrated.csv",
+      "sha256": "4f1d33db1cb7e06f452c8b83f54a3146d96d378168e0ff462d78a7fa7ccabd32",
+      "size_bytes": 85159,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\mcdm_topk_by_cluster.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\mcdm_topk_by_cluster.csv",
+      "sha256": "f3b7fd91c9b5242f5880b8817219bfad5acc3fba0fea9d7dd4b2638a66e3cba8",
+      "size_bytes": 11024,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\mcdm_full_rankings.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\mcdm_full_rankings.csv",
+      "sha256": "872894f81913ad909e72a2f3dddc12058c8076c541ad0b950963b83eadfbbdf0",
+      "size_bytes": 29486,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\mcdm_method_agreement.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\mcdm_method_agreement.csv",
+      "sha256": "dbaacf99a2e9e928dd691de82448ff16680a135e45fe2427497476799778dfd9",
+      "size_bytes": 1079,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\monte_carlo_stability.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\monte_carlo_stability.csv",
+      "sha256": "18f11244908b6eb36305ea76e418b70d9f26878452265bb7e8e29677b5795e31",
+      "size_bytes": 2629,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\physics_validation_results.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\physics_validation_results.csv",
+      "sha256": "22ad6c85edbed02bbf8326b32f857c751419435f156af2c58d49174fb93834a2",
+      "size_bytes": 2381,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\physics_validation_spearman.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\physics_validation_spearman.csv",
+      "sha256": "56d211b5911ee2c4103d54c1287efd97b62ccac546565e192a83b2b0b589ac3c",
+      "size_bytes": 497,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\seasonal_pcm_sensitivity_topk.csv",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\seasonal_pcm_sensitivity_topk.csv",
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "size_bytes": 2,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\seasonal_pcm_sensitivity_summary.md",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\seasonal_pcm_sensitivity_summary.md",
+      "sha256": "138ab474435899fd3ebf60a89098c29e2f979b2d51c75166aff49e8187abcf77",
+      "size_bytes": 1250,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\pcm\\recommendation_cards.md",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\recommendation_cards.md",
+      "sha256": "4a02d97c08e48e27255d9280a097a0f96e7879a35c0b0fb49062e6b52ae0b5ba",
+      "size_bytes": 7194,
+      "status": "copied"
+    }
+  ],
+  "large_referenced_files": [
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\processed\\climate_tamilnadu_points.csv",
+      "dest": null,
+      "sha256": "1d6b3fefcd6f8658ff6c1cc6aae2e0e9a20543a60b5875a6e7a8850260a41096",
+      "size_bytes": 631787153,
+      "status": "referenced_only"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\preprocessed\\tamilnadu_cleaned_physical.csv",
+      "dest": null,
+      "sha256": "1c7e75e18aceba20652ea78de00044a86a461a17b09813a70795af0e83068b5e",
+      "size_bytes": 1792629119,
+      "status": "referenced_only"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\preprocessed\\tamilnadu_cleaned_scaled.csv",
+      "dest": null,
+      "sha256": "d72858545988852e6d5eb3b0e0ec0f3f10e038778690ddebaac160cd1c62cae4",
+      "size_bytes": 1978706300,
+      "status": "referenced_only"
+    }
+  ],
+  "medoid_points": [
+    {
+      "cluster_id": 0,
+      "point_id": "TNP_0006"
+    },
+    {
+      "cluster_id": 1,
+      "point_id": "TNP_0007"
+    },
+    {
+      "cluster_id": 2,
+      "point_id": "TNP_0001"
+    }
+  ],
+  "medoid_raw_weather_files": [
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2016.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2016.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "632edb88a86959c5d7d23ca860d2cf8174f11e37391e5e1a36c199b3ef576174",
+      "size_bytes": 812103,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2017.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2017.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "72dc403f3a17d47a7da9d328fafadddb0d42c6d5bd83ec5ed24df18b612bf99a",
+      "size_bytes": 809871,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2018.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2018.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "16e92b9cc7e017e0033ae29577e14d7536b9131c132090e2baf67e48a6166258",
+      "size_bytes": 809784,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2019.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2019.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "37f3def0c4fd90b7d4342c296e6ebf35723a053f01c4d7d259a8f17a6cadebf7",
+      "size_bytes": 809890,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2020.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2020.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "9108283ce4bdb5aab43d0f05b579c1f49443578341d7d2a85a01198fefe12699",
+      "size_bytes": 812050,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2021.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2021.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "56183ff7b9008c4f9abfa6c6ee24516dfe922aa544aa549ac59c48089aea27d9",
+      "size_bytes": 809863,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2022.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2022.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "691299931d1391d4f0c602bb5c67817bb6d0fca41f69feb2a6b5367f27ff483a",
+      "size_bytes": 809678,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2023.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2023.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "7f0e48452e5c9b85bbce2f600201baf92c30f806d19ccf9bc99d077fb8ad7087",
+      "size_bytes": 809878,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2024.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2024.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "6d31767f7b0fcd7d4a406069738d2d59739637bae734eeea68cda686e77286b9",
+      "size_bytes": 812078,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0006_2025.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0006_2025.json",
+      "cluster_id": 0,
+      "point_id": "TNP_0006",
+      "sha256": "46a726c4d5943b91e040aa52e20afd1f01f446e2f30d6ff12e2f4abb2116f2cb",
+      "size_bytes": 809771,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2016.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2016.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "5b9c4c245fc5a7812824edf2581db9695c369e1a2a72364216f9018714d59e6c",
+      "size_bytes": 811494,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2017.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2017.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "b72dbc03e44885c8a1d16b301bc68e882feef66aba97f031f5a231739570fe1f",
+      "size_bytes": 809399,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2018.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2018.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "e844e727fc04db5a0987259f69433b9b984c74def4b433fbc1ebfaba8f0445de",
+      "size_bytes": 809448,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2019.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2019.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "db3961af110b52e0c6fb800e89723355f79a5266f7bb0c627c97163ef62f66ab",
+      "size_bytes": 809485,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2020.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2020.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "ce10a6b2a3ee3b80b2833a45d27f155821832253e9df37ea0a44fc66d8741d2d",
+      "size_bytes": 811602,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2021.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2021.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "773024aab56dd60297c864e5d1d14bb4025e0c6faa5b1279ec367f38a6134a6b",
+      "size_bytes": 809364,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2022.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2022.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "2b7c05395349f58c19c36640a643c6d24e86951119109e94e1134dcf06b800b6",
+      "size_bytes": 809352,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2023.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2023.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "4594ff663c849d5be16d7ca91dd612d989abb43928422ea80052cc07f5feb3c6",
+      "size_bytes": 809498,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2024.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2024.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "b1d148df76c5b97cdbe816574f9ebc1d18f14b88b43da9c71380d08d8f568151",
+      "size_bytes": 811662,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0007_2025.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0007_2025.json",
+      "cluster_id": 1,
+      "point_id": "TNP_0007",
+      "sha256": "f8625609d42a0543ddd42b177a063c35f6c1d6d94fc2649b20a83015d3582d97",
+      "size_bytes": 809556,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2016.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2016.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "50feb53cd9a976dec5286085ef8b26990612a28025c6a12e677caffb1e3bae49",
+      "size_bytes": 811835,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2017.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2017.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "a212d27f2084a2d94cf7e6853c46ef1fa5f1691daf98c5530581ba95f66b14dd",
+      "size_bytes": 809706,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2018.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2018.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "0a3871ae882e25663f90b6633db25087ac2d169cb64600353a35ae71a303a8e0",
+      "size_bytes": 809740,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2019.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2019.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "c1950b57068f0f47e45d3b9e8a150ac518ce3278499741846517c92372f649fe",
+      "size_bytes": 809772,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2020.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2020.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "fa7b1a7eea6050e37f867d934a67534bea5909287377108185178c832668b221",
+      "size_bytes": 811876,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2021.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2021.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "31454186fe84d9968034e34208911971e87e72d5570c77b9894b486f4a737b5a",
+      "size_bytes": 809716,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2022.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2022.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "2cb3317d99651a60f5a1c7c654cdd432fafcc475504dd696a36a817deddbf228",
+      "size_bytes": 809651,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2023.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2023.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "7f8bfd60a4a35be81178bd4e8c93abcf5230ce4c6ae8f894e9b9c0f5fabc0744",
+      "size_bytes": 809567,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2024.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2024.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "043dee1cac1a8471abb91aca5b707f05c084d01dbe80c855c500e223db352767",
+      "size_bytes": 811848,
+      "status": "copied"
+    },
+    {
+      "source": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\tamilnadu_pipeline\\data\\raw\\nasapower\\power_TNP_0001_2025.json",
+      "dest": "C:\\Users\\jaswi\\OneDrive\\Desktop\\ALL\\SEM_7\\project\\jammalamadugu\\new_obj\\objective2_design_optimization\\data\\objective1\\raw_weather\\power_TNP_0001_2025.json",
+      "cluster_id": 2,
+      "point_id": "TNP_0001",
+      "sha256": "2258f75626841ff26d3b970bc129ba357e0e13703162e69717c1554d9a3454ff",
+      "size_bytes": 809767,
+      "status": "copied"
+    }
+  ]
+}

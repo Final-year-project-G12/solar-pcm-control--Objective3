@@ -25,15 +25,18 @@ import streamlit as st
 
 REPO = Path(__file__).resolve().parents[1]
 VENDOR_RJ = REPO / "deploy" / "vendor" / "objective2-rajasthan"
+VENDOR_TN = REPO / "deploy" / "vendor" / "objective2-tamilnadu"
 
 STATES = {
     "rajasthan": dict(label="Rajasthan", root=REPO / "rajasthan", app="app/streamlit_app.py",
                       paths=[REPO / "rajasthan"], env={"O2_RAJASTHAN_ROOT": str(VENDOR_RJ)}),
+    "tamilnadu": dict(label="Tamil Nadu", root=REPO / "tamilnadu", app="scripts/streamlit_portal.py",
+                      paths=[REPO / "tamilnadu", VENDOR_TN], env={"O2_ROOT": str(VENDOR_TN)}),
     "uttarakhand": dict(label="Uttarakhand", root=REPO / "uttarakhand", app="app/streamlit_app.py",
                         paths=[REPO / "uttarakhand"], env={}),
 }
-_OWNED_ROOTS = [REPO / "rajasthan", REPO / "uttarakhand", REPO / "tamilnadu", VENDOR_RJ]
-_PLAIN_NAMES = {"o3", "config", "config_O2", "src", "app", "scripts", "conftest"}   # top-level names the states reuse
+_OWNED_ROOTS = [REPO / "rajasthan", REPO / "uttarakhand", REPO / "tamilnadu", VENDOR_RJ, VENDOR_TN]
+_PLAIN_NAMES = {"o3", "config", "config_O2", "src", "app", "scripts", "conftest", "portal_ui"}   # top-level names the states reuse
 
 _LOCK = threading.RLock()
 _ACTIVE: dict = {"state": None, "env": {}}
@@ -92,9 +95,9 @@ def run_state_app(key: str) -> None:
     if not app.exists():
         st.error(f"{cfg['label']} app not found at {app.relative_to(REPO)}")
         return
-    if key == "rajasthan" and not VENDOR_RJ.exists():
-        st.error("The vendored Objective-2 Rajasthan tree (deploy/vendor/objective2-rajasthan) is missing, "
-                 "so Rajasthan cannot run here.")
+    vendor = {"rajasthan": VENDOR_RJ, "tamilnadu": VENDOR_TN}.get(key)
+    if vendor is not None and not vendor.exists():
+        st.error(f"The vendored Objective-2 tree ({vendor.relative_to(REPO)}) is missing, so {cfg['label']} cannot run here.")
         return
     if key == "rajasthan":
         from hub.vendor_fix import ensure_vendor_bytes      # git may have changed the line endings the contract hashes depend on

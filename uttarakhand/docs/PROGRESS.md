@@ -114,3 +114,4 @@ Each controller x regime x validation year (51 episodes):
   `core.autocrlf=true`: all 642 files byte-identical to the working folder; contract check, all frozen-policy hashes,
   the lock fingerprint and the 96-file O2 snapshot test pass inside the clone. **`caa7e8d` is the first commit that
   contains exactly the files the frozen policies and the M6 lock refer to.**
+* **2026-11-15** - `app/streamlit_app.py` is now the Tamil-Nadu-style portal (`app/portal_ui.py` + adapter); the old demo is `app/classic_app.py`. New `tests/test_portal_app.py`.

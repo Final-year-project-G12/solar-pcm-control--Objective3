@@ -16,7 +16,7 @@ the new section 12.2; the Rajasthan tree differs from it in the places below. "F
 | 8 | Section 8.2: locked test 2011-2015; train includes 2024-2025 | Locked test 2006-2010; 2011-2015 and 2024-2025 are refused (`used_o2`) | Flagged - stricter in Rajasthan, deliberately |
 | 9 | Section 6.2: six algorithms trained | PPO, DQN, SAC trained; QR-DQN, RecurrentPPO, MaskablePPO only smoke-tested | Flagged - scope decided: DQN and SAC only |
 | 10 | Section 10: Generation-2 "designed; to be re-run" | Generation-2 was run for Rajasthan (DQN all regimes, SAC regime 1 sweep) | Flagged - the Rajasthan results are in CORRECTIONS.md |
-| 11 | Section 11: `make_live_dashboard.py`, `streamlit_portal.py` | Not present; the portal is `app/streamlit_app.py` | Flagged - different file, same function |
+| 11 | Section 11: `make_live_dashboard.py`, `streamlit_portal.py` | `app/streamlit_app.py` is now the Tamil-Nadu-style portal (2026-11-15; shared UI in `app/portal_ui.py`) | Fixed - same design, own adapter |
 | 12 | Section 11: hand-off exports an 11-signal sensor list | `phase8_o4_handoff.py` exports 13 (V2) or 17 (V3, via `--run`) signals | Flagged - Rajasthan is the newer version |
 | 13 | Section 8.4: checkpoint-resume exists for DQN and SAC | Rajasthan trainers had none | **Fixed** - added to `o3/agents/gen2.py` |
 | 14 | Section 16 cites `docs/LITERATURE_REVIEW.md`, `docs/references.bib` | Neither exists in `rajasthan/docs/` | Flagged - belongs to the paper, not the controller code |

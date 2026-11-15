@@ -67,15 +67,33 @@ def test_line_ending_repair_fixes_lf_checkouts(tmp_path, monkeypatch):
 
 def test_states_stay_isolated_and_switching_works(app):
     for page, state in [("hub/page_rajasthan.py", "rajasthan"), ("hub/page_uttarakhand.py", "uttarakhand"),
-                        ("hub/page_rajasthan.py", "rajasthan"), ("hub/page_tamilnadu.py", None)]:
+                        ("hub/page_rajasthan.py", "rajasthan"), ("hub/page_tamilnadu.py", "tamilnadu")]:
         app.switch_page(page).run()
         assert not app.exception, f"{page}: {[e.value for e in app.exception]}"
         assert app.title, f"{page}: no title rendered"
-        if state:
-            assert f"/{state}/o3/" in _o3_origin(), f"{page} ran on {_o3_origin()}"
+        origin = _o3_origin()
+        if state == "tamilnadu":
+            # Tamil Nadu's portal imports o3 only when Run is pressed; before that no other state's o3 may be present
+            assert origin == "" or "/tamilnadu/o3/" in origin, f"{page} ran on {origin}"
+        elif state:
+            assert f"/{state}/o3/" in origin, f"{page} ran on {origin}"
 
 
-def test_banner_on_every_hub_page(app):
-    for page in ("hub/page_home.py", "hub/page_tamilnadu.py"):
+def test_no_red_banner_at_the_top_of_hub_pages(app):
+    """The 'Software-in-the-loop ... Not field validation' banner was removed from the top of every page on request."""
+    for page in ("hub/page_home.py", "hub/page_rajasthan.py", "hub/page_uttarakhand.py", "hub/page_tamilnadu.py"):
         app.switch_page(page).run()
-        assert any("Not field validation" in e.value for e in app.error)
+        assert not any("Not field validation" in e.value for e in app.error), page
+
+
+@pytest.mark.parametrize("page", ["hub/page_rajasthan.py", "hub/page_uttarakhand.py", "hub/page_tamilnadu.py"])
+def test_portal_runs_a_replay_on_every_state(app, page):
+    """Each state's portal (Tamil Nadu design): press Run on the default replay window; the metrics against the always-on pump appear."""
+    app.switch_page(page).run()
+    run = [b for b in app.sidebar.button if "Run" in b.label]
+    assert run, f"{page}: no Run button in the sidebar"
+    run[0].click().run()
+    assert not app.exception, f"{page}: {[e.value[:300] for e in app.exception]}"
+    labels = [m.label for m in app.metric]
+    assert "Hot water delivered" in labels, f"{page}: portal metrics missing ({labels[:6]})"
+    assert not any("Run failed" in e.value for e in app.error), f"{page}: {[e.value[:200] for e in app.error]}"

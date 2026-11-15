@@ -102,7 +102,8 @@ Takes `results/o3_test.lock` (exclusive create) before loading a single test hou
 ## 7. Demo (Phase O3-7), hand-off (Phase O3-8), plots
 
 ```bash
-streamlit run app/streamlit_app.py     # replay + live, banner on every view
+streamlit run app/streamlit_app.py     # the portal (Tamil Nadu design): Live Controller + Deployment & ML Models tabs, banner on every view
+streamlit run app/classic_app.py       # the original Rajasthan demo, unchanged in behaviour
 python scripts/phase7_demo.py --mode stub --algo b1 --steps 48
 python scripts/phase7_demo.py --mode replay --year 2021 --algo ppo --regime 1 --steps 168
 python scripts/phase7_demo.py --mode live --algo ppo --regime 1 --steps 24 --interval 3600   # needs internet

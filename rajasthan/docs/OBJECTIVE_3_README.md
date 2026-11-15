@@ -39,7 +39,7 @@ untuned TN rules lose 12–48 kWh versus the twin; no trained agent has been eva
 | 4 training / multi-seed / re-score | `phase4_train.py`, `phase4_multiseed.py`, `phase4_reeval.py` | `--n-envs`, `--n-jobs` |
 | 5 robustness | `phase5_robustness.py` | `--n-jobs` |
 | 6 locked test (once) | `phase6_locked_eval.py` | `--n-jobs` |
-| 7 demo | `phase7_demo.py`, `app/streamlit_app.py` | — |
+| 7 demo | `phase7_demo.py`, `app/streamlit_app.py` (portal), `app/classic_app.py` | — |
 | 8 O4 hand-off spec | `phase8_o4_handoff.py` | — |
 | plots, benchmark | `make_plots.py`, `benchmark_speedup.py` | — / `--n-jobs --n-envs` |
 Details and timings: `HOW_TO_RUN.md`.

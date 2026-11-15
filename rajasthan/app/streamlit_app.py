@@ -1,148 +1,234 @@
 """
-Objective 3 — Streamlit demo (plan 15.9, M7).   Run:  streamlit run app/streamlit_app.py
+Objective 3 (Rajasthan) — Streamlit portal, same design as tamilnadu/scripts/streamlit_portal.py.   Run:  streamlit run app/streamlit_app.py
 
     Software-in-the-loop simulation. Not field validation.
 
-Replay mode: pick a regime (O2 medoid), an allowed year (train / validation roles only — test years are never offered
-and the loader refuses them without the O3 lock) and a date range; B0, B1, B2 (and any trained agent found under results/)
-run side by side through the same environment step; temperatures, melt fraction, draw, action, shield status,
-cumulative delivered energy and over-limit time are shown; the log can be downloaded.
-Live mode: an hourly adapter (Open-Meteo at the chosen medoid) advances the simulator one step per click; provider,
-timestamp, latency and missing-data flags are logged; stale or failed data falls back visibly to persistence / stub.
-The policy shown is a frozen checkpoint; nothing here trains and the O3 test years are never touched.
+The user interface is app/portal_ui.py (shared with the other states); this file is the Rajasthan adapter: it runs the frozen Objective-2
+simulator (PCMEnv) with a baseline or a trained agent, records every hour in the portal's record format, and supplies the deployment
+metrics. Replay uses train / validation years only (the held-out test years are never offered and the loader refuses them); LIVE uses
+Open-Meteo at the regime's medoid point. Nothing here trains and the O3 test years are never touched.
+The previous Rajasthan demo is kept as app/classic_app.py.
 """
-
+import datetime
+import json
 import pathlib
 import sys
+import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+APP_DIR = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(APP_DIR))
 import config_O2  # noqa: E402
 
 config_O2.setup_paths()
 
 import pandas as pd  # noqa: E402
-import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
-from plotly.subplots import make_subplots  # noqa: E402
 
-from o3.demo.live_adapter import BANNER, MEDOIDS, LiveDemoRunner, DemoMode  # noqa: E402
-from o3.demo.replay import run_replay, available_models, POLICY_LABELS  # noqa: E402
+from o3.demo.live_adapter import BANNER, MEDOIDS  # noqa: E402
+from o3.demo.replay import _policy  # noqa: E402
+from o3.environment.pcm_env import PCMEnv  # noqa: E402
 from o3.utils import weather_roles  # noqa: E402
+import portal_ui  # noqa: E402
 
-COLORS = {"twin": "#898781", "b0": "#2a78d6", "b1": "#eb6834", "b2": "#1baf7a"}
-PALETTE = ["#6250d6", "#e34948", "#eda100", "#e87ba4", "#008300", "#52514e"]
+st.set_page_config(page_title="O3 Rajasthan portal", layout="wide")
 
-st.set_page_config(page_title="O3 PCM controller demo", layout="wide")
-
-
-def banner() -> None:
-    """Persistent label — rendered at the top of every view."""
-    st.error(f"**{BANNER}** All tank, PCM and melt-fraction values come from the frozen Objective-2 simulator, not from sensors.",
-             icon=":material/warning:")
-
-
-@st.cache_data(show_spinner="Simulating…")
-def _replay(regime: int, year: int, key: str, n_hours: int, model: tuple | None) -> pd.DataFrame:
-    return run_replay(regime, year, key, n_hours, model)
+RES = config_O2.RESULTS_DIR
+RERUN = RES / "rerun_2026-11-13" / "gen2"
+ORIG = RES / "gen2"
+IST_MIN = 330                      # weather rows start at 00:00 UTC; Rajasthan local time is UTC+5:30
+ALWAYS_ON = "b0"
+BASELINES = {"b0": "B0 always-on pump", "b1": "B1 reactive rule", "b2": "B2 forecast rule"}
 
 
-def replay_view() -> None:
-    models = available_models(st.session_state.regime)
-    c1, c2, c3 = st.columns(3)
-    years = weather_roles.TRAIN_YEARS + weather_roles.VAL_YEARS           # allowed roles only
-    year = c1.selectbox("Year (train / validation only)", years, index=years.index(2021))
-    start_day = c2.number_input("Start day of year", 1, 365, 150)
-    n_days = c3.number_input("Days shown", 1, 30, 7)
-    keys = st.multiselect("Policies (run side by side)", list(POLICY_LABELS), default=["twin", "b0", "b1"],
-                          format_func=POLICY_LABELS.get)
-    chosen_models = st.multiselect("Trained agents found under results/", list(models)) if models else []
-    if not models:
-        st.caption("No trained agents under results/ yet (full training has not been run); baselines only.")
-    end_hour = int((start_day - 1 + n_days) * 24)
-    runs = {POLICY_LABELS[k]: (_replay(st.session_state.regime, year, k, end_hour, None), COLORS[k]) for k in keys}
-    for i, label in enumerate(chosen_models):
-        runs[label] = (_replay(st.session_state.regime, year, "model", end_hour, models[label]), PALETTE[i % len(PALETTE)])
-    if not runs:
-        st.info("Pick at least one policy.")
-        return
-    lo, hi = int((start_day - 1) * 24), end_hour
-
-    # --- summary table over the shown range
-    rows = []
-    for label, (df, _) in runs.items():
-        d = df[(df.hour >= lo) & (df.hour < hi)]
-        rows.append({"policy": label, "E to 45 C (kWh)": d.E_del45_Wh.sum() / 1000, "window 18–09 (kWh)": d[d.in_window].E_del45_Wh.sum() / 1000,
-                     "water-shield (h)": d.shield_water_s.sum() / 3600, "PCM-shield (h)": d.shield_pcm_s.sum() / 3600,
-                     "hours over limit": d.over_limit_s.sum() / 3600, "peak T_top (C)": d.T_top_C.max(), "bypass/idle hours": int((d.action != "CHARGE").sum())})
-    st.dataframe(pd.DataFrame(rows).round(2), hide_index=True, width="stretch")
-
-    # --- curves
-    fig = make_subplots(rows=6, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[1.2, 1, 0.7, 0.8, 0.9, 0.9],
-                        subplot_titles=("Top water temperature (C) — shield guard band 72 C", "PCM temperature (C) — guard band 62 C",
-                                        "Melt fraction", "Hot-water draw (kg/h)", "Cumulative delivered to 45 C (kWh) · cumulative hours over limit (dashed)",
-                                        "Action (CHARGE = loop on) and shield-active hours"))
-    for label, (df, col) in runs.items():
-        d = df[(df.hour >= lo) & (df.hour < hi)]
-        fig.add_scatter(x=d.hour, y=d.T_top_C, name=label, line=dict(color=col), legendgroup=label, row=1, col=1)
-        fig.add_scatter(x=d.hour, y=d.T_pcm_C, name=label, line=dict(color=col), legendgroup=label, showlegend=False, row=2, col=1)
-        fig.add_scatter(x=d.hour, y=d.f_melt, name=label, line=dict(color=col), legendgroup=label, showlegend=False, row=3, col=1)
-        fig.add_scatter(x=d.hour, y=d.draw_kg, name=label, line=dict(color=col), legendgroup=label, showlegend=False, row=4, col=1)
-        fig.add_scatter(x=d.hour, y=d.cum_E_del45_kWh - d.cum_E_del45_kWh.iloc[0], name=label, line=dict(color=col), legendgroup=label, showlegend=False, row=5, col=1)
-        fig.add_scatter(x=d.hour, y=d.cum_over_limit_h - d.cum_over_limit_h.iloc[0], line=dict(color=col, dash="dash"), legendgroup=label, showlegend=False, row=5, col=1)
-        fig.add_scatter(x=d.hour, y=(d.action == "CHARGE").astype(int) * 0.8 + (d.shield_active.astype(int)) * 0.2, name=label, mode="lines",
-                        line=dict(color=col, shape="hv"), legendgroup=label, showlegend=False, row=6, col=1)
-    fig.add_hline(y=72, line_dash="dot", line_color="#e34948", row=1, col=1)
-    fig.add_hline(y=62, line_dash="dot", line_color="#e34948", row=2, col=1)
-    fig.update_layout(height=1000, margin=dict(l=40, r=10, t=40, b=30), legend=dict(orientation="h", y=1.04))
-    st.plotly_chart(fig, width="stretch")
-
-    log = pd.concat([df.assign(policy=label) for label, (df, _) in runs.items()])
-    log = log[(log.hour >= lo) & (log.hour < hi)]
-    st.download_button("Download log (CSV)", log.to_csv(index=False).encode(), f"o3_replay_r{st.session_state.regime}_{year}.csv", "text/csv")
-    st.caption(f"{BANNER} Replay of a stored {year} year, regime {st.session_state.regime} ({MEDOIDS[st.session_state.regime]['place']}).")
+# ------------------------------------------------------------------------------------------------ which trained runs to offer
+def _summary(root: pathlib.Path, algo: str) -> pd.DataFrame | None:
+    p = root / f"gen2_summary_{algo}.csv"
+    return pd.read_csv(p) if p.exists() else None
 
 
-def live_view() -> None:
-    st.write("One simulator hour per click, fed by the provider's current-hour value (a nowcast; the stored-year GHI is an hourly "
-             "mean). Needs internet; failures fall back to persistence, then to a synthetic day, and are flagged below.")
-    models = available_models(st.session_state.regime)
-    choice = st.selectbox("Policy", ["b1", "b0", "b2"] + list(models), format_func=lambda k: POLICY_LABELS.get(k, k))
-    if choice.startswith(("b0", "b1", "b2")) and choice in POLICY_LABELS:
-        algo, kw = choice, {}
-    else:                                                   # a trained agent; Gen-2 (V3) agents get the provider's next-3-hour forecast
-        algo, path, ov = models[choice][:3]
-        kw = dict(model_path=path, obs_version=ov)
-    if "live" not in st.session_state or st.session_state.get("live_key") != (choice, st.session_state.regime):
-        r = LiveDemoRunner(algo=algo, regime_id=st.session_state.regime, mode=DemoMode.LIVE, log_dir=ROOT / "results" / "demo_logs", **kw)
-        r.reset()
-        st.session_state.live, st.session_state.live_key, st.session_state.live_rows = r, (choice, st.session_state.regime), []
-    c1, c2 = st.columns(2)
-    if c1.button("Advance one hour (fetch weather)", type="primary"):
-        st.session_state.live_rows.append(st.session_state.live.step_once())
-    n = c2.number_input("Fast-forward: replay the last N hours of stub weather", 0, 168, 0)
-    if n and c2.button("Fast-forward"):
-        for _ in range(int(n)):
-            st.session_state.live_rows.append(st.session_state.live.step_once())
-    rows = st.session_state.live_rows
-    if not rows:
-        st.info("No steps yet.")
-        return
-    df = pd.DataFrame(rows)
-    if (~df.quality_ok).any():
-        st.warning("Some steps used a fallback (stale / failed provider). See the `note` column.")
-    st.line_chart(df.set_index("step")[["T_top_C", "T_bottom_C", "T_pcm_C"]])
-    st.dataframe(df[["timestamp", "source", "quality_ok", "latency_s", "ghi_wm2", "t_amb_C", "action", "E_del45_Wh", "T_top_C", "T_pcm_C", "f_melt", "note"]].tail(24),
-                 hide_index=True, width="stretch")
-    st.download_button("Download live log (CSV)", df.to_csv(index=False).encode(), "o3_live_log.csv", "text/csv")
+def _selected_runs(regime: int) -> dict:
+    """{'DQN': (root, tag), 'SAC': (root, tag)} for this regime.
+    DQN: the released run recorded in results/gen2 (the one the locked test used) for regime 1, else the re-run's selection.
+    SAC: recomputed from the summary under the annual-only rule (zero violations -> annual delivery >= 95 % of B0 -> maximum shield
+    cut), because results/gen2/gen2_selected_sac.json for regime 1 was written under the old rule and still lists an always-charge copy."""
+    out = {}
+    for root in ((ORIG, RERUN) if regime == 1 else (RERUN, ORIG)):
+        f = root / "gen2_selected_dqn.json"
+        if f.exists():
+            d = json.loads(f.read_text()).get(f"r{regime}_60min")
+            if d and (root / d["tag"] / "run_meta.json").exists():
+                out["DQN"] = (root, d["tag"])
+                break
+    for root in ((ORIG, RERUN) if regime == 1 else (RERUN, ORIG)):
+        s = _summary(root, "sac")
+        if s is None:
+            continue
+        r = s[(s.regime_id == regime) & (s.control_step_min == 60) & (s.violations == 0) & (s.pct_of_B0_delivery >= 95)]
+        r = r[[(root / t / "run_meta.json").exists() for t in r.tag]]
+        if len(r):
+            out["SAC"] = (root, r.sort_values("shield_cut_vs_B0_pct", ascending=False).iloc[0].tag)
+            break
+    return out
 
 
-banner()
-st.title("Objective 3 — adaptive PCM solar water heating controller")
-st.sidebar.header("Setup")
-st.session_state.regime = st.sidebar.radio("Regime / medoid", [0, 1, 2], index=1,
-                                           format_func=lambda r: f"{r} — {MEDOIDS[r]['place']} ({MEDOIDS[r]['point']})")
-mode = st.sidebar.radio("Mode", ["Replay", "Live"])
-st.sidebar.caption("50 L tank · 1.5 m² collector · O2's released design for this regime. Test years (2006–2010) are never shown.")
-(replay_view if mode == "Replay" else live_view)()
-banner()
+def _model_tuple(root: pathlib.Path, tag: str) -> tuple:
+    from o3.agents.gen2 import run_model_path
+    m = json.loads((root / tag / "run_meta.json").read_text())
+    return (m["algo"], str(run_model_path(root / tag)), m["obs_version"], m.get("forecast_mode", "perfect"))
+
+
+def policies(regime: int) -> dict:
+    pols = dict(BASELINES)
+    for algo, (root, tag) in _selected_runs(regime).items():
+        pols[f"{algo.lower()}_sel"] = f"{algo} (selected: {tag.split('_V3')[0]})"
+    return pols
+
+
+def default_policy(regime: int) -> str:
+    sel = _selected_runs(regime)
+    return "sac_sel" if "SAC" in sel else "dqn_sel" if "DQN" in sel else "b1"
+
+
+def _resolve(regime: int, key: str):
+    if key in BASELINES:
+        return key, None
+    algo = key.split("_")[0].upper()
+    root, tag = _selected_runs(regime)[algo]
+    return "model", _model_tuple(root, tag)
+
+
+# ------------------------------------------------------------------------------------------------ rollouts
+def _record(i, year, info, ghi, tamb, cum, k):
+    t = datetime.datetime(2001, 1, 1) + datetime.timedelta(minutes=i * 60 + IST_MIN)       # 8760-h series: 29 Feb is absent, so use a 365-day calendar
+    req, exe = int(info["action_requested"]), int(info["action_executed"])
+    cum["del"] += info["E_del45_Wh"] / 1000.0
+    cum["shield"] += (info["shield_water_s"] + info["shield_pcm_s"]) / 3600.0
+    cum["safety"] += int(info["n_safety_violations"])
+    return {"k": k, "ts": t.strftime("%d %b %H:%M"), "hod": int(info["hour_of_day"]), "ghi": round(float(ghi), 1), "tamb": round(float(tamb), 2),
+            "demand_L": round(float(info["draw_kg"]), 2), "exe": exe, "overridden": bool(req != exe or info["shield_override"]),
+            "tw": round(float(info["T_top_C"]), 2), "tpcm": round(float(info["T_pcm_C"]), 2), "melt": round(float(info["f_melt"]) * 100.0, 1),
+            "pump": 1.0 if info["Q_collector_Wh"] > 0.0 else 0.0,
+            "cum_del": round(cum["del"], 2), "cum_shield": round(cum["shield"], 2), "cum_safety": cum["safety"]}
+
+
+@st.cache_data(show_spinner=False)
+def _replay_cached(regime: int, key: str, model: tuple | None, year: int, start_h: int, n_h: int) -> list:
+    if year not in weather_roles.TRAIN_YEARS + weather_roles.VAL_YEARS:
+        raise PermissionError(f"{year} is not a train / validation year")
+    env = PCMEnv(config_O2.CONTRACT_FILE, regime_id=regime, year=year,
+                 obs_version=(model[2] if model else "V2"), forecast_mode=(model[3] if model else "perfect"))
+    pol = _policy(key, model)
+    obs, _ = env.reset(year=year)
+    pol.reset()
+    if hasattr(pol, "attach_env"):
+        pol.attach_env(env)
+    cum, rows = {"del": 0.0, "shield": 0.0, "safety": 0}, []
+    for i in range(min(start_h + n_h, 8760)):
+        a = pol.act(obs)
+        obs, _, done, _, info = env.step(a)
+        if i >= start_h:
+            rows.append(_record(i, year, info, env._ghi[i], env._tamb[i], cum, len(rows)))
+        if done:
+            break
+    return rows
+
+
+def replay(regime, key, year, start_h, n_h):
+    kind, model = _resolve(regime, key)
+    return _replay_cached(regime, kind, model, int(year), int(start_h), int(n_h))
+
+
+# ------------------------------------------------------------------------------------------------ LIVE
+def _fetch_open_meteo(lat, lon, past_days, forecast_days):
+    url = ("https://api.open-meteo.com/v1/forecast" f"?latitude={lat}&longitude={lon}&hourly=shortwave_radiation,temperature_2m"
+           f"&past_days={past_days}&forecast_days={forecast_days}&timezone=Asia%2FKolkata")
+    with urllib.request.urlopen(url, timeout=12) as resp:
+        h = json.loads(resp.read())["hourly"]
+    ghi = [float(x) if x is not None else 0.0 for x in h["shortwave_radiation"]]
+    tamb = [float(x) if x is not None else 28.0 for x in h["temperature_2m"]]
+    return h["time"], ghi, tamb, datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+
+
+def live(regime, keys, past_days, forecast_days):
+    m = MEDOIDS[regime]
+    times, ghi, tamb, fetched = _fetch_open_meteo(m["lat"], m["lon"], past_days, forecast_days)
+    runs = {}
+    for key in dict.fromkeys(keys):
+        if key == "b2":
+            raise ValueError("B2 needs the stored year's forecast and is not available in LIVE mode; pick another policy")
+        kind, model = _resolve(regime, key)
+        env = PCMEnv(config_O2.CONTRACT_FILE, regime_id=regime, year=weather_roles.VAL_YEARS[0],
+                     obs_version=(model[2] if model else "V2"), forecast_mode=(model[3] if model else "perfect"))
+        pol = _policy(kind, model)
+        env.reset(year=weather_roles.VAL_YEARS[0])
+        pol.reset()
+        if hasattr(pol, "attach_env"):
+            pol.attach_env(env)
+        cum, rows = {"del": 0.0, "shield": 0.0, "safety": 0}, []
+        n = len(ghi)
+        for k in range(n):
+            hod = int(times[k][11:13])
+            fc = tuple(ghi[k + j] if k + j < n else 0.0 for j in (1, 2, 3))     # the provider's own next three hours
+            obs = env.set_weather_override(ghi[k], tamb[k], hod, fc)
+            _, _, done, _, info = env.step(pol.act(obs))
+            r = _record(0, 2021, info, ghi[k], tamb[k], cum, k)
+            r["ts"] = times[k][8:10] + " " + times[k][11:16]
+            rows.append(r)
+            if done:
+                break
+        runs[key] = rows
+    ctx = {"label": f"{m['place']} (regime {regime} medoid {m['point']})", "lat": m["lat"], "lon": m["lon"], "fetched": fetched,
+           "now_idx": min(past_days * 24, len(ghi) - 1)}
+    return runs, ctx
+
+
+# ------------------------------------------------------------------------------------------------ deployment tab
+@st.cache_data(show_spinner=False)
+def deployment(regime: int):
+    p = RES / f"deployment_metrics_r{regime}.json"
+    if not p.exists():
+        return None
+    d = json.loads(p.read_text())
+    names = {"TWIN_water_only": "Water-only twin", "B0_fixed_charge": "B0 always-on", "B1_reactive_rule": "B1 reactive", "B2_forecast_rule": "B2 forecast"}
+    ctr = {}
+    for k, v in d["policies"].items():
+        ctr[names.get(k, k)] = {"delivered_kWh": v["E_del45_kWh_yr"], "thermal_efficiency_pct": v["thermal_efficiency_pct"],
+                                "demand_coverage_pct": v["demand_coverage_pct"], "shield_h": v["shield_h_yr"], "violations": v["violations"]}
+    inf = d.get("inference", {})
+    algo = d["run"]["algo"].upper()
+    rows = [{"policy": pol, "fault": f, "delivered_kWh": m["E45_kWh"], "shield_h": m["shield_h"], "violations": m["violations"]}
+            for pol, faults in d.get("sensor_faults", {}).items() for f, m in faults.items()]
+    return {"controllers": ctr,
+            "inference": {algo: {"ms": inf["ms_per_decision"], "params": inf["policy_parameters"], "kB": inf["fp32_weights_kB"]}} if inf else None,
+            "note": inf.get("note", ""), "faults": pd.DataFrame(rows) if rows else None,
+            "assumptions": f"Run {d['run']['tag']} · validation years {d['years']} · incident solar {d['incident_solar_kWh_yr']:.0f} kWh/yr on "
+                           f"{d['collector_area_m2']} m² · {d.get('heater_note', '')}"}
+
+
+ALGO_ROWS = [
+    ("PPO", "On-policy policy gradient", "Collapsed to always-charge (B0) on regime 1 (3 seeds)"),
+    ("DQN", "Value-based, ε-greedy", "Regime 1 headline run (seed 42, weight 1.7): 98.2% of B0 with 57% fewer guard hours, 98.0% / −61% on the one-shot "
+                                    "locked test. A retrain does not reproduce it (seed-fragile); regimes 0 and 2 are B0-equivalent only"),
+    ("SAC", "Off-policy, entropy-regularised", "Passes the annual 95% rule with a real shield cut in all three regimes: regime 0 95.2% / −96%, regime 1 "
+                                              "95.7% / −86%, regime 2 96.4% / −71% (validation years; no held-out test, and it costs some 45 °C retention)"),
+]
+SELECTION_NOTE = ("Selection rule: zero hard-limit violations → annual delivery ≥ 95% of B0 → maximum shield reduction. This annual-only rule "
+                  "matches Tamil Nadu and was adopted after the first locked test (post-hoc), so SAC results have no held-out confirmation.")
+
+PORTAL = {
+    "state": "Rajasthan", "banner": BANNER,
+    "title": "Objective 3 — Climate-Adaptive PCM Controller Portal",
+    "caption": "Rajasthan solar water heating (50 L tank, 1.5 m² collector, 45 °C target) · safety-shielded DRL · SOFTWARE-IN-THE-LOOP — "
+               "thermal state is simulated, not measured. Field validation is Objective 4.",
+    "regimes": {0: "0 — Udaipur (savE OM55)", 1: "1 — Nagaur (PureTemp 60)", 2: "2 — Jaipur (PureTemp 58)"},
+    "policies": policies, "default_policy": default_policy, "always_on": ALWAYS_ON,
+    "years": weather_roles.TRAIN_YEARS + weather_roles.VAL_YEARS, "default_year": 2021, "default_month": 5,
+    "replay": replay, "live": live, "deployment": deployment,
+    "guards": (72.0, 75.0, 45.0), "shield_unit": "hours",
+    "pump_note": "Pump 'ran' = the collector delivered heat in that hour (collector gain > 0), so it counts whole hours.",
+    "algo_rows": ALGO_ROWS, "selection_note": SELECTION_NOTE,
+}
+
+portal_ui.run_portal(PORTAL)

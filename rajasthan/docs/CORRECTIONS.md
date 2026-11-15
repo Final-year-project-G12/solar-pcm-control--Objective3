@@ -557,3 +557,24 @@ analytic fallback (17.6 / 33.6 / 51.4 %). Next-hour demand stays perfect (limita
   gen2 plots, deck plots). `scripts/make_deck_plots.py` reads only `results/gen2` (the ORIGINAL runs), not the re-run; the gen2
   plots for the re-run are in `results/rerun_2026-11-13/plots/gen2/`. The regime 0 and 2 dashboards hold baselines only (no PPO/DQN
   model saved at the dashboard location for them).
+
+## Streamlit portal brought in line with Tamil Nadu's, 2026-11-15
+
+Tamil Nadu's portal (`tamilnadu/scripts/streamlit_portal.py`, commits af85dc4 / 2e4c7ef / 4eae424) gained: what the pump physically did each
+hour (collecting / standby / held off / bypass) instead of the commanded action, an always-on (B0) comparison on the same window
+(delivered heat, shield hits, hard-limit breaches, pump run-time, hours the controller stepped in), a per-hour reason, a per-day pump-hours
+chart, a month + day + length window picker with an IST clock, click-to-explain on every chart and table, and a second tab
+"Deployment & ML Models". Rajasthan now has the same portal: the UI is `app/portal_ui.py` (a copy lives in `uttarakhand/app/`), the Rajasthan
+adapter is `app/streamlit_app.py`, and the previous demo is kept as `app/classic_app.py` (its three tests still run against it). The red "Software-in-the-loop ... Not
+field validation" banner that the old demo showed at the top was removed from the portals on request (the caption still says the simulation is software-in-the-loop).
+Differences that are real, not cosmetic:
+* **Pump run-time** is a whole-hour indicator (collector gain > 0 in the hour). Tamil Nadu's kernel logs the pump's fraction of the hour
+  (`pump_on_frac`); the frozen Rajasthan O2 kernel does not output it and was not changed.
+* **Shield** is counted in hours (shield seconds / 3600), not simulator sub-step hits as in Tamil Nadu.
+* **Policies offered:** B0 / B1 / B2 and one selected DQN and SAC per regime. The selected SAC is recomputed from the summary under the annual-only
+  rule (regime 1: `sac_r1_w2.55_s42`, 95.7 % of B0, 86 % fewer shield hours) because `results/gen2/gen2_selected_sac.json` for regime 1 is stale.
+  The selected DQN for regime 1 is the released run the locked test used. B2 is not available in LIVE mode (its forecast comes from the stored year).
+* **Deployment tab** reads `results/deployment_metrics_r<regime>.json`. Regime 1 is the released DQN (existing file); regimes 0 and 2 were generated on 2026-11-15 with
+  `phase9_deployment_metrics.py --regime <r> --algo sac --run results/rerun_2026-11-13/gen2/<selected SAC run>` (new files, nothing overwritten).
+* **Tests:** `tests/test_streamlit_app.py` now also checks the portal (banner, no test years, replay compared with the always-on pump,
+  the portal's B0 window equals the environment's own E_del45, LIVE degrades without a network).

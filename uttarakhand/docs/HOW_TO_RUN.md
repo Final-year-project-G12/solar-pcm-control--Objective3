@@ -22,7 +22,7 @@ python -m venv .venv; .venv\Scripts\activate; pip install -r requirements.txt
 | O2-definition night metrics, validation | `python scripts/m5b_night_metrics.py` | `results/m5b_night_metrics.csv` |
 | M6 locked test (ONCE) | `python scripts/m6_locked_test.py --confirm-run-once` | `results/o3_test.lock`, `m6_test_*` |
 | post-lock checks (EXPLORATORY; demo reproduces M6, night metrics on test years) | `python scripts/m6b_postlock_checks.py` | `results/m6b_*` |
-| M7 demo | `streamlit run app/streamlit_app.py` | `results/demo_logs/` (when saved) |
+| M7 demo | `streamlit run app/streamlit_app.py` (portal; the original demo is `app/classic_app.py`) | `results/demo_logs/` (when saved) |
 | reset scenarios on test years (EXPLORATORY) | `python scripts/m6c_reset_scenarios_postlock.py` | `results/m6c_*` |
 | B2 forecast rule (validation) | `python scripts/m9_b2_forecast.py --regime k` | `results/b2_params_r{k}.json`, `m9_b2_*` |
 | deployment metrics + sensor faults | `python scripts/m10_deployment_metrics.py --regime k` | `results/m10_*` |
@@ -47,6 +47,8 @@ Memory: each PPO training process commits about 1.6 GB. With 16 GB RAM and other
 
 ## Demo
 
-`streamlit run app/streamlit_app.py`. Tabs: replay (train / validate years only), live (Open-Meteo at the medoid
-point, persistence fallback when missing or > 2 h stale, raw JSON saved unmodified), re-run of a saved live log.
+`streamlit run app/streamlit_app.py` is the portal in the Tamil Nadu design (shared UI `app/portal_ui.py`): tab 1 runs a controller on replayed
+(train / validate years only) or live Open-Meteo weather and shows what the pump physically did against an always-on pump, with click-to-explain
+charts; tab 2 shows the M10 deployment metrics and sensor-fault robustness. The original demo (replay table + live session with raw JSON log, persistence
+fallback when data is missing or > 2 h stale, re-run of a saved live log) is `streamlit run app/classic_app.py`.
 Every view carries the banner "Software-in-the-loop simulation. Not field validation."
