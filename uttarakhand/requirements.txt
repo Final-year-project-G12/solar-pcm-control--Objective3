@@ -10,6 +10,6 @@ stable-baselines3==2.4.1
 torch==2.5.1
 matplotlib==3.9.2
 plotly==5.24.1
-streamlit==1.39.0
+streamlit==1.64.0        # portal uses st.button(width=...) / st.dataframe(height="content"); same pin as the root requirements.txt
 pyarrow==17.0.0          # streamlit tables; pyarrow >= 18 needs NumPy 2, which numba 0.60 / this pipeline do not use
 pytest==8.3.3
