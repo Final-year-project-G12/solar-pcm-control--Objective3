@@ -1,0 +1,83 @@
+# Test the combined dashboard, then publish it to the `deploy` branch that Streamlit Community Cloud serves.
+#
+# Streamlit Community Cloud has no deploy API: it watches ONE branch of the GitHub repo and redeploys whenever that branch
+# changes. So "continuous deployment" here means: main is tested; only a passing main is copied to `deploy`; the Cloud app
+# is pointed at `deploy` (one-time setup, see deploy/README.md). A failing test therefore never reaches the live app.
+name: deploy-dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hub/**"
+      - "streamlit_app.py"
+      - "requirements.txt"
+      - ".streamlit/**"
+      - "deploy/**"
+      - "rajasthan/**"
+      - "uttarakhand/**"
+      - "tamilnadu/results/**"
+      - "tests/test_hub_app.py"
+      - ".github/workflows/deploy-dashboard.yml"
+  pull_request:
+    paths:
+      - "hub/**"
+      - "streamlit_app.py"
+      - "requirements.txt"
+      - "deploy/**"
+      - "tests/test_hub_app.py"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dashboard
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: No file above the 95 MB GitHub limit
+        run: |
+          big=$(find . -path ./.git -prune -o -type f -size +95M -print)
+          if [ -n "$big" ]; then echo "Too large for GitHub / Streamlit Cloud:"; echo "$big"; exit 1; fi
+
+      - name: Install the dashboard requirements (CPU torch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Smoke-test every page and the state isolation
+        run: python -m pytest -q -p no:cacheprovider tests/test_hub_app.py
+
+  publish:
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copy the tested commit to the deploy branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push origin "${GITHUB_SHA}:refs/heads/deploy" --force
+          echo "Pushed ${GITHUB_SHA} to deploy. Streamlit Community Cloud redeploys the app from that branch." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wake the app (optional)
+        if: vars.STREAMLIT_APP_URL != ''
+        run: |
+          sleep 90
+          curl -fsS -o /dev/null -w "app answered HTTP %{http_code}\n" --max-time 60 "${{ vars.STREAMLIT_APP_URL }}" || echo "app not reachable yet (it may still be rebuilding)"

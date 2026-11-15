@@ -1,0 +1,149 @@
+# ============================================================================
+# states/rajasthan.yaml  -  per-state inputs (weather, regimes, PCM shortlist, mains temperature, demand)
+# ============================================================================
+# References the shared configs and the Objective 1 inputs under data/objective1/, data/weather/, data/demand/
+# (cluster_profiles_rajasthan.csv, mcdm_topk_by_cluster.csv, climate_signature_rajasthan.csv, manifest.json).
+# `pcm_shortlist` is Objective 1's MCDM top-3 per cluster in consensus-rank order; src/io_utils.get_regime() reads the
+# same list from data/objective1/mcdm_topk_by_cluster.csv and tests/test_o1_shortlist.py checks that the two agree.
+# ============================================================================
+
+state: rajasthan
+state_config_version: state_config_rajasthan_v3_2026-10-28
+objective1_manifest: data/objective1/manifest.json
+shared_config:
+  system_config: configs/system_config_shared.yaml
+  design_space: configs/design_space.yaml
+pareto_tolerance_pct: 5.0
+demand_profile:
+  file: data/demand/demand_profile_rajasthan.csv
+  daily_total_L: 300.0
+  documented_reason: 'Matches 04_climate_signature_rajasthan.py''s DRAW_VOLUME_L=300 assumption (Avargani
+    et al. 2021) so Objective 1''s L_required figures and Objective 2''s simulated solar fraction evaluate
+    the same household. Identical daily total to Tamil Nadu (state-invariant demand) so the four-state
+    comparison stays fair. See build_demand_profile.py docstring.
+
+    '
+mains_temperature_C:
+  range_low: 18.0
+  range_high: 30.0
+  source: 'O2_Unified_PerState_Execution_Framework.md, state input table (Rajasthan row: ''RJ 18-30 C'')'
+climate_signature_sanity_check:
+  annual_GHI_daily_kWh_expected_band:
+  - 4.8
+  - 6.5
+  humidity_signature_expected: 'hot-dry: very high CDD24, large DTR, high daytime clearness, low cloud
+    fraction (sunrise RH stays high from nocturnal cooling even in arid climate)'
+  elevation_note: Rajasthan Objective 1 has a dedicated elevation attach (00c_attach_elevation.py); elevation
+    carried through unchanged into Objective 2 — not an Obj2 change.
+  status: PASSED
+  evidence: 'cluster_profiles_rajasthan.csv: GHI_daily_kWh in [5.00, 5.35] kWh/m2/day across the 3 Level-A
+    regimes — inside the expected band and above humid Assam (~4.2) and coastal Tamil Nadu (~4.8); it
+    sits just below the framework''s ~6.0 rule-of-thumb because these are all-month population-weighted
+    means over erratic-but-arid clusters. Hot-dry signature confirmed independently of sunrise RH: CDD24
+    = 12,348-15,837, DTR_true = 13.5-13.8 C, Ta_p95 = 35.6-36.4 C, cloudy_frac = 0.005-0.016, kt_daily_mean
+    = 0.87-0.90 — not Tamil Nadu''s coastal-humid, low-clearness signature and not Assam''s humid-cloudy
+    one. No duplicate timestamps or calendar gaps in any of the 3 daily weather files (3653 days each,
+    2016-01-01..2025-12-31).
+
+    '
+regimes:
+- cluster_id: 0
+  label: cooler, arid/low-monsoon, erratic solar resource, medoid RJP_0132 -- Udaipur (109 pts)
+  n_points: 109
+  population_covered: 21755737
+  T_mains_est_C: 25.13
+  L_required_kJ_per_kg: 437.9
+  weather_hourly: data/weather/weather_regime_rajasthan_cluster0_hourly.csv
+  weather_daily: data/weather/weather_regime_rajasthan_cluster0_daily.csv
+  pcm_shortlist:
+  - savE® OM55
+  - Palmitic-stearic acid/Expanded graphite
+  - Myristic acid/NBR-0.5
+  pcm_shortlist_detail:
+  - pcm: Palmitic-stearic acid/Expanded graphite
+    consensus_rank: 1
+    borda_score: 10.0
+    mc_top3_inclusion_pct: 99.5
+    mc_top1_retention_pct: 52.4
+  - pcm: savE® OM55
+    consensus_rank: 1
+    borda_score: 10.0
+    mc_top3_inclusion_pct: 99.9
+    mc_top1_retention_pct: 67.6
+  - pcm: Myristic acid/NBR-0.5
+    consensus_rank: 3
+    borda_score: 4.0
+    mc_top3_inclusion_pct: 85.8
+    mc_top1_retention_pct: 2.8
+  kendalls_w_cluster: 0.9
+  candidate_pool_status: undersized
+  n_survivors_in_cluster: 4
+  o1_Tm_target_C: 67.0
+- cluster_id: 1
+  label: hot, monsoon-influenced, steady solar resource, long low-clearness runs (high autonomy demand),
+    medoid RJP_0192 -- Nagaur (83 pts)
+  n_points: 83
+  population_covered: 14033429
+  T_mains_est_C: 25.984
+  L_required_kJ_per_kg: 427.18
+  weather_hourly: data/weather/weather_regime_rajasthan_cluster1_hourly.csv
+  weather_daily: data/weather/weather_regime_rajasthan_cluster1_daily.csv
+  pcm_shortlist:
+  - PureTemp 60
+  - CrodaTherm 60
+  - n-Heptacosane (C27)
+  pcm_shortlist_detail:
+  - pcm: PureTemp 60
+    consensus_rank: 1
+    borda_score: 27.0
+    mc_top3_inclusion_pct: 99.3
+    mc_top1_retention_pct: 78.1
+  - pcm: CrodaTherm 60
+    consensus_rank: 2
+    borda_score: 23.0
+    mc_top3_inclusion_pct: 93.6
+    mc_top1_retention_pct: 22.5
+  - pcm: n-Heptacosane (C27)
+    consensus_rank: 3
+    borda_score: 17.0
+    mc_top3_inclusion_pct: 56.1
+    mc_top1_retention_pct: 2.9
+  kendalls_w_cluster: 0.75
+  candidate_pool_status: healthy
+  n_survivors_in_cluster: 8
+  o1_Tm_target_C: 67.0
+- cluster_id: 2
+  label: cooler, arid/low-monsoon, erratic solar resource, largest population, medoid RJP_0083 -- Jaipur
+    (128 pts)
+  n_points: 128
+  population_covered: 34514036
+  T_mains_est_C: 24.696
+  L_required_kJ_per_kg: 443.35
+  weather_hourly: data/weather/weather_regime_rajasthan_cluster2_hourly.csv
+  weather_daily: data/weather/weather_regime_rajasthan_cluster2_daily.csv
+  pcm_shortlist:
+  - n-Heptacosane (C27)
+  - PureTemp 58
+  - PlusICE A58
+  pcm_shortlist_detail:
+  - pcm: n-Heptacosane (C27)
+    consensus_rank: 1
+    borda_score: 36.0
+    mc_top3_inclusion_pct: 91.6
+    mc_top1_retention_pct: 55.1
+  - pcm: PureTemp 58
+    consensus_rank: 2
+    borda_score: 33.0
+    mc_top3_inclusion_pct: 73.1
+    mc_top1_retention_pct: 27.3
+  - pcm: PlusICE A58
+    consensus_rank: 3
+    borda_score: 30.0
+    mc_top3_inclusion_pct: 66.5
+    mc_top1_retention_pct: 18.8
+  kendalls_w_cluster: 0.5545454545454546
+  candidate_pool_status: healthy
+  n_survivors_in_cluster: 11
+  o1_Tm_target_C: 67.0
+pcm_database_file: data/objective1/pcm_database_rajasthan.csv
+pcm_mcdm_topk_file: data/objective1/mcdm_topk_by_cluster.csv

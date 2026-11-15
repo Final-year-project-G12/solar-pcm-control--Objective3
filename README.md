@@ -20,6 +20,13 @@ Both implementations provide:
 - PPO, DQN, recurrent, distributional, masked, and SAC training options;
 - robustness evaluation, locked test evaluation, plots, and a software-in-the-loop demo.
 
+## Combined dashboard (all states)
+
+One Streamlit app at the repo root shows every state: `streamlit run streamlit_app.py` (needs `pip install -r requirements.txt`).
+Rajasthan and Uttarakhand run their own unmodified apps (`hub/state_runner.py` keeps their two `o3` packages apart); Tamil Nadu shows its
+saved result dashboards. Deployment to Streamlit Community Cloud, the CI/CD workflow and the known limits are in
+[`deploy/README.md`](deploy/README.md).
+
 ## Getting started
 
 Choose a state directory and create or activate a Python 3.10+ environment.

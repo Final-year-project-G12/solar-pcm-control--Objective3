@@ -1,0 +1,352 @@
+{
+  "state": "rajasthan",
+  "manifest_version": "1.0.0",
+  "total_files": 69,
+  "files": [
+    {
+      "file": "bic_selection_levelB_rajasthan.csv",
+      "size_bytes": 1171,
+      "sha256": "8c659a6561feb0919dd2ef63e178b51a2897e2c3ab24ce8717997d1c50a76cd8"
+    },
+    {
+      "file": "bic_selection_rajasthan.csv",
+      "size_bytes": 1770,
+      "sha256": "c29faeb27458914d7223cea158c9d27a7abcd6f4f7c6f45f47d77741763128bf"
+    },
+    {
+      "file": "calibration_check_rajasthan.csv",
+      "size_bytes": 308,
+      "sha256": "c8b6e485187e08c767b5cb76ce50ad6438a5e5ff392b08c1c5f1e2a9d72eb35f"
+    },
+    {
+      "file": "climate_signature_rajasthan.csv",
+      "size_bytes": 513938,
+      "sha256": "7c5c1be25b50c5337cf35f766779782c97505d157d8b3db9efc2fdd12eaa2d77"
+    },
+    {
+      "file": "cluster_assignments_levelA_rajasthan.csv",
+      "size_bytes": 42225,
+      "sha256": "c2e91e53c02c8a66e3bdc899ad265141fee31d42484e461452902984652d470b"
+    },
+    {
+      "file": "cluster_assignments_levelB_rajasthan.csv",
+      "size_bytes": 162118,
+      "sha256": "2e92c7cbe8f08dbeea3fec0d385d44a19067a69336ca0389da7e79ba452a092d"
+    },
+    {
+      "file": "cluster_assignments_rajasthan.csv",
+      "size_bytes": 42225,
+      "sha256": "c2e91e53c02c8a66e3bdc899ad265141fee31d42484e461452902984652d470b"
+    },
+    {
+      "file": "cluster_profile_cards_rajasthan.md",
+      "size_bytes": 5668,
+      "sha256": "043450ddb173a234d4e9e79cf70592a2b531341483f6368bba937e3e7f063a28"
+    },
+    {
+      "file": "cluster_profiles_rajasthan.csv",
+      "size_bytes": 2554,
+      "sha256": "0ad6f20f70b2106df4a525ce1a765a897b91db365a4e9f359c351c64cee33fb7"
+    },
+    {
+      "file": "daily_aggregates_medoids_rajasthan.csv",
+      "size_bytes": 1334691,
+      "sha256": "ac2970c072d0cf38bc95253bc7d2363222278c7b1e64c66c3d343f440ccef967"
+    },
+    {
+      "file": "daily_aggregates_rajasthan.csv",
+      "size_bytes": 146934856,
+      "sha256": "1fb5f9de612db7ec64643a9d66bd1e54673cfb12ba0b0f6d3544bb9b87c9c216"
+    },
+    {
+      "file": "daily_aggregates_summary_rajasthan.csv",
+      "size_bytes": 70893,
+      "sha256": "4c71dbf9aa75316673d6ae7b66efbf789d949f90b1cdfeee153c294ebc215202"
+    },
+    {
+      "file": "era5_power_agreement_rajasthan.csv",
+      "size_bytes": 3896,
+      "sha256": "41a890eb492558d13d927b3b482d5d77c6592a4d06333b7d3e58cf0a82057dba"
+    },
+    {
+      "file": "feasibility_survivors_by_cluster.csv",
+      "size_bytes": 52922,
+      "sha256": "0ddd0a572a14f85d89785c4d03ab8e877d02b368edadf3d27fe6f28c7e2238f3"
+    },
+    {
+      "file": "kmeans_comparison_rajasthan.csv",
+      "size_bytes": 265,
+      "sha256": "8586d1c517b8f5b60e8617a98a60678184053994763140d2cee77ae8cac202fc"
+    },
+    {
+      "file": "koppen_validation_rajasthan.csv",
+      "size_bytes": 67,
+      "sha256": "4e963235a3db40e8f453ba238063f61645d716943fc2c7cf24738bce7022d205"
+    },
+    {
+      "file": "level_b_feature_importance_rajasthan.csv",
+      "size_bytes": 818,
+      "sha256": "5ff6b6468db73d727f6fd771409a48f1af62f713657a2b1049ce913f1e51aecb"
+    },
+    {
+      "file": "level_b_seasonal_summary.md",
+      "size_bytes": 1273,
+      "sha256": "fdf22d324d61787942d9ecf987f6e38d066ba0dc4122e1b6d30706c77c598dc5"
+    },
+    {
+      "file": "level_b_seasonal_topk.csv",
+      "size_bytes": 1153,
+      "sha256": "b4790df10cfe77aedf5ddd2d6ed9a804a589835caa920bbe21abc85423bf1db7"
+    },
+    {
+      "file": "mcdm_full_scores_by_cluster.csv",
+      "size_bytes": 41984,
+      "sha256": "3e57f1a7377d3a24b61715cb3d7f43b79cb2c91705a776b6e8630b4602f2dcad"
+    },
+    {
+      "file": "mcdm_method_agreement_rajasthan.csv",
+      "size_bytes": 1019,
+      "sha256": "870675676609f902ab655fd7df38e62e10e20b992439d67f9863749de730e107"
+    },
+    {
+      "file": "mcdm_rankings_rajasthan.csv",
+      "size_bytes": 14045,
+      "sha256": "a2a392ed41d0be1dae21c71a5b4a40a37434d15e8a6e50603fb57353c8514008"
+    },
+    {
+      "file": "mcdm_topk_by_cluster.csv",
+      "size_bytes": 935,
+      "sha256": "276c5a42a8f1a33c75df79e8dc5e9f76a6db7f2a7f108e6b86a01a4d9d85891f"
+    },
+    {
+      "file": "medoid_points_rajasthan.csv",
+      "size_bytes": 247,
+      "sha256": "c23587b50d0c10a49874c76f943cbbd22457cd241281d9c574123557ae5e1cc5"
+    },
+    {
+      "file": "monte_carlo_stability.csv",
+      "size_bytes": 2283,
+      "sha256": "65ba580fef9f74d4872d99ca50db9f96e9e527dd79eb452a7353a26f3900ac18"
+    },
+    {
+      "file": "pca_loadings.csv",
+      "size_bytes": 730,
+      "sha256": "5c2165788f82068daa495759c3da4149371d8393a1597a8725db67550d17bf4d"
+    },
+    {
+      "file": "pcm_database_rajasthan.csv",
+      "size_bytes": 14641,
+      "sha256": "56dc3f6461e1581ee979e59ae9bfb41a636f6081eaad035fb9af9d1c8bca7fa0"
+    },
+    {
+      "file": "pcm_mass_sensitivity_rajasthan.csv",
+      "size_bytes": 633,
+      "sha256": "7dfafd19afea664ba4872a64949334405029ec10db5edaec749be1f0ed62aa24"
+    },
+    {
+      "file": "pcm_properties.csv",
+      "size_bytes": 34909,
+      "sha256": "5d3cd0dedb613d91837aaeb25fe11957681a58f49698511f314c4a06ca8cc0b1"
+    },
+    {
+      "file": "phase8_supercooling_sweep_rajasthan.csv",
+      "size_bytes": 503,
+      "sha256": "519e284730f0d3cdc5770015e2269b35c043cd89b15380294c64b6eb3454e48e"
+    },
+    {
+      "file": "physics_validation_results.csv",
+      "size_bytes": 24610,
+      "sha256": "15729a11d1778d1d69342a4a6506fb47129b2dd219d157a77b880cbedde52b34"
+    },
+    {
+      "file": "physics_validation_spearman.csv",
+      "size_bytes": 439,
+      "sha256": "220b3b136bca95cde7ef5c7b40a9392caa1c82d015d3c54357abc5c639a3d2fc"
+    },
+    {
+      "file": "physics_validation_summary_rajasthan.txt",
+      "size_bytes": 5678,
+      "sha256": "4366e1bb57277e57cded756e8200ea35fd3ae3cca1cd5e3f813a1ea1b6732390"
+    },
+    {
+      "file": "population_grid_points.csv",
+      "size_bytes": 25596,
+      "sha256": "3ed89949fb27f8ca35d1a465625c2477e861e2aaed92cd39564cd82be918d84c"
+    },
+    {
+      "file": "quality_report_rajasthan.json",
+      "size_bytes": 498830,
+      "sha256": "0f529805063f52d04571d87dc9b2324ebbb3d14f63625a16535a06bb57a6ad32"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2016.json",
+      "size_bytes": 811357,
+      "sha256": "0d5bfc990a3ebe162ea4893611335a70f5ecb0ca4e3b167ef3b072b71d3b7d9c"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2017.json",
+      "size_bytes": 808966,
+      "sha256": "ec238b17d95a1e914bc7054e48d6acd52fc9435f317f68e1c00845297eca26fe"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2018.json",
+      "size_bytes": 808924,
+      "sha256": "2a381f75afba704b970c18f45204dc436b7eb3745780bac9524dd0c04e8eae5d"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2019.json",
+      "size_bytes": 808919,
+      "sha256": "3674ffab94961bbbd2b8178bc5fbaf90bbcd40e061861903a7e9cc7f4431a4b9"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2020.json",
+      "size_bytes": 811333,
+      "sha256": "071e0bad939ca87cdcd0c8bbced4bd9f33c19b3627a5f93b5148c859b670c302"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2021.json",
+      "size_bytes": 809042,
+      "sha256": "23d2c72bc7e2ae8a9dd0514d9422ec2dac22cda0430da5600ce2bedc3be3b8b4"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2022.json",
+      "size_bytes": 808950,
+      "sha256": "cafb9123c8d55ed4b48b23b75cc76d5e6985aab42b0b274699e37608e3d8f7fe"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2023.json",
+      "size_bytes": 809297,
+      "sha256": "ef4e5c9f5939ed76ded4b3b2cedd91da7f64558448c50855b819c721bd98f8ff"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2024.json",
+      "size_bytes": 811157,
+      "sha256": "d80a2d8f9f1ac18f4ecd2eec70108ab5fd27f94863c65f29df389f263e3817f5"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0055_2025.json",
+      "size_bytes": 808940,
+      "sha256": "c91d24d7516b4eaaed0af5b344d3537c077657c1959c432cdc3374cb88de8190"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2016.json",
+      "size_bytes": 811522,
+      "sha256": "5a1b5469e3a1ed033fff3a39812b31921dad7107bba2e916796ab9bb9340e92a"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2017.json",
+      "size_bytes": 809167,
+      "sha256": "d8ebc2787fd140ca52377b7990d9b625556b03fbcd58d854972177a58063fd5a"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2018.json",
+      "size_bytes": 809070,
+      "sha256": "970f9b102585b7fe47fa7f1033478452d6ca7c868d3649dcc002ae4ab12b2978"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2019.json",
+      "size_bytes": 809034,
+      "sha256": "fad9372640f8afaa913ace16774531f8a201533f5babd99f2acd4d0480c171e2"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2020.json",
+      "size_bytes": 811642,
+      "sha256": "d679947c6c27ce30bbccd902e5dc7ebf66dded5b6db68af5d4fd059d234e2494"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2021.json",
+      "size_bytes": 809045,
+      "sha256": "7676755366e006b20313a560ca9831f77f06f58dc7fa741788df45a857d1bffe"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2022.json",
+      "size_bytes": 809152,
+      "sha256": "10b52dbd8893603487df2dadc16a7af6cf353d801863c0dab06b5dfa3ebba0ae"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2023.json",
+      "size_bytes": 809353,
+      "sha256": "4a41ae92a732857c43f58d04b895988a57c3458fcfa4a03553533cf6f4b82d2e"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2024.json",
+      "size_bytes": 811478,
+      "sha256": "34009a0f3e8416e42cac9e970db03bd8321b735ecf4c3e87d6ab98a2638ab7dd"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0132_2025.json",
+      "size_bytes": 809116,
+      "sha256": "8774cb92e3f3d852fe898ef6dd3c09d909a17fd4aba4bc6067c5d6a473762e9d"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2016.json",
+      "size_bytes": 811461,
+      "sha256": "d2734da45517adb55ce00edece1e12ebbefa4e5a0872ebd3d164acf4a0e92de9"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2017.json",
+      "size_bytes": 809097,
+      "sha256": "4eaea47140b12e4f91fced47133fdf7c2ed034e655497f0e03b2a35b9c3ec2f9"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2018.json",
+      "size_bytes": 809090,
+      "sha256": "8608c2adbb0fd6c0899a06716bbdb544a0e4db26d15e8582cf6401232e2b401d"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2019.json",
+      "size_bytes": 809033,
+      "sha256": "6d91c22936b8be8a792ab150809ca323d777c0d72e40c1a4915937cedc0fa8c5"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2020.json",
+      "size_bytes": 811413,
+      "sha256": "6360cb1faafd868c9816e31daefd90b375b01130b9fdf0ead188f9a7d73da27a"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2021.json",
+      "size_bytes": 809066,
+      "sha256": "e6693f85707017e38761302b5ab5a6efb3444f5e7300808cb98e3fa5afd23133"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2022.json",
+      "size_bytes": 809206,
+      "sha256": "650c72dde7eca1aee8246b27f4f840d2b829cd829bfa931ac88f0872586c4e23"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2023.json",
+      "size_bytes": 809219,
+      "sha256": "ef0a735a0b93eb8d2a5c8542afed78b961d277f79250422ed82f4a18ba831977"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2024.json",
+      "size_bytes": 811271,
+      "sha256": "414bf82218ab1b6734e8d73fb06a381958d6c35360f48e2b83cb9c6bdc7ed507"
+    },
+    {
+      "file": "raw_weather\\power_RJP_0202_2025.json",
+      "size_bytes": 809056,
+      "sha256": "4b77dd8d4d978f33b60d20bb3cfc8fd525f19c0d464164a004a3128d64d06cf6"
+    },
+    {
+      "file": "recommendation_cards.md",
+      "size_bytes": 22585,
+      "sha256": "a91bf4da3175edb77c096f3f881462a203dde790552f89208f312c29ffa833a7"
+    },
+    {
+      "file": "suntimes.csv",
+      "size_bytes": 202230110,
+      "sha256": "f6e53efe854b88e2abba013ea33f6fb0a3fdf248b9c6bbb811f405213bfad064"
+    },
+    {
+      "file": "suntimes_medoids_rajasthan.csv",
+      "size_bytes": 1895937,
+      "sha256": "fa61005469f7de4bee6b25a2a2db261e4cd70f162865796c036502502ddb3255"
+    },
+    {
+      "file": "tier2_signature_rajasthan.csv",
+      "size_bytes": 70893,
+      "sha256": "4c71dbf9aa75316673d6ae7b66efbf789d949f90b1cdfeee153c294ebc215202"
+    }
+  ]
+}

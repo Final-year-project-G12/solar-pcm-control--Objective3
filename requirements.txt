@@ -1,0 +1,22 @@
+# Combined Objective-3 dashboard (streamlit_app.py) - the one requirements file Streamlit Community Cloud reads.
+# Versions are the ones the combined app was tested with locally (Python 3.10). Use Python 3.12 on the host.
+# CPU-only torch: without this index pip pulls the CUDA build on Linux (> 2 GB), which does not fit the free tier.
+--extra-index-url https://download.pytorch.org/whl/cpu
+streamlit==1.64.0
+numpy==2.2.6
+scipy==1.15.3
+pandas==2.3.3
+numba==0.68.0
+llvmlite==0.50.0
+PyYAML==6.0.3
+requests==2.34.2
+joblib==1.5.3
+cloudpickle==3.1.2
+pyarrow==25.0.1
+plotly==7.1.0
+matplotlib==3.10.9
+pvlib==0.15.2
+gymnasium==1.1.1
+stable-baselines3==2.6.0
+sb3-contrib==2.6.0
+torch>=2.5
