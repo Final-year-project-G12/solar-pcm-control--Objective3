@@ -33,10 +33,13 @@ import os
 def _find_o2_root() -> pathlib.Path:
     """Locate the Objective-2 code (needs src/io_utils.py): $O2_ROOT first,
     then the usual sibling locations."""
+    up = REPO_ROOT.parents                     # shallow checkouts (e.g. D:\repo\tamilnadu) have only 2 parents
     cands = [os.environ.get("O2_ROOT", ""),
-             REPO_ROOT.parent / "objective2_design_optimization",
-             REPO_ROOT.parents[2] / "new_obj" / "objective2_design_optimization",
-             REPO_ROOT.parents[1] / "objective2_design_optimization"]
+             REPO_ROOT.parent / "objective2_design_optimization"]
+    if len(up) > 2:
+        cands.append(up[2] / "new_obj" / "objective2_design_optimization")
+    if len(up) > 1:
+        cands.append(up[1] / "objective2_design_optimization")
     for c in cands:
         if c and (pathlib.Path(c) / "src" / "io_utils.py").exists():
             return pathlib.Path(c)
