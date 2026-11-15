@@ -53,7 +53,7 @@ activations, zero safety violations**, reported against the rule-based baselines
 Because the shield prevents every hard-limit breach, `hard_violations` is always
 ≈ 0, so **nothing in R1 penalised shield activations.** Result: *every* DRL
 algorithm converged to the B0 "always charge" policy — maximum delivery, and the
-50,000 shield trips cost nothing. Only the rule-based B1/B2 reduced shield firing,
+40,000+ shield trips a year cost nothing. Only the rule-based B1/B2 reduced shield firing,
 and they did so by sacrificing ~7 % delivery.
 
 **This is the first finding, and it is a result about reward shaping, not about
@@ -68,12 +68,23 @@ delivery/unmet terms while firing ~27.9k more shields). We set **w_shield = 10**
 which ranks B1 > B0 > B2 on reward — shield reduction now pays, with an interior
 optimum the agent can beat.
 
-Under R2 (w=10): **DQN learned the anticipatory policy** — 2144 kWh delivery
-(essentially B0's 2146), but 36,955 shield trips (26 % fewer than B0's 50,298),
-and the highest reward of any controller (976k vs B1's 891k vs B0's 847k), zero
-safety violations. The other five algorithms stayed at the always-charge policy.
+Under R2 (w=10), corrected numbers (regime 0, validation 2021–2023, mean per
+year; `results/phase4_comparison_r0.csv`): **DQN learned the anticipatory
+policy** — 1,969 kWh delivered (96.6 % of B0's 2,037) with 16,850 shield hours
+(58 % fewer than B0's 40,617), zero safety violations. **SAC then did better on
+reward and on delivery**: 1,991 kWh (97.7 % of B0) with 18,903 shield hours
+(−54 %). Mean reward: SAC 837k, DQN 812k, B1 721k, B0 701k. PPO, RecurrentPPO,
+QRDQN and MaskablePPO stayed at the always-charge policy in the earlier
+(pre-fix) runs and were not retrained after the fix.
+
+*(The numbers originally written here — DQN 2,144 kWh / 36,955 trips against B0
+2,146 / 50,298 — came from the weather-year bug and are retired.)*
 
 ### R2 with w_shield = 20 — the penalty is not the lever
+*(Pre-fix experiment: the reward figures below were measured on the buggy
+single-year data and have not been re-run. Treat the qualitative conclusion as
+indicative only.)*
+
 To push more algorithms off always-charge, we tried a stronger penalty (w=20).
 It **backfired**: DQN *collapsed back* to pure always-charge (reward 344k) even
 though the shield-reducing policy still scored higher there (~607k). The larger

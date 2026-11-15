@@ -203,7 +203,8 @@ training with `PYTHONIOENCODING=utf-8`.
 | O3-7 | `scripts/phase7_demo.py --mode stub\|replay\|live` | software-in-the-loop demo |
 | O3-8 | `scripts/phase8_o4_handoff.py --algo <best>` | Objective 4 hardware handoff spec |
 | O3-9 | `scripts/phase9_deployment_metrics.py` | efficiency, savings, latency/memory, sensor-fault suite |
-| viz | `scripts/make_plots.py --tag R2 --selected sac` | interactive Plotly dashboard + Folium map |
+| viz | `scripts/make_interactive_o3.py` | one interactive page with the key Tamil Nadu plots |
+| viz | `scripts/make_plots.py --regime 0 --tag R0 --selected sac ...` | per-regime Plotly dashboard + Folium map (see HOW_TO_RUN.md section 9) |
 | viz | `scripts/make_live_dashboard.py --algo sac [--live]` | animated live/replay controller dashboard |
 
 **Train / validation / test split (year-locked):** train 2016–2020, validate
@@ -217,7 +218,7 @@ training with `PYTHONIOENCODING=utf-8`.
 2. **Delivery-vs-shield tradeoff** — the headline plot; up-and-left is better.
 3. **Locked test** — the final verified result on 2011–2015.
 4. **Robustness** — delivery across perturbation scenarios.
-5. **Multi-seed** — seed-to-seed spread (the "precision" of each method).
+5. **Multi-seed** — seed-to-seed spread (shown only when a post-fix multi-seed file exists; the old one was archived, so the current dashboards have six charts).
 6. **Reward decomposition** — delivery reward vs unmet/shield penalties (R2).
 7. **Per-year delivery** — consistency across validation years.
 8–11. **Deployment metrics** (`deployment_metrics.html`) — thermal efficiency &

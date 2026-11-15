@@ -160,20 +160,25 @@ alarms, validation). **DQN does not** - it fell back to always-charge (2%
 fewer alarms). So "both algorithms work everywhere" is *not* supported; SAC
 is the more robust choice.
 
-## 10. What is finished and what is not (as of 2026-11-13)
+## 10. What is finished and what is not (as of 2026-11-15)
 
-- Done: bug fix; regime 0 full pipeline.
-- Regime 1: both trained; DQN locked test + robustness done; SAC locked test
-  pending.
-- Regime 2: DQN trained; SAC resuming (~206k/300k steps); locked
-  test/robustness/deployment pending.
-- Not done: re-running the "Generation-2" extras (Pareto weights,
-  15-minute control, domain randomisation, regime coverage). Earlier numbers
-  for those came from the buggy data and must not be quoted.
-- Not done: most docs/dashboards still show old numbers (the FINAL_v1 docx is
-  updated - see its Section 20).
-- Note: `phase6_final_test_dqn.csv` was overwritten by the regime-1 run, so
-  DQN's regime-0 locked-test table needs regenerating before citing it.
+- Done: bug fix; all three regimes trained and locked-tested (SAC and DQN),
+  robustness, sensor-fault and deployment metrics, forecast ablation
+  (none / zeroed / realistic forecast).
+- Done: dashboards regenerated on corrected data (`results/plots/R0, R1, R2`,
+  `live_demo`, `forecast_comparison`) plus a new interactive page,
+  `results/plots/O3_interactive_tamilnadu.html`.
+- Regime-0 locked test: B0 2,097 kWh / 46,969 shield hours, SAC 2,045 / 21,406,
+  DQN 2,018 / 17,838 (docs/METHODOLOGY_AND_FINDINGS.md section 5).
+- Not done: PPO, RecurrentPPO, QRDQN and MaskablePPO were not retrained on the
+  corrected data (they had collapsed to always-charge). No numbers are quoted
+  for them.
+- Not done: the "Generation-2" extras (Pareto weights, 15-minute control,
+  domain randomisation) and the multi-seed study were not re-run. Old
+  results were moved to `results/archive_prefix_bugfix/` and must not be quoted.
+- Note: `phase6_final_test_dqn.csv` and `phase6_final_test_sac.csv` hold only
+  the last regime run (regime 2). Use the per-regime `_smartfc_r*` / `_none_r*`
+  files, or the README table, for regimes 0 and 1.
 
 ## 11. Odd words, simply
 

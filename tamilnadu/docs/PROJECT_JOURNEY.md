@@ -1,5 +1,9 @@
 # Objective 3 — The Full Project Journey (Start to Now)
 
+> **Numbers updated 2026-11-15.** Results quoted in sections 7-8 were first written
+> before the 2026-11-13 weather-year fix and have been replaced with the corrected
+> locked-test values. The story (what was tried and why) is unchanged.
+
 A single chronological account of Objective 3, phase by phase, decision by
 decision. For reference material (algorithm detail, how to run each script,
 literature) see `OBJECTIVE_3_README.md`, `ALGORITHMS.md`, `HOW_TO_RUN.md`,
@@ -13,7 +17,7 @@ Objective 2 had already shipped a frozen, validated physical design: a 100 L
 tank, 2.5 m² collector, and a PCM selected per climate (PureTemp 58 /
 RT57HC) across three Tamil Nadu regimes. It also shipped a blunt reactive
 **safety shield** — trip the collector off at 72 °C water / 62 °C PCM, 3 °C
-below the 75/65 °C hard limits — that fires roughly 50,000 times a year under
+below the 75/65 °C hard limits — that fires roughly 40,000-47,000 hours a year under
 the simplest possible operating rule (always charge).
 
 The question Objective 3 set out to answer:
@@ -48,7 +52,7 @@ concrete to beat.
 Six algorithms were trained under a reward that only priced delivered energy
 against unmet demand and hard-limit violations (**R1**). Because the shield
 makes hard violations ≈0 by construction, nothing in R1 penalised the
-50,000 shield firings — so *every* DRL algorithm correctly learned that
+40,000+ shield-hours a year — so *every* DRL algorithm correctly learned that
 "always charge" was optimal. It matched B0 exactly. This was the first real
 finding: **a safety shield that makes violations free also makes the thing
 you actually want to minimise invisible to the learner**, unless the reward
@@ -84,8 +88,10 @@ reproducible method. A lexicographic selection rule was fixed *before*
 looking at the test set: zero hard violations → delivery ≥95% of B0 →
 maximum shield reduction, never reward alone. Seed 42 was selected (the
 only one keeping delivery ≥95%). It was run **once** on the held-out
-2011–2015 test years: 2144.7 kWh delivered (99.9% of B0), 36,964 shields
-(−26%), zero violations. Robustness (O3-5) confirmed stability under GHI
+2011–2015 test years. After the weather-year fix, regime-0 DQN delivers
+2,018 kWh (96.2% of B0) with 17,838 shield hours (−62%) and zero violations.
+(The first run's 2,144.7 kWh / 36,964 shields was measured on a repeated 2016
+year and is retired.) Robustness (O3-5) confirmed stability under GHI
 noise, ambient bias, and varied initial PCM state.
 
 ## 8. SAC closes the loop — and actually wins (later round)
@@ -94,11 +100,13 @@ SAC had been scoped in the plan but not finished in the first pass. Once
 run to completion (on a continuous-action wrapper, `PCMContinuousGymEnv`,
 binned back to the 3 discrete actions), it also escaped always-charge — via
 entropy regularisation + replay, a *different* exploration mechanism than
-DQN's. It passed the same locked test: 2097.4 kWh (97.7% of B0), **23,117
-shields (−54%)**, zero violations, and the **highest reward of any
-controller**. Under the pre-fixed selection rule, SAC wins on shield
-reduction — it became the selected policy, with DQN retained as the
-validated max-delivery alternative. Two independent algorithms reaching the
+DQN's. It passed the same locked test (corrected numbers): 2,045 kWh (97.5% of
+B0), **21,406 shield hours (−54%)**, zero violations, and the **highest
+validation reward of any controller** (837k against DQN 812k and B0 701k). Unlike
+DQN it also worked in regimes 1 and 2. On regime 0 alone DQN cuts slightly
+more shield hours (−62% against −54%), but it collapses to always-charge in
+regimes 1 and 2, so SAC became the selected policy because it is the only one
+that works in all three, with DQN retained as the regime-0 alternative. Two independent algorithms reaching the
 same qualitative result (anticipatory control, zero violations) is stronger
 evidence than either alone.
 

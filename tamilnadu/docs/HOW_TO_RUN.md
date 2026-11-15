@@ -104,13 +104,46 @@ test plan to `results/obj4_handoff/`.
 
 ## 9. Interactive visualisations
 
+All commands are run from the `Objective3` folder. Needs `plotly`, `folium`,
+`streamlit` (`pip install plotly folium streamlit`). Open the HTML files by
+double-clicking them (internet is needed once for plotly.js).
+
+**1. One interactive page with the key Tamil Nadu plots (start here):**
 ```bash
-PYTHONIOENCODING=utf-8 python scripts/make_plots.py --tag R2 --regime 0 --selected sac
+python scripts/make_interactive_o3.py
 ```
-Writes `results/plots/R2/dashboard.html` (7 Plotly charts) and
-`tamilnadu_regimes_map.html` (Folium). `--selected` picks whose locked-test /
-robustness CSVs plots 3–4 show. Use `--csv <path> --tag <name>` to plot an
-archived comparison (e.g. the R1 collapse under `results/archive_R1_reward/`).
+Writes `results/plots/O3_interactive_tamilnadu.html`: trade-off scatter and
+per-year bars with regime dropdowns, locked-test regimes, sensor faults,
+robustness scenarios and the forecast ablation.
+
+**2. Per-regime dashboards (6 Plotly charts + Folium map):**
+```bash
+python scripts/make_plots.py --regime 0 --tag R0 --selected sac --label "SAC (realistic-forecast model)" ^
+  --test-csv results/phase6_final_test_sac_smartfc_r0.csv ^
+  --robust-csv results/phase5_robustness_r0_sac_smartfc.csv
+```
+(On Linux or macOS replace `^` with a backslash.) Repeat with `--regime 1 --tag R1` and `--regime 2 --tag R2` (and the matching `r1` / `r2`
+CSV names). The tag is only the output folder name (`results/plots/R0` = regime 0).
+`--test-csv` / `--robust-csv` are needed because `phase6_final_test_sac.csv` holds only the
+last regime that was run.
+
+**3. Animated controller replay (press Play in the browser):**
+```bash
+python scripts/make_live_dashboard.py --algo sac --regime 0 --year 2021
+python scripts/make_live_dashboard.py --algo sac --regime 0 --live     # real weather from Open-Meteo, needs internet
+```
+Output: `results/plots/live_demo/`.
+
+**4. Forecast comparison dashboard:** `python scripts/make_forecast_dashboard.py`.
+
+**5. Streamlit portal (live controller + deployment metrics):**
+```bash
+streamlit run scripts/streamlit_portal.py
+```
+Opens at http://localhost:8501. Its Generation-2 panel shows a warning that those results pre-date
+the weather-year fix; do not quote them.
+
+Pre-fix dashboards and the multi-seed files are kept in `results/archive_prefix_bugfix/`.
 
 ## 10. Deployment metrics (Phase O3-9)
 
