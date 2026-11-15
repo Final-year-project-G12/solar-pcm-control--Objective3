@@ -27,7 +27,23 @@ import sys
 import numpy as np
 
 REPO_ROOT = pathlib.Path(__file__).parents[1]
-_O2_ROOT  = REPO_ROOT.parent / "objective2_design_optimization"
+import os
+
+
+def _find_o2_root() -> pathlib.Path:
+    """Locate the Objective-2 code (needs src/io_utils.py): $O2_ROOT first,
+    then the usual sibling locations."""
+    cands = [os.environ.get("O2_ROOT", ""),
+             REPO_ROOT.parent / "objective2_design_optimization",
+             REPO_ROOT.parents[2] / "new_obj" / "objective2_design_optimization",
+             REPO_ROOT.parents[1] / "objective2_design_optimization"]
+    for c in cands:
+        if c and (pathlib.Path(c) / "src" / "io_utils.py").exists():
+            return pathlib.Path(c)
+    return REPO_ROOT.parent / "objective2_design_optimization"
+
+
+_O2_ROOT  = _find_o2_root()
 for _p in [str(_O2_ROOT), str(REPO_ROOT)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
