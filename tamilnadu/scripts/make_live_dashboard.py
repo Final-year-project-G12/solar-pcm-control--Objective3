@@ -155,12 +155,14 @@ def run_rollout(algo: str, regime_id: int, year: int,
             draw = float(demand.draw_mass_kg_for_hour(hod))
             req = int(info["action_requested"])
             exe = int(info["action_executed"])
-            ts = (datetime.datetime(year, 1, 1) +
-                  datetime.timedelta(hours=hour_idx)).strftime("%d %b %H:%M")
+            # weather rows are indexed from 00:00 UTC; Tamil Nadu local time is UTC+5:30
+            t_ist = (datetime.datetime(year, 1, 1) +
+                     datetime.timedelta(minutes=hour_idx * 60 + 330))
+            ts = t_ist.strftime("%d %b %H:%M")
             recs.append({
                 "k":        len(recs),
                 "hour_idx": hour_idx,
-                "day":      hour_idx // 24,
+                "day":      (hour_idx * 60 + 330) // 1440,
                 "hod":      hod,
                 "ts":       ts,
                 "ghi":      round(ghi, 1),
@@ -355,6 +357,9 @@ _HTML_TEMPLATE = r"""<!doctype html>
   .cursor{height:34px;width:2px;background:var(--ink);position:relative;margin-top:-30px;transition:left .12s linear;pointer-events:none}
   .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
   .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .explain{margin-top:12px;border-left:4px solid var(--collect);background:rgba(42,120,214,.08);border-radius:6px;padding:9px 12px;font-size:13px;line-height:1.5}
+  .sc{cursor:pointer}
+  .sc:hover{border-color:var(--collect)}
   details{font-size:13px;line-height:1.55;color:var(--ink)}
   summary{cursor:pointer;font-weight:700;font-size:14px}
   details p{margin:8px 0}
@@ -388,6 +393,7 @@ _HTML_TEMPLATE = r"""<!doctype html>
       <div class="why" id="why"></div>
     </div>
     <div class="tiles" id="tiles"></div>
+    <div class="explain" id="explain">👆 Click any chart, coloured bar or scorecard for a short explanation.</div>
   </div>
 
   <div class="card"><div id="tempChart" style="height:290px"></div>
@@ -467,14 +473,20 @@ document.getElementById("verdict").innerHTML =
   "Hard safety limits were breached <b>"+safety+"</b> times.";
 
 const SC=[
- ["Hot-water energy delivered", del.toFixed(0)+" kWh", metPct.toFixed(1)+"% of demand met · always-on: "+B.del.toFixed(0)+" kWh ("+bMet.toFixed(1)+"%)"],
- ["Overheat guard hits", String(shield), "always-on pump: "+B.shield+" · each hit = wasted heat + thermal stress"],
- ["Pump actually ran", pumpHrs.toFixed(0)+" h", "of "+N+" h · "+pumpSun.toFixed(0)+" h of the "+sunHrs+" sunny hours"],
- ["Controller stepped in", (cnt.hold+cnt.bypass)+" h", cnt.hold+" h held off · "+cnt.bypass+" h bypass ("+DATA.filter(d=>d.overridden).length+" forced by shield) — only needed at hot midday"],
- ["Hard-limit breaches", String(safety), "75 °C water / 65 °C PCM limits — target is 0"],
+ ["Hot-water energy delivered", del.toFixed(0)+" kWh", metPct.toFixed(1)+"% of demand met · always-on: "+B.del.toFixed(0)+" kWh ("+bMet.toFixed(1)+"%)",
+  "Useful heat that reached the hot-water draw. "+(Math.abs(delDiff)<0.05?"Same as":"Within "+Math.abs(delDiff).toFixed(1)+"% of")+" an always-on pump, so no hot water is given up for the safety gains."],
+ ["Overheat guard hits", String(shield), "always-on pump: "+B.shield+" · each hit = wasted heat + thermal stress",
+  "A guard hit is a simulator sub-step where the safety shield had to isolate the collector at the 72 °C / 62 °C bands. Fewer hits = less dumped heat and less stress on tank and PCM."],
+ ["Pump actually ran", pumpHrs.toFixed(0)+" h", "of "+N+" h · "+pumpSun.toFixed(0)+" h of the "+sunHrs+" sunny hours",
+  "Real pump run-time from the simulator. The pump switches itself off at night and in weak sun even when the command is CHARGE."],
+ ["Controller stepped in", (cnt.hold+cnt.bypass)+" h", cnt.hold+" h held off · "+cnt.bypass+" h bypass ("+DATA.filter(d=>d.overridden).length+" forced by shield) — only needed at hot midday",
+  "Hours the pump was paused or the collector isolated. Overheating only threatens for a few midday hours, so this is a small share of the window by design."],
+ ["Hard-limit breaches", String(safety), "75 °C water / 65 °C PCM limits — target is 0",
+  "Times water went above 75 °C or PCM above 65 °C. The shield makes this 0 by design; it is the safety pass/fail check."],
 ];
 const scEl=document.getElementById("score");
-SC.forEach(([l,b,c])=>{const e=document.createElement("div");e.className="sc";
+SC.forEach(([l,b,c,x])=>{const e=document.createElement("div");e.className="sc";
+  e.onclick=()=>showEx("<b>"+l+"</b> — "+x);
   e.innerHTML='<div class="lab">'+l+'</div><div class="big">'+b+'</div><div class="ctx">'+c+'</div>';scEl.appendChild(e);});
 
 // ---------- temperature chart
@@ -482,8 +494,9 @@ const xs=DATA.map(d=>d.k), tw=DATA.map(d=>d.tw), tp=DATA.map(d=>d.tpcm), ghi=DAT
 const hl=(y,col,dash)=>({type:"line",x0:0,x1:N-1,y0:y,y1:y,xref:"x",yref:"y",line:{color:col,width:1,dash:dash}});
 const ann=(y,t,col)=>({x:N-1,y:y,xref:"x",yref:"y",text:t,showarrow:false,xanchor:"right",yanchor:"bottom",font:{size:10,color:col}});
 const nowLine=()=>({type:"line",x0:0,x1:0,y0:0,y1:1,xref:"x",yref:"paper",line:{color:INK,width:2}});
-const dayTicks=[], dayText=[]; let last=-1;
-DATA.forEach(d=>{ if(d.day!==last){dayTicks.push(d.k);dayText.push("day "+d.day);last=d.day;} });
+const dayLab=(d)=>d.ts?d.ts.slice(0,d.ts.lastIndexOf(" ")):("day "+d.day);
+const dayTicks=[], dayText=[]; let last="";
+DATA.forEach(d=>{ const l=dayLab(d); if(l!==last){dayTicks.push(d.k);dayText.push(l);last=l;} });
 Plotly.newPlot("tempChart",[
   {x:xs,y:tw,name:"Tank water",mode:"lines",line:{color:"#2a78d6",width:2}},
   {x:xs,y:tp,name:"PCM",mode:"lines",line:{color:"#eb6834",width:2}}],
@@ -498,11 +511,11 @@ Plotly.newPlot("tempChart",[
 const T_NOW=3;
 
 // ---------- hours-per-day stacked bars
-const days=[...new Set(DATA.map(d=>d.day))];
-const perDay=(m)=>days.map(dy=>DATA.filter(d=>d.day===dy&&mode(d)===m).length);
+const days=[...new Set(DATA.map(dayLab))];
+const perDay=(m)=>days.map(dy=>DATA.filter(d=>dayLab(d)===dy&&mode(d)===m).length);
 Plotly.newPlot("dayChart",["collect","hold","bypass","wait"].map(m=>({
     type:"bar",name:{collect:"Collecting",hold:"Held off",bypass:"Bypass",wait:"Standby"}[m],
-    x:days.map(x=>"day "+x),y:perDay(m),marker:{color:COL[m]}})),
+    x:days,y:perDay(m),marker:{color:COL[m]}})),
  {barmode:"stack",margin:{l:40,r:10,t:62,b:30},paper_bgcolor:PAPER,plot_bgcolor:PAPER,
   title:{text:"What the pump did each day (hours)",font:{size:13,color:INK},x:0},
   font:{color:MUT,size:11},legend:{orientation:"h",y:1.0,yanchor:"bottom",x:0},
@@ -556,6 +569,28 @@ document.getElementById("speed").onchange=(e)=>{stepMs=+e.target.value;if(timer)
 scrub.oninput=(e)=>{stop();k=+e.target.value;render(k);};
 ribbon.onclick=(e)=>{stop();const r=ribbon.getBoundingClientRect();
   k=Math.min(N-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*N)));render(k);};
+
+// ---------- click-to-explain
+const MODE_DEF={
+ collect:"The pump runs and moves solar heat into the tank and PCM; only happens when the collector is hotter than the tank.",
+ wait:"Pump off because there is no useful sun or no net gain; stored heat keeps serving the hot-water draw.",
+ hold:"Sun is available but the controller paused the pump to keep tank and PCM safely below their limits.",
+ bypass:"Collector isolated to stop overheating, chosen by the controller or forced by the safety shield."};
+const MNAME={collect:"Collecting",wait:"Standby",hold:"Held off",bypass:"Bypass"};
+function clockLabel(d){return d.ts||("day "+d.day+" "+String(d.hod).padStart(2,"0")+":00");}
+function showEx(html){document.getElementById("explain").innerHTML=html;}
+function jump(i){stop();k=Math.max(0,Math.min(N-1,Math.round(i)));render(k);return DATA[k];}
+document.getElementById("tempChart").on("plotly_click",e=>{
+  const d=jump(e.points[0].x);
+  showEx("<b>"+clockLabel(d)+"</b> — "+MNAME[mode(d)]+": water "+d.tw+" °C, PCM "+d.tpcm+" °C, sun "+Math.round(d.ghi)+" W/m².<br>"+reason(d));});
+document.getElementById("ghiChart").on("plotly_click",e=>{
+  const d=jump(e.points[0].x);
+  showEx("<b>"+clockLabel(d)+"</b> — sun is "+Math.round(d.ghi)+" W/m².<br>"+(d.ghi<SUN?"Below ~50 W/m² the collector cannot add heat, so the pump idles.":"More sun means faster heating; near midday it pushes the tank toward the guard band, when the controller must step in."));});
+document.getElementById("dayChart").on("plotly_click",e=>{
+  const p=e.points[0], m=["collect","hold","bypass","wait"][p.curveNumber];
+  showEx("<b>"+p.x+" — "+MNAME[m]+": "+p.y+" h.</b><br>"+MODE_DEF[m]);});
+ribbon.addEventListener("click",()=>{const d=DATA[k];
+  showEx("<b>"+clockLabel(d)+"</b> — "+MNAME[mode(d)]+".<br>"+reason(d));});
 render(0);
 </script>
 </div></body></html>
@@ -575,7 +610,7 @@ def main():
                     choices=list(_ALGO_DIR.keys()))
     ap.add_argument("--regime", type=int, default=0)
     ap.add_argument("--year", type=int, default=2021)
-    ap.add_argument("--start-day", type=int, default=160,
+    ap.add_argument("--start-day", type=int, default=90,
                     help="day-of-year the display window starts (warm-started)")
     ap.add_argument("--days", type=int, default=10)
     ap.add_argument("--live", action="store_true",
