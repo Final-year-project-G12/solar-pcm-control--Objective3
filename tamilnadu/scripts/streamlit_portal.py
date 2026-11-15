@@ -48,6 +48,24 @@ C_CHARGE, C_IDLE, C_BYPASS = "#2a78d6", "#1baf7a", "#eb6834"
 C_SAC, C_DQN = "#1baf7a", "#2a78d6"
 C_B0, C_B1 = "#8f8e88", "#b5b4ae"
 
+# what the pump PHYSICALLY did (CHARGE only permits it; the simulator cuts the
+# pump itself at night / when the collector has no net gain)
+MODE_COLOR = {"collect": "#2a78d6", "wait": "#b4b7bd", "hold": "#1baf7a", "bypass": "#eb6834"}
+MODE_LABEL = {"collect": "COLLECTING SOLAR HEAT", "wait": "STANDBY — PUMP OFF",
+              "hold": "HELD OFF (in sun)", "bypass": "BYPASS — OVERHEAT PROTECTION"}
+
+
+def pump_mode(r) -> str:
+    if r["exe"] == 2 and r["overridden"]:
+        return "bypass"
+    if r["ghi"] < 50 and r["pump"] < 0.5:
+        return "wait"
+    if r["exe"] == 2:
+        return "bypass"
+    if r["exe"] == 1:
+        return "hold"
+    return "collect" if r["pump"] >= 0.5 else "wait"
+
 st.set_page_config(page_title="O3 Controller Portal", layout="wide")
 
 st.title("Objective 3 — Climate-Adaptive PCM Controller Portal")
@@ -171,6 +189,15 @@ with tab_live:
                 st.session_state.recs2 = _run_one(
                     "dqn" if algo == "sac" else "sac", False, False) if compare else None
                 st.session_state.live_ctx = live_ctx
+                # always-on pump (B0) on the identical window, for comparison
+                if live_ctx is not None:
+                    st.session_state.base = run_rollout_live(
+                        algo, regime, live_ctx["wx_df"], live_ctx["iso_times"],
+                        force_charge=True)
+                else:
+                    st.session_state.base = run_rollout(
+                        algo, regime, year, start_day * 24, days * 24,
+                        force_charge=True)
             except Exception as e:
                 st.error(f"Run failed: {e}. If using LIVE mode, check network "
                          f"access to api.open-meteo.com, or try Historical replay.")
@@ -200,27 +227,48 @@ with tab_live:
                       f"historical year {year}, {days} days")
 
         last = df.iloc[-1]
-        mix = df["exe"].map(ACTION_SHORT).value_counts()
+        df["mode"] = df.apply(pump_mode, axis=1)
+        mix = df["mode"].value_counts()
         n_over = int(df["overridden"].sum())
+        base = st.session_state.get("base")
+        b = pd.DataFrame(base).iloc[-1] if base else None
 
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Delivered", f"{last['cum_del']:.1f} kWh")
-        c2.metric("Shield fires", f"{int(last['cum_shield']):,}")
-        c3.metric("Safety violations", int(last["cum_safety"]))
-        c4.metric("Shield overrode policy", f"{n_over} / {len(df)} hrs")
-        c5.metric("Action mix", ", ".join(f"{k} {v}" for k, v in mix.items()))
+        if b is not None:
+            d_del = 100 * (last["cum_del"] - b["cum_del"]) / b["cum_del"]
+            cut = (100 * (b["cum_shield"] - last["cum_shield"]) / b["cum_shield"]
+                   if b["cum_shield"] else 0.0)
+            c1.metric("Delivered", f"{last['cum_del']:.1f} kWh",
+                      f"{d_del:+.1f}% vs always-on ({b['cum_del']:.1f})",
+                      delta_color="off")
+            c2.metric("Overheat shield hits", f"{int(last['cum_shield']):,}",
+                      f"{cut:.0f}% fewer than always-on ({int(b['cum_shield']):,})")
+        else:
+            c1.metric("Delivered", f"{last['cum_del']:.1f} kWh")
+            c2.metric("Overheat shield hits", f"{int(last['cum_shield']):,}")
+        c3.metric("Hard-limit breaches", int(last["cum_safety"]))
+        c4.metric("Pump actually ran", f"{df['pump'].sum():.0f} / {len(df)} h")
+        c5.metric("Controller stepped in",
+                  f"{int(mix.get('hold', 0) + mix.get('bypass', 0))} h",
+                  f"{n_over} forced by shield", delta_color="off")
+        st.caption(
+            "CHARGE only *permits* the pump; the simulator switches it off itself at "
+            "night or when the collector has no net gain. Hours are therefore coloured "
+            "by what the pump physically did. 'Efficient' = same hot water with far "
+            "fewer overheat shield hits, not extra kWh.")
 
         st.subheader("Hour-by-hour playback")
         k = st.slider("Hour", 0, len(df) - 1, min(24, len(df) - 1),
                       step=int(autoplay_speed))
         row = df.iloc[k]
 
-        badge_color = {0: C_CHARGE, 1: C_IDLE, 2: C_BYPASS}[int(row["exe"])]
-        badge_text  = ACTION_NAME[int(row["exe"])]
+        badge_color = MODE_COLOR[row["mode"]]
+        badge_text  = MODE_LABEL[row["mode"]]
         st.markdown(
             f"""<div style="display:flex;gap:16px;align-items:center;margin:8px 0;">
             <div style="background:{badge_color};color:white;font-weight:700;
-                 font-size:20px;padding:10px 22px;border-radius:10px;">{badge_text}</div>
+                 font-size:20px;padding:10px 22px;border-radius:10px;
+                 {'color:#1a1a1a;' if row['mode'] == 'wait' else ''}">{badge_text}</div>
             {'<div style="background:#fff3e0;color:#8a4b00;font-weight:600;'
              'padding:8px 14px;border-radius:8px;border:1px solid #f0c38a;">'
              f'SHIELD OVERRODE POLICY (asked {ACTION_SHORT[int(row["req"])]})</div>'
@@ -296,10 +344,10 @@ with tab_live:
                 st.plotly_chart(fig_map, use_container_width=True)
         with col2:
             fig_a = go.Figure(go.Bar(
-                x=list(mix.index), y=list(mix.values),
-                marker_color=[{"CHARGE": C_CHARGE, "IDLE": C_IDLE,
-                              "BYPASS": C_BYPASS}[a] for a in mix.index]))
-            fig_a.update_layout(title="Action mix (whole window)", height=300,
+                x=[MODE_LABEL[m].split(" —")[0].title() for m in mix.index],
+                y=list(mix.values),
+                marker_color=[MODE_COLOR[m] for m in mix.index]))
+            fig_a.update_layout(title="What the pump did (hours, whole window)", height=300,
                                 template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
             st.plotly_chart(fig_a, use_container_width=True)
             st.dataframe(df[["ts", "exe", "overridden", "tw", "tpcm", "ghi"]]
